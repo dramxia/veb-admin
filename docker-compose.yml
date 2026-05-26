@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: veb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: veb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d veb']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: veb-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/veb?schema=public
+      NEXTAUTH_SECRET: replace-with-openssl-rand-base64-32
+      NEXTAUTH_URL: http://localhost:3000
+      UPLOAD_DIR: /app/uploads
+      STORAGE_KIND: local
+    ports:
+      - '3000:3000'
+    volumes:
+      - app-uploads:/app/uploads
+    command: sh -c "pnpm prisma db push && pnpm db:seed && pnpm start"
+
+volumes:
+  postgres-data:
+  app-uploads:
