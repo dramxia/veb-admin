@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { Xray } from '@stinsky/xray';
 import './globals.css';
 import { Providers } from './providers';
 
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN">
       <body>
         <Providers>{children}</Providers>
+        <Xray />
       </body>
     </html>
   );

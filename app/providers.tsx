@@ -1,8 +1,9 @@
 'use client';
 
-import { CacheProvider } from '@chakra-ui/next-js';
 import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
+import { RouteProgress } from '@/components/common/route-progress';
 
 const theme = extendTheme({
   colors: {
@@ -19,8 +20,11 @@ const theme = extendTheme({
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <CacheProvider>
-      <ChakraProvider theme={theme}>{children}</ChakraProvider>
-    </CacheProvider>
+    <ChakraProvider theme={theme}>
+      <Suspense fallback={null}>
+        <RouteProgress />
+      </Suspense>
+      {children}
+    </ChakraProvider>
   );
 }
