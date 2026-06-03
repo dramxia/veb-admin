@@ -1,4 +1,7 @@
-export async function listUsers() {
-  const res = await fetch('/api/system/users');
-  return res.json();
+'use client';
+
+import { requestJson } from '@/lib/client-api';
+
+export function getUsers() {
+  return requestJson('/api/system/users');
 }

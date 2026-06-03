@@ -9,9 +9,10 @@ import {
   ListItem,
   Progress,
   Text,
-  useToast,
 } from '@chakra-ui/react';
 import { DragEvent, useRef, useState } from 'react';
+import { useActionFeedback } from '@/components/common/use-action-feedback';
+import { requestJson } from '@/lib/client-api';
 import { t } from '@/lib/i18n';
 
 export type UploadedFile = {
@@ -29,37 +30,29 @@ type FileUploadProps = {
 
 export function FileUpload({ value = [], onChange }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const toast = useToast();
+  const { loading: uploading, run } = useActionFeedback();
 
   async function upload(fileList: FileList | null) {
     const file = fileList?.[0];
     if (!file || uploading) return;
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/files', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (!res.ok || json.code !== 0)
-        throw new Error(json.message || t('upload.failed'));
-      const nextFiles = [...files, json.data as UploadedFile];
-      const nextIds = [...value, json.data.id as string];
-      setFiles(nextFiles);
-      onChange?.(nextIds, nextFiles);
-      toast({ title: t('upload.success'), status: 'success' });
-    } catch (error) {
-      toast({
-        title: error instanceof Error ? error.message : t('upload.failed'),
-        status: 'error',
-      });
-    } finally {
-      setUploading(false);
-      setDragging(false);
-      if (inputRef.current) inputRef.current.value = '';
-    }
+
+    await run(
+      async () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadedFile = await requestJson<UploadedFile>('/api/files', { method: 'POST', body: formData });
+        const nextFiles = [...files, uploadedFile];
+        const nextIds = [...value, uploadedFile.id];
+        setFiles(nextFiles);
+        onChange?.(nextIds, nextFiles);
+      },
+      { successTitle: t('upload.success'), errorTitle: t('upload.failed') },
+    );
+
+    setDragging(false);
+    if (inputRef.current) inputRef.current.value = '';
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {

@@ -1,6 +1,16 @@
 'use client';
 
-import { Button, FormControl, FormLabel, Input, Stack, useToast } from '@chakra-ui/react';
+import {
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Stack,
+  Text,
+  useToast,
+} from '@chakra-ui/react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -13,33 +23,64 @@ export function LoginForm() {
 
   async function onSubmit(formData: FormData) {
     setLoading(true);
-    const result = await signIn('credentials', {
-      username: String(formData.get('username') ?? ''),
-      password: String(formData.get('password') ?? ''),
-      redirect: false,
-    });
-    setLoading(false);
+    try {
+      const result = await signIn('credentials', {
+        username: String(formData.get('username') ?? ''),
+        password: String(formData.get('password') ?? ''),
+        redirect: false,
+      });
 
-    if (result?.error) {
-      toast({ title: '账号或密码错误', status: 'error' });
-      return;
+      if (result?.error) {
+        toast({ title: '账号或密码错误', status: 'error' });
+        return;
+      }
+      router.replace(searchParams.get('callbackUrl') || '/');
+      router.refresh();
+    } catch (error) {
+      toast({ title: error instanceof Error ? error.message : '登录失败，请稍后重试', status: 'error' });
+    } finally {
+      setLoading(false);
     }
-    router.replace(searchParams.get('callbackUrl') || '/');
-    router.refresh();
   }
 
   return (
     <form action={onSubmit}>
-      <Stack spacing={4}>
+      <Stack spacing={5}>
         <FormControl isRequired>
-          <FormLabel>用户名</FormLabel>
-          <Input name="username" defaultValue="admin" autoComplete="username" />
+          <FormLabel color="ink.700" fontWeight="800">
+            用户名
+          </FormLabel>
+          <InputGroup>
+            <InputLeftElement pointerEvents="none" color="ink.400">
+              👤
+            </InputLeftElement>
+            <Input name="username" defaultValue="admin" autoComplete="username" size="lg" pl={11} />
+          </InputGroup>
         </FormControl>
         <FormControl isRequired>
-          <FormLabel>密码</FormLabel>
-          <Input name="password" type="password" defaultValue="Admin@123" autoComplete="current-password" />
+          <FormLabel color="ink.700" fontWeight="800">
+            密码
+          </FormLabel>
+          <InputGroup>
+            <InputLeftElement pointerEvents="none" color="ink.400">
+              🔑
+            </InputLeftElement>
+            <Input
+              name="password"
+              type="password"
+              defaultValue="Admin@123"
+              autoComplete="current-password"
+              size="lg"
+              pl={11}
+            />
+          </InputGroup>
         </FormControl>
-        <Button type="submit" colorScheme="blue" isLoading={loading}>登录</Button>
+        <Button type="submit" size="lg" isLoading={loading} mt={2}>
+          登录工作台
+        </Button>
+        <Text color="ink.400" fontSize="sm" textAlign="center">
+          默认演示账号已自动填充，可直接登录体验
+        </Text>
       </Stack>
     </form>
   );

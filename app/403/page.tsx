@@ -1,14 +1,14 @@
-import { Button, Center, Heading, Stack, Text } from '@chakra-ui/react';
-import Link from 'next/link';
+import { ErrorState } from '@/components/common/error-state';
 
 export default function ForbiddenPage() {
   return (
-    <Center minH="100vh">
-      <Stack align="center" spacing={4}>
-        <Heading>403</Heading>
-        <Text color="gray.500">你没有权限访问该页面</Text>
-        <Button as={Link} href="/" colorScheme="blue">返回首页</Button>
-      </Stack>
-    </Center>
+    <ErrorState
+      minH="100vh"
+      eyebrow="403"
+      title="你没有权限访问该页面"
+      status="warning"
+      description="如果你认为这是误判，请联系管理员检查角色和权限配置。"
+      actions={[{ label: '返回首页', href: '/' }]}
+    />
   );
 }
