@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: veb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: MmPovGhEzV3dTptUsctP86oZ9LUksjOe
     ports:
       - '5432:5432'
     volumes:
@@ -27,8 +27,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/veb?schema=public
-      NEXTAUTH_SECRET: replace-with-openssl-rand-base64-32
+      DATABASE_URL: postgresql://postgres:MmPovGhEzV3dTptUsctP86oZ9LUksjOe@postgres:5432/veb?schema=public
+      NEXTAUTH_SECRET: 46ZMvIfAALa+k84KOzQkIRoWdnPB4Vsq3y8UE2DuGiU=
       NEXTAUTH_URL: http://localhost:3000
       UPLOAD_DIR: /app/uploads
       STORAGE_KIND: local
