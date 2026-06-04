@@ -32,6 +32,7 @@ services:
       NEXTAUTH_URL: http://localhost:3000
       UPLOAD_DIR: /app/uploads
       STORAGE_KIND: local
+      AUTH_TRUST_HOST: "true"
     ports:
       - '3000:3000'
     volumes:

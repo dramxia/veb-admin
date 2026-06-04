@@ -87,6 +87,7 @@ async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
   providers: [
