@@ -33,7 +33,8 @@ const theme = extendTheme({
     },
   },
   fonts: {
-    heading: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    heading:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     body: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   radii: {
@@ -63,6 +64,9 @@ const theme = extendTheme({
         bg: 'brand.100',
         color: 'brand.800',
       },
+      'a, button': {
+        WebkitTapHighlightColor: 'transparent',
+      },
     },
   },
   components: {
@@ -91,6 +95,29 @@ const theme = extendTheme({
           _hover: { bg: 'blackAlpha.50' },
           _active: { bg: 'blackAlpha.100' },
         },
+        outline: {
+          borderColor: 'ink.200',
+          bg: 'whiteAlpha.700',
+          _hover: {
+            borderColor: 'brand.300',
+            bg: 'brand.50',
+            transform: 'translateY(-1px)',
+          },
+          _active: { transform: 'translateY(0)' },
+        },
+      },
+    },
+    Badge: {
+      baseStyle: {
+        px: 2.5,
+        py: 1,
+        borderRadius: 'full',
+        fontWeight: 800,
+        letterSpacing: '0.02em',
+        textTransform: 'none',
+      },
+      defaultProps: {
+        variant: 'subtle',
       },
     },
     Card: {
@@ -121,6 +148,22 @@ const theme = extendTheme({
         },
       },
     },
+    Select: {
+      variants: {
+        outline: {
+          field: {
+            borderRadius: '14px',
+            borderColor: 'ink.200',
+            bg: 'whiteAlpha.900',
+            _hover: { borderColor: 'brand.300' },
+            _focusVisible: {
+              borderColor: 'brand.500',
+              boxShadow: '0 0 0 3px rgba(22, 119, 255, 0.14)',
+            },
+          },
+        },
+      },
+    },
     Table: {
       baseStyle: {
         th: {
@@ -128,9 +171,11 @@ const theme = extendTheme({
           fontSize: 'xs',
           letterSpacing: '0.04em',
           borderColor: 'ink.100',
+          py: 3.5,
         },
         td: {
           borderColor: 'ink.100',
+          py: 3.5,
         },
       },
     },
