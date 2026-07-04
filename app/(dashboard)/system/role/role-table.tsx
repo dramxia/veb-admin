@@ -55,7 +55,10 @@ export function RoleTable({
     <>
       <DataTableCard
         minW="900px"
-        toolbar={
+        title="角色矩阵"
+        description="管理角色身份、授权范围与用户关联，保持权限体系可追踪。"
+        meta={`${roles.length} 个角色 · ${permissions.length} 个权限 · ${users.length} 个用户`}
+        primaryAction={
           <AuthButton
             code="system:role:create"
             isLoading={loading}
@@ -215,4 +218,3 @@ export function RoleTable({
     </>
   );
 }
-

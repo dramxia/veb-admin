@@ -99,4 +99,8 @@ body {
   .data-table-card::before {
     animation: none !important;
   }
+
+  .data-table-card tbody tr:hover {
+    transform: none !important;
+  }
 }

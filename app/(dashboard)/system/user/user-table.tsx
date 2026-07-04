@@ -124,7 +124,10 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
     <>
       <DataTableCard
         minW="920px"
-        toolbar={
+        title="用户账号"
+        description="集中维护登录账号、角色分配与账号状态，确保后台访问边界清晰。"
+        meta={`${users.length} 个账号 · ${roles.length} 个可分配角色`}
+        primaryAction={
           <AuthButton
             code="system:user:create"
             isLoading={loading}
@@ -304,4 +307,3 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
     </>
   );
 }
-

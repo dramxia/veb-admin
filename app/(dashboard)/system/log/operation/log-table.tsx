@@ -41,21 +41,22 @@ export function OperationLogTable({ logs }: { logs: OperationLog[] }) {
   return (
     <DataTableCard
       minW="1040px"
-      toolbar={
-        <>
-          <OperationLogFilter />
-          <Auth code="log:operation:export">
-            <Button
-              as={Link}
-              href={exportHref}
-              leftIcon={<Icon as={Download} boxSize={4} />}
-              variant="outline"
-            >
-              导出 CSV
-            </Button>
-          </Auth>
-        </>
+      title="操作日志"
+      description="追踪后台关键操作、执行结果和访问来源，用于审计与问题排查。"
+      meta={`${logs.length} 条最近记录`}
+      primaryAction={
+        <Auth code="log:operation:export">
+          <Button
+            as={Link}
+            href={exportHref}
+            leftIcon={<Icon as={Download} boxSize={4} />}
+            variant="outline"
+          >
+            导出 CSV
+          </Button>
+        </Auth>
       }
+      toolbar={<OperationLogFilter />}
     >
       <Table size="sm">
         <Thead>

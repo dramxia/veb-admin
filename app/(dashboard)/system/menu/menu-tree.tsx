@@ -67,7 +67,10 @@ export function MenuTree({
     <>
       <DataTableCard
         minW="980px"
-        toolbar={
+        title="菜单结构"
+        description="维护后台导航节点、页面入口和权限码绑定，保持菜单层级清晰。"
+        meta={`${menus.length} 个菜单节点 · ${permissions.length} 个可绑定权限`}
+        primaryAction={
           <AuthButton
             code="system:menu:create"
             isLoading={loading}
@@ -194,4 +197,3 @@ export function MenuTree({
     </>
   );
 }
-

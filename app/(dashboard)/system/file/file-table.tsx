@@ -59,7 +59,12 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
           <FileUpload onChange={() => router.refresh()} />
         </GlassPanel>
       </Auth>
-      <DataTableCard minW="960px">
+      <DataTableCard
+        minW="960px"
+        title="文件资产"
+        description="查看已上传文件、存储类型、上传人和访问操作，便于集中清理和追踪。"
+        meta={`${files.length} 个文件`}
+      >
         <Table size="sm">
           <Thead>
             <Tr>

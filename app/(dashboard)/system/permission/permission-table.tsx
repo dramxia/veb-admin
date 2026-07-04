@@ -42,7 +42,10 @@ export function PermissionTable({
     <>
       <DataTableCard
         minW="760px"
-        toolbar={
+        title="权限码"
+        description="维护菜单与按钮级权限码，为角色授权提供稳定的能力清单。"
+        meta={`${permissions.length} 个权限码`}
+        primaryAction={
           <AuthButton
             code="system:permission:create"
             isLoading={loading}
@@ -156,4 +159,3 @@ export function PermissionTable({
     </>
   );
 }
-
