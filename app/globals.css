@@ -7,7 +7,7 @@ body {
 }
 
 body {
-  background: #f6f8fc;
+  background: #f7faf7;
 }
 
 * {
@@ -24,14 +24,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.28);
+  background: rgba(100, 117, 107, 0.28);
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.42);
+  background: rgba(69, 85, 76, 0.42);
   border: 3px solid transparent;
   background-clip: padding-box;
 }
@@ -41,7 +41,7 @@ body {
 }
 
 #nprogress .bar {
-  background: linear-gradient(90deg, #1677ff, #6d5dfc);
+  background: linear-gradient(90deg, #21a66c, #74c7bb, #8ea7ff);
   height: 3px;
   left: 0;
   position: fixed;
@@ -51,7 +51,7 @@ body {
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px #1677ff, 0 0 5px #6d5dfc;
+  box-shadow: 0 0 10px #21a66c, 0 0 5px #74c7bb;
   display: block;
   height: 100%;
   opacity: 1;
@@ -59,4 +59,26 @@ body {
   right: 0;
   transform: rotate(3deg) translate(0, -4px);
   width: 100px;
+}
+
+@keyframes liquid-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.liquid-rise {
+  animation: liquid-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-rise {
+    animation: none;
+  }
 }

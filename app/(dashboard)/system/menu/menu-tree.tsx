@@ -1,7 +1,10 @@
 'use client';
 
-import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import { Badge, Icon, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from '@chakra-ui/react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
   EmptyTableRow,
@@ -9,6 +12,7 @@ import {
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
+import { MenuFormModal } from './menu-form-modal';
 
 type Menu = {
   id: string;
@@ -16,11 +20,13 @@ type Menu = {
   name: string;
   path: string;
   component: string | null;
+  icon: string | null;
   sort: number;
   type: string;
   permissionCode: string | null;
   visible: boolean;
   status: string;
+  externalUrl: string | null;
   isSystem: boolean;
 };
 type Permission = { code: string; name: string };
@@ -49,148 +55,143 @@ export function MenuTree({
   permissions: Permission[];
 }) {
   const { loading, run } = useActionFeedback({ refresh: true });
+  const formModal = useDisclosure();
+  const deleteDialog = useDisclosure();
+  const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
+  const [deletingMenu, setDeletingMenu] = useState<Menu | null>(null);
   const sorted = [...menus].sort(
     (a, b) => depthOf(a, menus) - depthOf(b, menus) || a.sort - b.sort,
   );
 
   return (
-    <DataTableCard
-      minW="980px"
-      toolbar={
-        <AuthButton
-          code="system:menu:create"
-          isLoading={loading}
-          onClick={() =>
-            run(async () => {
-              const name = prompt('菜单名称');
-              if (!name) return;
-              const path = prompt('路径，如 /system/demo');
-              if (!path) return;
-              const type = (
-                prompt('类型 DIR/PAGE/LINK', 'PAGE') || 'PAGE'
-              ).toUpperCase();
-              const permissionCode =
-                prompt(
-                  `MENU 权限码：\n${permissions.map((p) => `${p.name}: ${p.code}`).join('\n')}`,
-                  permissions[0]?.code || '',
-                ) || null;
-              const parentId =
-                prompt(
-                  `父菜单ID，可空：\n${menus.map((m) => `${m.name}: ${m.id}`).join('\n')}`,
-                  '',
-                ) || null;
-              const component =
-                type === 'PAGE'
-                  ? prompt('组件标识，如 example/page', 'example/page') || null
-                  : null;
-              await api('/api/system/menus', {
-                method: 'POST',
-                body: JSON.stringify({
-                  name,
-                  path,
-                  type,
-                  permissionCode,
-                  parentId,
-                  component,
-                  visible: true,
-                  status: 'ENABLED',
-                  sort: 0,
-                }),
+    <>
+      <DataTableCard
+        minW="980px"
+        toolbar={
+          <AuthButton
+            code="system:menu:create"
+            isLoading={loading}
+            icon={<Icon as={Plus} boxSize={4} />}
+            onClick={() => {
+              setEditingMenu(null);
+              formModal.onOpen();
+            }}
+          >
+            新增菜单
+          </AuthButton>
+        }
+      >
+        <Table size="sm">
+          <Thead>
+            <Tr>
+              <Th>名称</Th>
+              <Th>路径</Th>
+              <Th>类型</Th>
+              <Th>权限码</Th>
+              <Th>状态</Th>
+              <Th>系统</Th>
+              <Th>操作</Th>
+            </Tr>
+          </Thead>
+          {sorted.length > 0 ? (
+            <Tbody>
+              {sorted.map((menu) => (
+                <Tr key={menu.id}>
+                  <Td>
+                    {'　'.repeat(depthOf(menu, menus) - 1)}
+                    {menu.name}
+                  </Td>
+                  <Td>{menu.path}</Td>
+                  <Td>
+                    <Badge>{menu.type}</Badge>
+                  </Td>
+                  <Td>{menu.permissionCode || '-'}</Td>
+                  <Td>
+                    <Badge colorScheme={menu.status === 'ENABLED' ? 'green' : 'red'}>
+                      {menu.status}
+                    </Badge>
+                  </Td>
+                  <Td>{menu.isSystem ? '是' : '否'}</Td>
+                  <Td>
+                    <TableActions>
+                      <AuthButton
+                        code="system:menu:update"
+                        size="xs"
+                        intent="neutral"
+                        variant="ghost"
+                        tooltip="编辑菜单"
+                        icon={<Icon as={Pencil} boxSize={4} />}
+                        isDisabled={loading}
+                        onClick={() => {
+                          setEditingMenu(menu);
+                          formModal.onOpen();
+                        }}
+                      />
+                      <AuthButton
+                        code="system:menu:delete"
+                        size="xs"
+                        intent="danger"
+                        variant="ghost"
+                        tooltip="删除菜单"
+                        icon={<Icon as={Trash2} boxSize={4} />}
+                        isDisabled={loading || menu.isSystem}
+                        onClick={() => {
+                          setDeletingMenu(menu);
+                          deleteDialog.onOpen();
+                        }}
+                      />
+                    </TableActions>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          ) : (
+            <EmptyTableRow colSpan={7} text="暂无菜单数据" />
+          )}
+        </Table>
+      </DataTableCard>
+
+      <MenuFormModal
+        isOpen={formModal.isOpen}
+        isLoading={loading}
+        menu={editingMenu}
+        menus={menus}
+        permissions={permissions}
+        onClose={formModal.onClose}
+        onSubmit={(payload) =>
+          run(async () => {
+            if (editingMenu) {
+              await api(`/api/system/menus/${editingMenu.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload),
               });
-            })
-          }
-        >
-          新增菜单
-        </AuthButton>
-      }
-    >
-      <Table size="sm">
-        <Thead>
-          <Tr>
-            <Th>名称</Th>
-            <Th>路径</Th>
-            <Th>类型</Th>
-            <Th>权限码</Th>
-            <Th>状态</Th>
-            <Th>系统</Th>
-            <Th>操作</Th>
-          </Tr>
-        </Thead>
-        {sorted.length > 0 ? (
-          <Tbody>
-            {sorted.map((menu) => (
-              <Tr key={menu.id}>
-                <Td>
-                  {'　'.repeat(depthOf(menu, menus) - 1)}
-                  {menu.name}
-                </Td>
-                <Td>{menu.path}</Td>
-                <Td>
-                  <Badge>{menu.type}</Badge>
-                </Td>
-                <Td>{menu.permissionCode || '-'}</Td>
-                <Td>
-                  <Badge
-                    colorScheme={menu.status === 'ENABLED' ? 'green' : 'red'}
-                  >
-                    {menu.status}
-                  </Badge>
-                </Td>
-                <Td>{menu.isSystem ? '是' : '否'}</Td>
-                <Td>
-                  <TableActions>
-                    <AuthButton
-                      code="system:menu:update"
-                      size="xs"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          const name = prompt('菜单名称', menu.name);
-                          if (name === null) return;
-                          const component =
-                            menu.type === 'PAGE'
-                              ? prompt('组件标识', menu.component || '')
-                              : null;
-                          await api(`/api/system/menus/${menu.id}`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({
-                              name,
-                              ...(component !== null
-                                ? { component: component || null }
-                                : {}),
-                            }),
-                          });
-                        })
-                      }
-                    >
-                      编辑
-                    </AuthButton>
-                    <AuthButton
-                      code="system:menu:delete"
-                      size="xs"
-                      colorScheme="red"
-                      variant="outline"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          if (!confirm(`确认删除菜单 ${menu.name}？`)) return;
-                          await api(`/api/system/menus/${menu.id}`, {
-                            method: 'DELETE',
-                          });
-                        })
-                      }
-                    >
-                      删除
-                    </AuthButton>
-                  </TableActions>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        ) : (
-          <EmptyTableRow colSpan={7} text="暂无菜单数据" />
-        )}
-      </Table>
-    </DataTableCard>
+              return;
+            }
+            await api('/api/system/menus', {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+          })
+        }
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="删除菜单"
+        description={`确认删除菜单 ${deletingMenu?.name ?? ''}？子菜单和权限绑定关系请先确认。`}
+        confirmLabel="删除"
+        intent="danger"
+        isLoading={loading}
+        onClose={deleteDialog.onClose}
+        onConfirm={async () => {
+          const ok = await run(async () => {
+            if (!deletingMenu) return;
+            await api(`/api/system/menus/${deletingMenu.id}`, { method: 'DELETE' });
+          });
+          if (ok) deleteDialog.onClose();
+        }}
+      />
+    </>
   );
 }
+

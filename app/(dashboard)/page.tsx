@@ -3,26 +3,30 @@ export const dynamic = 'force-dynamic';
 import {
   Badge,
   Box,
-  Card,
-  CardBody,
   Flex,
-  Heading,
   HStack,
   SimpleGrid,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
   Text,
   VStack,
 } from '@chakra-ui/react';
+import {
+  Compass,
+  KeyRound,
+  ListTree,
+  Shield,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import { GlassPanel } from '@/components/common/glass-panel';
+import { MetricIsland } from '@/components/common/metric-island';
+import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { prisma } from '@/lib/prisma';
 
 const statMeta = [
-  { label: '用户数', icon: '👥', accent: '#1677ff', help: '系统账号总量' },
-  { label: '角色数', icon: '🛡️', accent: '#7c3aed', help: '权限分组规模' },
-  { label: '权限数', icon: '🔐', accent: '#059669', help: '可控操作节点' },
-  { label: '菜单数', icon: '🧭', accent: '#ea580c', help: '已配置导航项' },
+  { label: '用户数', icon: Users, accent: '#21a66c', help: '系统账号总量' },
+  { label: '角色数', icon: Shield, accent: '#7e966d', help: '权限分组规模' },
+  { label: '权限数', icon: KeyRound, accent: '#35a7a0', help: '可控操作节点' },
+  { label: '菜单数', icon: ListTree, accent: '#7c8fe8', help: '已配置导航项' },
 ];
 
 export default async function DashboardPage() {
@@ -33,95 +37,123 @@ export default async function DashboardPage() {
     prisma.menu.count(),
   ]);
   const values = [userCount, roleCount, permissionCount, menuCount];
+  const total = values.reduce((sum, value) => sum + value, 0);
 
   return (
-    <VStack align="stretch" spacing={6}>
-      <Card
-        bg="linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(238,247,255,0.92) 100%)"
-        borderColor="whiteAlpha.900"
-        position="relative"
-        overflow="hidden"
-        _before={{
-          content: '""',
-          position: 'absolute',
-          inset: '-35% auto auto 55%',
-          w: '420px',
-          h: '420px',
-          rounded: 'full',
-          bg: 'radial-gradient(circle, rgba(22, 119, 255, 0.18), transparent 68%)',
-        }}
-      >
-        <CardBody position="relative" p={{ base: 6, md: 8 }}>
-          <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" gap={6}>
-            <Box maxW="680px">
-              <Badge colorScheme="blue" rounded="full" px={3} py={1} mb={4}>
-                Overview
-              </Badge>
-              <Heading size="xl" color="ink.900" letterSpacing="-0.04em" mb={3}>
-                仪表盘
-              </Heading>
-              <Text color="ink.600" fontSize={{ base: 'md', md: 'lg' }} lineHeight="1.8">
-                欢迎使用 VEB 管理后台。这里汇总了用户、角色、权限和菜单的核心数据，
-                帮你快速了解当前系统配置状态。
-              </Text>
-            </Box>
+    <WorkspaceCanvas
+      eyebrow="Overview"
+      title="清爽、聚焦、可配置的管理工作台"
+      description="VEB 汇总账号、角色、权限和菜单的核心配置状态，让管理员从一个轻量工作空间进入日常维护。"
+      heroSlot={
+        <HStack spacing={3} wrap="wrap">
+          <Badge colorScheme="green">RBAC</Badge>
+          <Badge colorScheme="cyan">动态菜单</Badge>
+          <Badge colorScheme="purple">操作审计</Badge>
+        </HStack>
+      }
+      sideSlot={
+        <GlassPanel variant="soft" p={6} minH="220px">
+          <VStack align="stretch" spacing={5}>
+            <Flex align="center" justify="space-between">
+              <Box>
+                <Text color="surface.500" fontWeight="800" fontSize="sm">
+                  系统配置密度
+                </Text>
+                <Text color="surface.900" fontSize="5xl" fontWeight="900" lineHeight="1">
+                  {total}
+                </Text>
+              </Box>
+              <Flex
+                w="58px"
+                h="58px"
+                rounded="3xl"
+                align="center"
+                justify="center"
+                bg="rgba(232, 246, 236, 0.84)"
+                color="brand.700"
+              >
+                <Sparkles size={28} />
+              </Flex>
+            </Flex>
+            <Text color="surface.600" lineHeight="1.8">
+              当前工作台保持轻量信息架构，导航、权限与数据管理仍完全由数据库配置驱动。
+            </Text>
+            <HStack spacing={2} wrap="wrap">
+              <Badge colorScheme="green">健康</Badge>
+              <Badge colorScheme="gray">M4 UI</Badge>
+            </HStack>
+          </VStack>
+        </GlassPanel>
+      }
+    >
+      <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={5}>
+        {statMeta.map((item, index) => {
+          const StatIcon = item.icon;
+          return (
+            <MetricIsland
+              key={item.label}
+              icon={<StatIcon size={20} />}
+              label={item.label}
+              value={values[index]}
+              help={item.help}
+              accent={item.accent}
+              transform={{ xl: index % 2 === 0 ? 'translateY(18px)' : 'translateY(-6px)' }}
+            />
+          );
+        })}
+      </SimpleGrid>
+
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5} mt={{ base: 5, xl: 9 }}>
+        <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
+          <HStack align="flex-start" spacing={4}>
             <Flex
+              w="48px"
+              h="48px"
+              rounded="2xl"
               align="center"
               justify="center"
-              w={{ base: 'full', md: '180px' }}
-              minH="132px"
-              rounded="3xl"
-              bg="linear-gradient(135deg, #1677ff 0%, #6d5dfc 100%)"
-              color="white"
-              boxShadow="glow"
+              bg="rgba(232, 246, 236, 0.84)"
+              color="brand.700"
+              flexShrink={0}
             >
-              <VStack spacing={0}>
-                <Text fontSize="4xl" fontWeight="900" lineHeight="1">
-                  {values.reduce((sum, value) => sum + value, 0)}
-                </Text>
-                <Text fontSize="sm" opacity={0.86} fontWeight="700">
-                  总配置项
-                </Text>
-              </VStack>
+              <Compass size={20} />
             </Flex>
-          </Flex>
-        </CardBody>
-      </Card>
+            <Box>
+              <Text color="surface.900" fontSize="lg" fontWeight="900">
+                导航由菜单树驱动
+              </Text>
+              <Text mt={2} color="surface.600" lineHeight="1.8">
+                底部 Liquid Dock 继续复用服务端下发的菜单树，权限变化后仍按当前用户可见范围渲染。
+              </Text>
+            </Box>
+          </HStack>
+        </GlassPanel>
 
-      <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
-        {statMeta.map((item, index) => (
-          <Card key={item.label} role="group" transition="all 0.2s ease" _hover={{ transform: 'translateY(-4px)', boxShadow: 'soft' }}>
-            <CardBody p={6}>
-              <HStack justify="space-between" align="flex-start" mb={5}>
-                <Flex
-                  w="46px"
-                  h="46px"
-                  rounded="2xl"
-                  align="center"
-                  justify="center"
-                  fontSize="xl"
-                  bg={`${item.accent}16`}
-                  boxShadow={`inset 0 0 0 1px ${item.accent}22`}
-                >
-                  {item.icon}
-                </Flex>
-                <Box w="8px" h="8px" rounded="full" bg={item.accent} opacity={0.72} />
-              </HStack>
-              <Stat>
-                <StatLabel color="ink.500" fontWeight="800">
-                  {item.label}
-                </StatLabel>
-                <StatNumber color="ink.900" fontSize="4xl" letterSpacing="-0.04em">
-                  {values[index]}
-                </StatNumber>
-                <StatHelpText mb={0} color="ink.500">
-                  {item.help}
-                </StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-        ))}
+        <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
+          <HStack align="flex-start" spacing={4}>
+            <Flex
+              w="48px"
+              h="48px"
+              rounded="2xl"
+              align="center"
+              justify="center"
+              bg="rgba(237, 247, 248, 0.84)"
+              color="#247a78"
+              flexShrink={0}
+            >
+              <Shield size={20} />
+            </Flex>
+            <Box>
+              <Text color="surface.900" fontSize="lg" fontWeight="900">
+                权限边界保持不变
+              </Text>
+              <Text mt={2} color="surface.600" lineHeight="1.8">
+                UI 改造只影响交互层和展示层，按钮权限、页面守卫和 API 守卫仍沿用原有链路。
+              </Text>
+            </Box>
+          </HStack>
+        </GlassPanel>
       </SimpleGrid>
-    </VStack>
+    </WorkspaceCanvas>
   );
 }

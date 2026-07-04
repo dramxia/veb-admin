@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Card, CardBody, CardHeader, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
+import { Button, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
+import { GlassPanel } from '@/components/common/glass-panel';
 import { requestJson } from '@/lib/client-api';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 
@@ -25,11 +26,11 @@ export function ProfileForm({ user }: { user: User }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <Heading size="md">资料信息</Heading>
-      </CardHeader>
-      <CardBody>
+    <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
+      <Stack spacing={5}>
+        <Heading size="md" letterSpacing="0">
+          资料信息
+        </Heading>
         <form action={onSubmit}>
           <Stack spacing={4}>
             <FormControl>
@@ -51,7 +52,7 @@ export function ProfileForm({ user }: { user: User }) {
             <Button type="submit" isLoading={loading}>保存资料</Button>
           </Stack>
         </form>
-      </CardBody>
-    </Card>
+      </Stack>
+    </GlassPanel>
   );
 }

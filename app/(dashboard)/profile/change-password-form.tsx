@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Card, CardBody, CardHeader, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
+import { Button, FormControl, FormLabel, Heading, Input, Stack } from '@chakra-ui/react';
+import { GlassPanel } from '@/components/common/glass-panel';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
 
@@ -22,11 +23,11 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <Heading size="md">修改密码</Heading>
-      </CardHeader>
-      <CardBody>
+    <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
+      <Stack spacing={5}>
+        <Heading size="md" letterSpacing="0">
+          修改密码
+        </Heading>
         <form action={onSubmit}>
           <Stack spacing={4}>
             <FormControl isRequired>
@@ -40,7 +41,7 @@ export function ChangePasswordForm() {
             <Button type="submit" variant="outline" isLoading={loading}>修改密码</Button>
           </Stack>
         </form>
-      </CardBody>
-    </Card>
+      </Stack>
+    </GlassPanel>
   );
 }

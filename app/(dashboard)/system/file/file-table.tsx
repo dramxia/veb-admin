@@ -2,8 +2,8 @@
 
 import {
   Badge,
-  Box,
   Button,
+  Icon,
   Link,
   Table,
   Tbody,
@@ -11,16 +11,22 @@ import {
   Th,
   Thead,
   Tr,
+  Tooltip,
+  useDisclosure,
 } from '@chakra-ui/react';
+import { Download, ExternalLink, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
   EmptyTableRow,
   TableActions,
 } from '@/components/common/data-table';
 import { FileUpload } from '@/components/common/file-upload';
+import { GlassPanel } from '@/components/common/glass-panel';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
 
@@ -43,13 +49,15 @@ function formatSize(size: number) {
 export function FileTable({ files }: { files: ManagedFile[] }) {
   const router = useRouter();
   const { loading, run } = useActionFeedback({ refresh: true });
+  const deleteDialog = useDisclosure();
+  const [deletingFile, setDeletingFile] = useState<ManagedFile | null>(null);
 
   return (
-    <Box>
+    <>
       <Auth code="system:file:upload">
-        <Box mb={4}>
+        <GlassPanel variant="soft" p={4} mb={5}>
           <FileUpload onChange={() => router.refresh()} />
-        </Box>
+        </GlassPanel>
       </Auth>
       <DataTableCard minW="960px">
         <Table size="sm">
@@ -82,43 +90,29 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
                   </Td>
                   <Td>
                     <TableActions>
-                      <Button
-                        as={Link}
-                        href={file.url}
-                        target="_blank"
-                        size="xs"
-                      >
-                        预览
-                      </Button>
-                      <Button
-                        as={Link}
-                        href={`${file.url}?download=1`}
-                        size="xs"
-                        variant="outline"
-                      >
-                        下载
-                      </Button>
+                      <Tooltip label="预览文件" hasArrow>
+                        <Button as={Link} href={file.url} target="_blank" size="xs" variant="ghost" aria-label="预览文件">
+                          <Icon as={ExternalLink} boxSize={4} />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip label="下载文件" hasArrow>
+                        <Button as={Link} href={`${file.url}?download=1`} size="xs" variant="ghost" aria-label="下载文件">
+                          <Icon as={Download} boxSize={4} />
+                        </Button>
+                      </Tooltip>
                       <AuthButton
                         code="system:file:delete"
                         size="xs"
-                        colorScheme="red"
-                        variant="outline"
+                        intent="danger"
+                        variant="ghost"
+                        tooltip="删除文件"
+                        icon={<Icon as={Trash2} boxSize={4} />}
                         isDisabled={loading}
-                        onClick={() =>
-                          run(
-                            () =>
-                              requestJson(`/api/files/${file.id}`, {
-                                method: 'DELETE',
-                              }),
-                            {
-                              successTitle: '删除成功',
-                              errorTitle: '删除失败',
-                            },
-                          )
-                        }
-                      >
-                        删除
-                      </AuthButton>
+                        onClick={() => {
+                          setDeletingFile(file);
+                          deleteDialog.onOpen();
+                        }}
+                      />
                     </TableActions>
                   </Td>
                 </Tr>
@@ -129,6 +123,29 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
           )}
         </Table>
       </DataTableCard>
-    </Box>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="删除文件"
+        description={`确认删除文件 ${deletingFile?.name ?? ''}？该操作不可撤销。`}
+        confirmLabel="删除"
+        intent="danger"
+        isLoading={loading}
+        onClose={deleteDialog.onClose}
+        onConfirm={async () => {
+          const ok = await run(
+            () =>
+              deletingFile
+                ? requestJson(`/api/files/${deletingFile.id}`, { method: 'DELETE' })
+                : undefined,
+            {
+              successTitle: '删除成功',
+              errorTitle: '删除失败',
+            },
+          );
+          if (ok) deleteDialog.onClose();
+        }}
+      />
+    </>
   );
 }

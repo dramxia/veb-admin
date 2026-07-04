@@ -18,7 +18,7 @@ export function DashboardShell({ children, user, menus, permissionCodes }: Dashb
   return (
     <Box
       minH="100vh"
-      bg="linear-gradient(135deg, #f8fbff 0%, #f3f7ff 46%, #eef4ff 100%)"
+      bg="linear-gradient(135deg, #fbfdfb 0%, #eef7f1 38%, #f6f8fb 68%, #edf7f8 100%)"
       position="relative"
       overflowX="hidden"
       _before={{
@@ -26,19 +26,23 @@ export function DashboardShell({ children, user, menus, permissionCodes }: Dashb
         position: 'fixed',
         inset: 0,
         pointerEvents: 'none',
-        bg: 'radial-gradient(circle at 12% 10%, rgba(22, 119, 255, 0.14), transparent 28%), radial-gradient(circle at 88% 4%, rgba(99, 102, 241, 0.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.10), transparent 32%)',
+        bg: 'linear-gradient(115deg, rgba(255,255,255,0.78), rgba(255,255,255,0.18) 42%, rgba(228,244,236,0.42)), repeating-linear-gradient(90deg, rgba(23,33,29,0.025) 0, rgba(23,33,29,0.025) 1px, transparent 1px, transparent 120px)',
+        maskImage: 'linear-gradient(180deg, black, rgba(0,0,0,0.72))',
       }}
     >
       <MenuStoreInitializer menus={menus} permissionCodes={permissionCodes} user={user} />
-      <Header user={user} />
+      <Box px={{ base: 3, md: 5, xl: 8 }} pt={{ base: 3, md: 4 }} position="relative" zIndex={2}>
+        <Header user={user} initialMenus={menus} />
+      </Box>
       <Box
         as="main"
         position="relative"
-        maxW="1280px"
+        maxW="1460px"
         mx="auto"
-        px={{ base: 4, md: 6, xl: 8 }}
-        pt={{ base: 5, md: 8 }}
-        pb="calc(136px + env(safe-area-inset-bottom))"
+        px={{ base: 3, md: 5, xl: 8 }}
+        pt={{ base: 5, md: 7 }}
+        pb="calc(148px + env(safe-area-inset-bottom))"
+        zIndex={1}
       >
         {children}
       </Box>

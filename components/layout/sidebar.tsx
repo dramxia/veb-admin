@@ -1,6 +1,21 @@
 'use client';
 
-import { Box, Flex, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import { Box, Flex, Icon, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import { motion } from 'framer-motion';
+import {
+  Circle,
+  Compass,
+  FileBox,
+  Folder,
+  Home,
+  LayoutDashboard,
+  ListTree,
+  LucideIcon,
+  ScrollText,
+  Shield,
+  User,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -45,20 +60,39 @@ function isDockItemActive(pathname: string, item: DockMenu) {
   return isActive(pathname, item.menu.path) || item.children.some((child) => isActive(pathname, child.path));
 }
 
-function getMenuIcon(menu: MenuNode) {
-  if (menu.icon) return menu.icon;
-  if (menu.path === '/') return '⌘';
-  if (menu.path.startsWith('/system')) return '⚙';
-  if (menu.path.startsWith('/profile')) return '👤';
-  if (menu.path.includes('user')) return '人';
-  if (menu.path.includes('role')) return '盾';
-  if (menu.path.includes('file')) return '夹';
-  if (menu.path.includes('log')) return '志';
-  return menu.name.slice(0, 1);
+const iconMap: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  home: Home,
+  system: Compass,
+  users: Users,
+  user: User,
+  role: Shield,
+  shield: Shield,
+  permission: Shield,
+  menu: ListTree,
+  file: FileBox,
+  folder: Folder,
+  log: ScrollText,
+  profile: User,
+};
+
+function getMenuIcon(menu: MenuNode): LucideIcon {
+  const configured = menu.icon?.toLowerCase();
+  if (configured && iconMap[configured]) return iconMap[configured];
+  if (menu.path === '/') return LayoutDashboard;
+  if (menu.path.startsWith('/profile')) return User;
+  if (menu.path.includes('user')) return Users;
+  if (menu.path.includes('role')) return Shield;
+  if (menu.path.includes('permission')) return Shield;
+  if (menu.path.includes('menu')) return ListTree;
+  if (menu.path.includes('file')) return FileBox;
+  if (menu.path.includes('log')) return ScrollText;
+  if (menu.path.startsWith('/system')) return Compass;
+  return Circle;
 }
 
 // 动画曲线：模拟苹果的弹性动画
-const springTransition = 'all 0.4s cubic-bezier(0.25, 1.2, 0.5, 1)';
+const springTransition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
 const fadeTransition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
 
 function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; pathname: string }) {
@@ -73,12 +107,12 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
       transform="translateX(-50%) translateY(10px) scale(0.9)"
       transformOrigin="bottom center"
       zIndex={10}
-      minW="120px"
+      minW="148px"
       p={1.5}
       rounded="2xl"
-      bg="rgba(255, 255, 255, 0.75)"
-      border="1px solid rgba(255, 255, 255, 0.8)"
-      boxShadow="0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.02)"
+      bg="rgba(255, 255, 255, 0.72)"
+      border="1px solid rgba(255, 255, 255, 0.78)"
+      boxShadow="0 20px 58px rgba(23, 33, 29, 0.14), inset 0 1px 0 rgba(255,255,255,0.72)"
       opacity={0}
       pointerEvents="none"
       transition={springTransition}
@@ -119,13 +153,13 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
             rounded="xl"
             fontSize="sm"
             fontWeight={active ? '600' : '500'}
-            color={active ? 'gray.900' : 'gray.600'}
-            bg={active ? 'rgba(0, 0, 0, 0.04)' : 'transparent'}
+            color={active ? 'surface.900' : 'surface.600'}
+            bg={active ? 'rgba(33, 166, 108, 0.10)' : 'transparent'}
             whiteSpace="nowrap"
             transition={fadeTransition}
             _hover={{
-              bg: 'rgba(0, 0, 0, 0.06)',
-              color: 'gray.900',
+              bg: 'rgba(33, 166, 108, 0.12)',
+              color: 'surface.900',
               textDecoration: 'none',
               transform: 'scale(1.02)', // 子项轻微放大
             }}
@@ -143,7 +177,7 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
   const external = isExternalHref(href);
   const active = isDockItemActive(pathname, item);
   const hasChildren = item.children.length > 0;
-  const icon = getMenuIcon(item.menu);
+  const MenuIcon = getMenuIcon(item.menu);
 
   return (
     <Box
@@ -156,34 +190,45 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
     >
       {hasChildren && <DockSubMenu childrenMenus={item.children} pathname={pathname} />}
 
-      <ChakraLink
-        as={Link}
-        href={href}
-        target={external ? '_blank' : undefined}
-        rel={external ? 'noreferrer' : undefined}
-        aria-label={item.menu.name}
-        display="grid"
-        placeItems="center"
-        w="48px" // 基础尺寸稍微减小，让放大效果更明显
-        h="48px"
-        rounded="2xl" // 圆角矩形比纯圆更现代（类似 iOS/macOS 图标）
-        bg="transparent"
-        color="gray.700"
-        fontSize="2xl"
-        transition={springTransition}
-        _groupHover={{
-          bg: 'rgba(255, 255, 255, 0.5)',
-          transform: 'translateY(-12px) scale(1.3)', // Mac 经典放大上浮效果
-          boxShadow: '0 10px 20px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.8)',
-          color: 'gray.900',
-          zIndex: 2,
-        }}
-        _hover={{ textDecoration: 'none' }}
+      <motion.div
+        whileHover={{ y: -11, scale: 1.22 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 24 }}
       >
-        <Text as="span" lineHeight="1">
-          {icon}
-        </Text>
-      </ChakraLink>
+        <ChakraLink
+          as={Link}
+          href={href}
+          target={external ? '_blank' : undefined}
+          rel={external ? 'noreferrer' : undefined}
+          aria-label={item.menu.name}
+          display="grid"
+          placeItems="center"
+          w="48px"
+          h="48px"
+          rounded="2xl"
+          bg={active ? 'rgba(33, 166, 108, 0.18)' : 'rgba(255,255,255,0.20)'}
+          color={active ? 'brand.700' : 'surface.700'}
+          transition={springTransition}
+          boxShadow={
+            active
+              ? 'inset 0 1px 0 rgba(255,255,255,0.82), 0 12px 26px rgba(33,166,108,0.18)'
+              : 'inset 0 1px 0 rgba(255,255,255,0.64)'
+          }
+          _groupHover={{
+            bg: 'rgba(255, 255, 255, 0.56)',
+            boxShadow: '0 16px 30px rgba(23,33,29,0.12), inset 0 1px 1px rgba(255,255,255,0.82)',
+            color: 'surface.900',
+            zIndex: 2,
+          }}
+          _hover={{ textDecoration: 'none' }}
+          _focusVisible={{
+            outline: 'none',
+            boxShadow: '0 0 0 3px rgba(33,166,108,0.24)',
+          }}
+        >
+          <Icon as={MenuIcon} boxSize={5} strokeWidth={2.2} />
+        </ChakraLink>
+      </motion.div>
 
       {/* 活跃状态的小圆点 (Mac 经典指示器) */}
       <Box 
@@ -192,7 +237,7 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
         w="4px"
         h="4px"
         rounded="full"
-        bg={active ? 'gray.800' : 'transparent'}
+        bg={active ? 'brand.600' : 'transparent'}
         transition={fadeTransition}
       />
 
@@ -204,7 +249,7 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
           px={3}
           py={1.5}
           rounded="xl"
-          bg="rgba(0, 0, 0, 0.75)"
+          bg="rgba(23, 33, 29, 0.78)"
           color="white"
           fontSize="xs"
           fontWeight="medium"
@@ -248,14 +293,20 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
       py={2.5}
       gap={2}
       rounded="3xl" // 整个 Dock 呈现大圆角胶囊状
-      bg="rgba(255, 255, 255, 0.4)" // 降低基础不透明度，强化毛玻璃
-      border="1px solid rgba(255, 255, 255, 0.4)"
+      bg="rgba(255, 255, 255, 0.48)" // 降低基础不透明度，强化毛玻璃
+      border="1px solid rgba(255, 255, 255, 0.62)"
       borderTopColor="rgba(255, 255, 255, 0.8)" // 模拟光线从上方打下来的反光边
-      boxShadow="0 20px 40px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.3)"
+      boxShadow="0 24px 70px rgba(23, 33, 29, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.48)"
       overflow="visible"
+      maxW="calc(100vw - 24px)"
       sx={{
-        backdropFilter: 'blur(32px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+        backdropFilter: 'blur(34px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(34px) saturate(200%)',
+        '@media (max-width: 640px)': {
+          overflowX: 'auto',
+          overflowY: 'visible',
+          justifyContent: 'flex-start',
+        },
       }}
     >
       {dockMenus.map((item) => (

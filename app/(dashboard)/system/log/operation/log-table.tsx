@@ -3,6 +3,7 @@
 import {
   Badge,
   Button,
+  Icon,
   Link,
   Table,
   Tbody,
@@ -11,6 +12,7 @@ import {
   Thead,
   Tr,
 } from '@chakra-ui/react';
+import { Download } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Auth } from '@/components/auth/auth';
 import { DataTableCard, EmptyTableRow } from '@/components/common/data-table';
@@ -46,7 +48,7 @@ export function OperationLogTable({ logs }: { logs: OperationLog[] }) {
             <Button
               as={Link}
               href={exportHref}
-              colorScheme="blue"
+              leftIcon={<Icon as={Download} boxSize={4} />}
               variant="outline"
             >
               导出 CSV

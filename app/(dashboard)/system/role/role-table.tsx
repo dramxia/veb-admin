@@ -1,7 +1,10 @@
 'use client';
 
-import { Badge, Table, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import { Badge, Icon, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from '@chakra-ui/react';
+import { KeyRound, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
   EmptyTableRow,
@@ -9,6 +12,9 @@ import {
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
+import { AssignPermissionDrawer } from './assign-permission-drawer';
+import { AssignUserDrawer } from './assign-user-drawer';
+import { RoleFormModal } from './role-form-modal';
 
 type Role = {
   id: string;
@@ -27,13 +33,6 @@ function api<T = unknown>(path: string, init: RequestInit) {
   return requestJson<T>(path, init);
 }
 
-function parseIdList(value: string) {
-  return value
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
-
 export function RoleTable({
   roles,
   permissions,
@@ -44,151 +43,176 @@ export function RoleTable({
   users: User[];
 }) {
   const { loading, run } = useActionFeedback({ refresh: true });
+  const formModal = useDisclosure();
+  const permissionDrawer = useDisclosure();
+  const userDrawer = useDisclosure();
+  const deleteDialog = useDisclosure();
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
 
   return (
-    <DataTableCard
-      minW="900px"
-      toolbar={
-        <AuthButton
-          code="system:role:create"
-          isLoading={loading}
-          onClick={() =>
-            run(async () => {
-              const code = prompt('角色编码，如 manager');
-              if (!code) return;
-              const name = prompt('角色名称', code) || code;
-              await api('/api/system/roles', {
-                method: 'POST',
-                body: JSON.stringify({
-                  code,
-                  name,
-                  status: 'ENABLED',
-                  sort: 0,
-                }),
+    <>
+      <DataTableCard
+        minW="900px"
+        toolbar={
+          <AuthButton
+            code="system:role:create"
+            isLoading={loading}
+            icon={<Icon as={Plus} boxSize={4} />}
+            onClick={() => {
+              setEditingRole(null);
+              formModal.onOpen();
+            }}
+          >
+            新增角色
+          </AuthButton>
+        }
+      >
+        <Table size="sm">
+          <Thead>
+            <Tr>
+              <Th>编码</Th>
+              <Th>名称</Th>
+              <Th>状态</Th>
+              <Th>用户数</Th>
+              <Th>权限数</Th>
+              <Th>系统</Th>
+              <Th>操作</Th>
+            </Tr>
+          </Thead>
+          {roles.length > 0 ? (
+            <Tbody>
+              {roles.map((role) => (
+                <Tr key={role.id}>
+                  <Td>{role.code}</Td>
+                  <Td>{role.name}</Td>
+                  <Td>
+                    <Badge colorScheme={role.status === 'ENABLED' ? 'green' : 'red'}>
+                      {role.status}
+                    </Badge>
+                  </Td>
+                  <Td>{role._count.users}</Td>
+                  <Td>{role._count.permissions}</Td>
+                  <Td>{role.isSystem ? '是' : '否'}</Td>
+                  <Td>
+                    <TableActions>
+                      <AuthButton
+                        code="system:role:update"
+                        size="xs"
+                        intent="neutral"
+                        variant="ghost"
+                        tooltip="编辑角色"
+                        icon={<Icon as={Pencil} boxSize={4} />}
+                        isDisabled={loading}
+                        onClick={() => {
+                          setEditingRole(role);
+                          formModal.onOpen();
+                        }}
+                      />
+                      <AuthButton
+                        code="system:role:assign-permission"
+                        size="xs"
+                        intent="neutral"
+                        variant="ghost"
+                        tooltip="分配权限"
+                        icon={<Icon as={KeyRound} boxSize={4} />}
+                        isDisabled={loading}
+                        onClick={() => {
+                          setSelectedRole(role);
+                          permissionDrawer.onOpen();
+                        }}
+                      />
+                      <AuthButton
+                        code="system:role:assign-user"
+                        size="xs"
+                        intent="neutral"
+                        variant="ghost"
+                        tooltip="分配用户"
+                        icon={<Icon as={Users} boxSize={4} />}
+                        isDisabled={loading}
+                        onClick={() => {
+                          setSelectedRole(role);
+                          userDrawer.onOpen();
+                        }}
+                      />
+                      <AuthButton
+                        code="system:role:delete"
+                        size="xs"
+                        intent="danger"
+                        variant="ghost"
+                        tooltip="删除角色"
+                        icon={<Icon as={Trash2} boxSize={4} />}
+                        isDisabled={loading || role.isSystem}
+                        onClick={() => {
+                          setDeletingRole(role);
+                          deleteDialog.onOpen();
+                        }}
+                      />
+                    </TableActions>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          ) : (
+            <EmptyTableRow colSpan={7} text="暂无角色数据" />
+          )}
+        </Table>
+      </DataTableCard>
+
+      <RoleFormModal
+        isOpen={formModal.isOpen}
+        isLoading={loading}
+        role={editingRole}
+        onClose={formModal.onClose}
+        onSubmit={(payload) =>
+          run(async () => {
+            if (editingRole) {
+              await api(`/api/system/roles/${editingRole.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload),
               });
-            })
-          }
-        >
-          新增角色
-        </AuthButton>
-      }
-    >
-      <Table size="sm">
-        <Thead>
-          <Tr>
-            <Th>编码</Th>
-            <Th>名称</Th>
-            <Th>状态</Th>
-            <Th>用户数</Th>
-            <Th>权限数</Th>
-            <Th>系统</Th>
-            <Th>操作</Th>
-          </Tr>
-        </Thead>
-        {roles.length > 0 ? (
-          <Tbody>
-            {roles.map((role) => (
-              <Tr key={role.id}>
-                <Td>{role.code}</Td>
-                <Td>{role.name}</Td>
-                <Td>
-                  <Badge
-                    colorScheme={role.status === 'ENABLED' ? 'green' : 'red'}
-                  >
-                    {role.status}
-                  </Badge>
-                </Td>
-                <Td>{role._count.users}</Td>
-                <Td>{role._count.permissions}</Td>
-                <Td>{role.isSystem ? '是' : '否'}</Td>
-                <Td>
-                  <TableActions>
-                    <AuthButton
-                      code="system:role:update"
-                      size="xs"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          const name = prompt('角色名称', role.name);
-                          if (name === null) return;
-                          await api(`/api/system/roles/${role.id}`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ name }),
-                          });
-                        })
-                      }
-                    >
-                      编辑
-                    </AuthButton>
-                    <AuthButton
-                      code="system:role:assign-permission"
-                      size="xs"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          const ids = prompt(
-                            `权限ID，逗号分隔：\n${permissions.map((p) => `${p.code}: ${p.id}`).join('\n')}`,
-                          );
-                          if (ids === null) return;
-                          await api(
-                            `/api/system/roles/${role.id}/permissions`,
-                            {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                permissionIds: parseIdList(ids),
-                              }),
-                            },
-                          );
-                        })
-                      }
-                    >
-                      权限
-                    </AuthButton>
-                    <AuthButton
-                      code="system:role:assign-user"
-                      size="xs"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          const ids = prompt(
-                            `用户ID，逗号分隔：\n${users.map((u) => `${u.nickname || u.username}: ${u.id}`).join('\n')}`,
-                          );
-                          if (ids === null) return;
-                          await api(`/api/system/roles/${role.id}/users`, {
-                            method: 'POST',
-                            body: JSON.stringify({ userIds: parseIdList(ids) }),
-                          });
-                        })
-                      }
-                    >
-                      用户
-                    </AuthButton>
-                    <AuthButton
-                      code="system:role:delete"
-                      size="xs"
-                      colorScheme="red"
-                      variant="outline"
-                      isDisabled={loading}
-                      onClick={() =>
-                        run(async () => {
-                          if (!confirm(`确认删除角色 ${role.name}？`)) return;
-                          await api(`/api/system/roles/${role.id}`, {
-                            method: 'DELETE',
-                          });
-                        })
-                      }
-                    >
-                      删除
-                    </AuthButton>
-                  </TableActions>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        ) : (
-          <EmptyTableRow colSpan={7} text="暂无角色数据" />
-        )}
-      </Table>
-    </DataTableCard>
+              return;
+            }
+            await api('/api/system/roles', {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+          })
+        }
+      />
+
+      <AssignPermissionDrawer
+        isOpen={permissionDrawer.isOpen}
+        role={selectedRole}
+        permissions={permissions}
+        onClose={permissionDrawer.onClose}
+      />
+
+      <AssignUserDrawer
+        isOpen={userDrawer.isOpen}
+        role={selectedRole}
+        users={users}
+        onClose={userDrawer.onClose}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="删除角色"
+        description={`确认删除角色 ${deletingRole?.name ?? ''}？有关联用户的角色会被后端拒绝删除。`}
+        confirmLabel="删除"
+        intent="danger"
+        isLoading={loading}
+        onClose={deleteDialog.onClose}
+        onConfirm={async () => {
+          const ok = await run(async () => {
+            if (!deletingRole) return;
+            await api(`/api/system/roles/${deletingRole.id}`, { method: 'DELETE' });
+          });
+          if (ok) deleteDialog.onClose();
+        }}
+      />
+    </>
   );
 }
+

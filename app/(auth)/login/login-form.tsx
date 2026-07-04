@@ -4,6 +4,7 @@ import {
   Button,
   FormControl,
   FormLabel,
+  Icon,
   Input,
   InputGroup,
   InputLeftElement,
@@ -11,6 +12,7 @@ import {
   Text,
   useToast,
 } from '@chakra-ui/react';
+import { LockKeyhole, UserRound } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -52,7 +54,7 @@ export function LoginForm() {
           </FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none" color="ink.400">
-              👤
+              <Icon as={UserRound} boxSize={4} />
             </InputLeftElement>
             <Input name="username" defaultValue="admin" autoComplete="username" size="lg" pl={11} />
           </InputGroup>
@@ -63,7 +65,7 @@ export function LoginForm() {
           </FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none" color="ink.400">
-              🔑
+              <Icon as={LockKeyhole} boxSize={4} />
             </InputLeftElement>
             <Input
               name="password"
