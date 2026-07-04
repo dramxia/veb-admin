@@ -1,9 +1,53 @@
 'use client';
 
-import { ChakraProvider, extendTheme } from '@chakra-ui/react';
+import {
+  ChakraProvider,
+  extendTheme,
+  type StyleFunctionProps,
+} from '@chakra-ui/react';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { RouteProgress } from '@/components/common/route-progress';
+
+const badgeSubtleStyles = ({ colorScheme }: StyleFunctionProps) => {
+  const scheme = colorScheme ?? 'gray';
+  const styles: Record<
+    string,
+    { bg: string; borderColor: string; boxShadow: string; color: string }
+  > = {
+    cyan: {
+      bg: 'rgba(224, 247, 250, 0.62)',
+      borderColor: 'rgba(6, 182, 212, 0.20)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
+      color: '#0e7490',
+    },
+    gray: {
+      bg: 'rgba(248, 250, 252, 0.66)',
+      borderColor: 'rgba(148, 163, 184, 0.22)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
+      color: '#475569',
+    },
+    green: {
+      bg: 'rgba(239, 252, 245, 0.70)',
+      borderColor: 'rgba(33, 166, 108, 0.24)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)',
+      color: '#126b45',
+    },
+    red: {
+      bg: 'rgba(254, 242, 242, 0.68)',
+      borderColor: 'rgba(229, 62, 62, 0.22)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
+      color: '#b91c1c',
+    },
+  };
+
+  return styles[scheme] ?? {
+    bg: 'rgba(243, 251, 247, 0.66)',
+    borderColor: 'rgba(49, 168, 120, 0.20)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
+    color: 'mint.700',
+  };
+};
 
 const theme = extendTheme({
   colors: {
@@ -164,15 +208,20 @@ const theme = extendTheme({
     },
     Badge: {
       baseStyle: {
+        borderWidth: '1px',
         px: 2.5,
         py: 1,
         borderRadius: 'full',
-        fontWeight: 800,
+        fontWeight: 750,
         letterSpacing: '0',
         textTransform: 'none',
+        backdropFilter: 'blur(12px) saturate(170%)',
       },
       defaultProps: {
         variant: 'subtle',
+      },
+      variants: {
+        subtle: badgeSubtleStyles,
       },
     },
     Card: {
@@ -224,13 +273,18 @@ const theme = extendTheme({
       baseStyle: {
         th: {
           color: 'surface.600',
-          fontSize: 'xs',
+          fontSize: '11px',
+          fontWeight: 800,
           letterSpacing: '0',
-          borderColor: 'rgba(148, 166, 155, 0.16)',
-          py: 3.5,
+          borderColor: 'rgba(148, 166, 155, 0.13)',
+          lineHeight: '1.35',
+          py: 3,
+          textTransform: 'uppercase',
         },
         td: {
-          borderColor: 'rgba(148, 166, 155, 0.16)',
+          borderColor: 'rgba(148, 166, 155, 0.12)',
+          fontSize: 'sm',
+          lineHeight: '1.55',
           py: 3.5,
         },
       },

@@ -73,6 +73,20 @@ body {
   }
 }
 
+@keyframes table-glass-drift {
+  0% {
+    transform: translate3d(-7%, -5%, 0) scale(1);
+  }
+
+  45% {
+    transform: translate3d(5%, 3%, 0) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(9%, -2%, 0) scale(1.01);
+  }
+}
+
 .liquid-rise {
   animation: liquid-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -80,5 +94,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .liquid-rise {
     animation: none;
+  }
+
+  .data-table-card::before {
+    animation: none !important;
   }
 }
