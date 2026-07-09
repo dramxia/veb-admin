@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 1066",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 1066",
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",

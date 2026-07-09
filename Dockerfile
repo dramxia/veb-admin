@@ -18,7 +18,7 @@ RUN pnpm exec prisma generate \
 
 FROM base AS runner
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=1066
 ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/package.json ./package.json
@@ -28,5 +28,5 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/prisma ./prisma
 
 RUN mkdir -p /app/uploads
-EXPOSE 3000
+EXPOSE 1066
 CMD ["pnpm", "start"]

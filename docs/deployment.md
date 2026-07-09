@@ -11,7 +11,7 @@ docker compose up --build
 默认暴露：
 
 ```text
-http://localhost:3000
+http://localhost:1066
 ```
 
 内置账号：
@@ -25,7 +25,7 @@ admin / Admin@123
 ### app
 
 - 基于仓库根目录 `Dockerfile` 构建。
-- 监听容器内 `3000` 端口。
+- 监听容器内 `1066` 端口。
 - 启动前执行数据库结构同步与 seed。
 - 上传文件保存到 `/app/uploads`。
 
@@ -66,7 +66,7 @@ openssl rand -base64 32
 本地：
 
 ```env
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:1066"
 ```
 
 生产：
@@ -104,10 +104,10 @@ docker build -t veb-app .
 运行时需要外部 PostgreSQL：
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 1066:1066 \
   -e DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/veb?schema=public" \
   -e NEXTAUTH_SECRET="replace-with-real-secret" \
-  -e NEXTAUTH_URL="http://localhost:3000" \
+  -e NEXTAUTH_URL="http://localhost:1066" \
   -e UPLOAD_DIR="/app/uploads" \
   -e STORAGE_KIND="local" \
   -v veb-uploads:/app/uploads \
@@ -154,7 +154,7 @@ Nginx 反向代理示例：
 
 ```nginx
 location / {
-  proxy_pass http://app:3000;
+  proxy_pass http://app:1066;
   proxy_set_header Host $host;
   proxy_set_header X-Forwarded-Proto $scheme;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

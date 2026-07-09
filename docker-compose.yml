@@ -29,12 +29,12 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:MmPovGhEzV3dTptUsctP86oZ9LUksjOe@postgres:5432/veb?schema=public
       NEXTAUTH_SECRET: 46ZMvIfAALa+k84KOzQkIRoWdnPB4Vsq3y8UE2DuGiU=
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:1066
       UPLOAD_DIR: /app/uploads
       STORAGE_KIND: local
       AUTH_TRUST_HOST: "true"
     ports:
-      - '3000:3000'
+      - '1066:1066'
     volumes:
       - app-uploads:/app/uploads
     command: sh -c "pnpm prisma db push && pnpm db:seed && pnpm start"

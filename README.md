@@ -50,7 +50,7 @@ cp .env.example .env
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/veb?schema=public"
 NEXTAUTH_SECRET="replace-with-openssl-rand-base64-32"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:1066"
 UPLOAD_DIR="./uploads"
 STORAGE_KIND="local"
 ```
@@ -88,7 +88,7 @@ pnpm dev
 访问：
 
 ```text
-http://localhost:3000
+http://localhost:1066
 ```
 
 ## 🐳 Docker Compose 启动
@@ -118,7 +118,7 @@ pnpm start
 访问：
 
 ```text
-http://localhost:3000
+http://localhost:1066
 ```
 
 ## 📁 目录索引
