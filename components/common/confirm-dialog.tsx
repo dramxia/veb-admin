@@ -1,20 +1,27 @@
 'use client';
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   AlertDialog,
   AlertDialogBody,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Box,
   Button,
+  Stack,
 } from '@chakra-ui/react';
+import type { ReactNode } from 'react';
 import { useRef } from 'react';
 
 type ConfirmDialogProps = {
   isOpen: boolean;
   title: string;
-  description: string;
+  description: ReactNode;
+  error?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   intent?: 'danger' | 'primary';
@@ -27,6 +34,7 @@ export function ConfirmDialog({
   isOpen,
   title,
   description,
+  error,
   confirmLabel = '确认',
   cancelLabel = '取消',
   intent = 'primary',
@@ -43,28 +51,21 @@ export function ConfirmDialog({
       onClose={onClose}
       isCentered
     >
-      <AlertDialogOverlay
-        bg="rgba(248, 251, 255, 0.62)"
-        backdropFilter="blur(16px)"
-      >
-        <AlertDialogContent
-          rounded="3xl"
-          borderWidth="1px"
-          borderColor="rgba(255,255,255,0.78)"
-          bg="rgba(255,255,255,0.90)"
-          boxShadow="glass"
-          sx={{
-            backdropFilter: 'blur(28px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          }}
-        >
-          <AlertDialogHeader color="ink.900" fontWeight="900">
-            {title}
-          </AlertDialogHeader>
-          <AlertDialogBody color="ink.600" lineHeight="1.8">
-            {description}
+      <AlertDialogOverlay>
+        <AlertDialogContent>
+          <AlertDialogHeader>{title}</AlertDialogHeader>
+          <AlertDialogBody>
+            <Stack spacing={4}>
+              <Box>{description}</Box>
+              {error ? (
+                <Alert status="error" aria-live="polite">
+                  <AlertIcon />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
+            </Stack>
           </AlertDialogBody>
-          <AlertDialogFooter gap={3}>
+          <AlertDialogFooter>
             <Button
               ref={cancelRef}
               variant="ghost"

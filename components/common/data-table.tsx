@@ -2,11 +2,11 @@
 
 import {
   Box,
-  Center,
   Button,
+  Center,
   Flex,
-  HStack,
   Heading,
+  HStack,
   Icon,
   TableContainer,
   Tbody,
@@ -43,229 +43,127 @@ export function DataTableCard({
   ...boxProps
 }: DataTableCardProps) {
   const hasHeader = Boolean(title || description || meta || primaryAction);
+  const tableLabel = typeof title === 'string' ? title : '数据表格';
 
   return (
     <GlassPanel
-      variant="soft"
-      rounded="3xl"
-      overflow="hidden"
+      variant="solid"
       className={['data-table-card', className].filter(Boolean).join(' ')}
-      borderColor="rgba(255, 255, 255, 0.78)"
-      bg="rgba(255, 255, 255, 0.74)"
-      boxShadow="0 18px 44px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255,255,255,0.82)"
-      isolation="isolate"
-      _before={{
-        bg: 'radial-gradient(circle at 16% 12%, rgba(22, 119, 255, 0.08), transparent 28%), radial-gradient(circle at 86% 6%, rgba(109, 93, 252, 0.06), transparent 26%)',
-        content: '""',
-        filter: 'blur(24px)',
-        inset: '-34% -24% 48% -24%',
-        opacity: 0.9,
-        pointerEvents: 'none',
-        position: 'absolute',
-        zIndex: 0,
-      }}
-      _after={{
-        bg: 'linear-gradient(180deg, rgba(255,255,255,0.62), transparent 36%)',
-        boxShadow:
-          'inset 0 1px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(255,255,255,0.42)',
-        content: '""',
-        inset: 0,
-        pointerEvents: 'none',
-        position: 'absolute',
-        zIndex: 0,
-      }}
       {...boxProps}
     >
-      <Box position="relative" zIndex={1}>
-        {hasHeader ? (
-          <Flex
-            align={{ base: 'stretch', md: 'flex-start' }}
-            direction={{ base: 'column', md: 'row' }}
-            gap={4}
-            justify="space-between"
-            px={{ base: 4, md: 6 }}
-            pt={{ base: 5, md: 6 }}
-            pb={toolbar ? 3 : 4}
-          >
-            <VStack align="stretch" spacing={2} minW={0}>
-              {meta ? (
-                <Box
-                  alignSelf="flex-start"
-                  px={3}
-                  py={1.5}
-                  rounded="full"
-                  borderWidth="1px"
-                  borderColor="rgba(255,255,255,0.76)"
-                  bg="rgba(255,255,255,0.48)"
-                  color="brand.700"
-                  fontSize="xs"
-                  fontWeight="800"
-                  lineHeight="1.2"
-                  boxShadow="inset 0 1px 0 rgba(255,255,255,0.76)"
-                  sx={{
-                    backdropFilter: 'blur(18px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                  }}
-                >
-                  {meta}
-                </Box>
-              ) : null}
-              {title ? (
-                <Heading
-                  as="h2"
-                  color="ink.900"
-                  fontSize={{ base: 'xl', md: '2xl' }}
-                  letterSpacing="0"
-                  lineHeight="1.08"
-                >
-                  {title}
-                </Heading>
-              ) : null}
-              {description ? (
-                <Text
-                  color="ink.600"
-                  fontSize="sm"
-                  lineHeight="1.75"
-                  maxW="720px"
-                >
-                  {description}
-                </Text>
-              ) : null}
-            </VStack>
-            {primaryAction ? (
-              <Flex
-                justify={{ base: 'flex-start', md: 'flex-end' }}
-                flexShrink={0}
-              >
-                <Box
-                  className="data-table-primary-action"
-                  rounded="18px"
-                  borderWidth="1px"
-                  borderColor="rgba(255,255,255,0.72)"
-                  bg="rgba(255,255,255,0.36)"
-                  p={1.5}
-                  boxShadow="inset 0 1px 0 rgba(255,255,255,0.72), 0 12px 28px rgba(15,23,42,0.06)"
-                  _empty={{ display: 'none' }}
-                  sx={{
-                    backdropFilter: 'blur(18px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                  }}
-                >
-                  {primaryAction}
-                </Box>
-              </Flex>
-            ) : null}
-          </Flex>
-        ) : null}
-
-        {toolbar ? (
-          <Box
-            mx={{ base: 4, md: 6 }}
-            mb={4}
-            p={{ base: 3, md: 4 }}
-            rounded="24px"
-            borderWidth="1px"
-            borderColor="rgba(255,255,255,0.74)"
-            bg="rgba(255,255,255,0.64)"
-            zIndex={4}
-            boxShadow="0 12px 30px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.82)"
-            sx={{
-              backdropFilter: 'blur(30px) saturate(190%)',
-              WebkitBackdropFilter: 'blur(30px) saturate(190%)',
-            }}
-          >
-            {toolbar}
-          </Box>
-        ) : null}
-
-        <TableContainer
-          overflowX="auto"
-          px={{ base: 3, md: 5 }}
-          pb={{ base: 3, md: 5 }}
-          sx={{
-            '& table': {
-              minWidth: minW,
-              borderCollapse: 'separate',
-              borderSpacing: '0 8px',
-            },
-            '& thead th': {
-              position: 'sticky',
-              top: 0,
-              zIndex: 2,
-              bg: 'rgba(255,255,255,0.82)',
-              borderBottomColor: 'ink.100',
-              borderTopWidth: '1px',
-              borderTopColor: 'rgba(255,255,255,0.72)',
-              color: 'ink.500',
-              fontSize: 'xs',
-              fontWeight: 700,
-              letterSpacing: '0',
-              py: 3,
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)',
-            },
-            '& thead th:first-of-type': {
-              borderLeftWidth: '1px',
-              borderLeftColor: 'rgba(255,255,255,0.72)',
-              borderTopLeftRadius: '18px',
-              borderBottomLeftRadius: '18px',
-              pl: 5,
-            },
-            '& thead th:last-of-type': {
-              borderRightWidth: '1px',
-              borderRightColor: 'rgba(255,255,255,0.72)',
-              borderTopRightRadius: '18px',
-              borderBottomRightRadius: '18px',
-              pr: 5,
-            },
-            '& tbody tr': {
-              position: 'relative',
-              transition: 'background 0.2s ease, box-shadow 0.2s ease',
-            },
-            '& tbody td': {
-              bg: 'rgba(255,255,255,0.68)',
-              borderBottomWidth: '1px',
-              borderBottomColor: 'rgba(226,232,240,0.64)',
-              borderTopWidth: '1px',
-              borderTopColor: 'rgba(226,232,240,0.54)',
-              color: 'ink.700',
-              py: 4,
-              verticalAlign: 'middle',
-              transition:
-                'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-            },
-            '& tbody td:first-of-type': {
-              borderLeftWidth: '1px',
-              borderLeftColor: 'rgba(255,255,255,0.72)',
-              borderTopLeftRadius: '22px',
-              borderBottomLeftRadius: '22px',
-              boxShadow: 'inset 3px 0 0 rgba(22,119,255,0.12)',
-              pl: 5,
-            },
-            '& tbody td:last-of-type': {
-              borderRightWidth: '1px',
-              borderRightColor: 'rgba(255,255,255,0.72)',
-              borderTopRightRadius: '22px',
-              borderBottomRightRadius: '22px',
-              pr: 5,
-            },
-            '& tbody tr:hover td': {
-              bg: 'rgba(238,247,255,0.62)',
-              borderColor: 'rgba(183,221,255,0.66)',
-              color: 'ink.800',
-            },
-            '& tbody tr:hover td:first-of-type': {
-              boxShadow: 'inset 4px 0 0 rgba(22,119,255,0.62)',
-            },
-            '& tbody tr:last-of-type td': {
-              borderBottomWidth: '1px',
-            },
-          }}
+      {hasHeader ? (
+        <Flex
+          align={{ base: 'stretch', md: 'flex-start' }}
+          direction={{ base: 'column', md: 'row' }}
+          gap={4}
+          justify="space-between"
+          px={{ base: 4, md: 5 }}
+          py={{ base: 4, md: 5 }}
         >
-          {children}
-        </TableContainer>
-      </Box>
+          <VStack align="stretch" spacing={1.5} minW={0}>
+            {meta ? (
+              <Box color="brand.700" fontSize="xs" fontWeight="700">
+                {meta}
+              </Box>
+            ) : null}
+            {title ? (
+              <Heading as="h2" color="ink.900" fontSize="lg" lineHeight="1.35">
+                {title}
+              </Heading>
+            ) : null}
+            {description ? (
+              <Text
+                color="ink.600"
+                fontSize="sm"
+                lineHeight="1.65"
+                maxW="720px"
+              >
+                {description}
+              </Text>
+            ) : null}
+          </VStack>
+
+          {primaryAction ? (
+            <Flex
+              className="data-table-primary-action"
+              flexShrink={0}
+              justify={{ base: 'flex-start', md: 'flex-end' }}
+            >
+              {primaryAction}
+            </Flex>
+          ) : null}
+        </Flex>
+      ) : null}
+
+      {toolbar ? (
+        <Box
+          layerStyle="toolbarSurface"
+          boxShadow="none"
+          mx={{ base: 3, md: 5 }}
+          mb={4}
+          p={{ base: 3, md: 4 }}
+        >
+          {toolbar}
+        </Box>
+      ) : null}
+
+      <TableContainer
+        aria-label={tableLabel}
+        role="region"
+        tabIndex={0}
+        overflowX="auto"
+        borderTopWidth="1px"
+        borderColor="borderSubtle"
+        _focusVisible={{ boxShadow: 'focusRing', outline: 'none' }}
+        sx={{
+          '& table': {
+            minWidth: minW,
+            borderCollapse: 'collapse',
+          },
+          '& thead th': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 2,
+            bg: 'surfaceSolidBg',
+            borderBottomColor: 'borderSubtle',
+            color: 'ink.500',
+            fontSize: 'xs',
+            fontWeight: 700,
+            py: 3,
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          },
+          '& thead th:first-of-type, & tbody td:first-of-type': {
+            pl: { base: 4, md: 5 },
+          },
+          '& thead th:last-of-type, & tbody td:last-of-type': {
+            pr: { base: 4, md: 5 },
+          },
+          '& tbody tr': {
+            transition: 'background 160ms ease',
+          },
+          '& tbody td': {
+            bg: 'transparent',
+            borderBottomColor: 'borderSubtle',
+            color: 'ink.700',
+            py: 3.5,
+            verticalAlign: 'middle',
+            transition: 'background 160ms ease, color 160ms ease',
+          },
+          '& tbody tr:not([data-empty-state]):hover td': {
+            bg: 'tableHoverBg',
+            color: 'ink.800',
+          },
+          '& tbody tr[aria-selected="true"] td': {
+            bg: 'tableSelectedBg',
+          },
+          '& tbody tr:last-of-type td': {
+            borderBottomWidth: 0,
+          },
+        }}
+      >
+        {children}
+      </TableContainer>
     </GlassPanel>
   );
 }
@@ -275,21 +173,14 @@ export function TableActions({ children, ...props }: StackProps) {
     <HStack
       spacing={1}
       wrap="nowrap"
-      rounded="full"
-      borderWidth="1px"
-      borderColor="rgba(255,255,255,0.66)"
-      bg="rgba(255,255,255,0.44)"
-      p={1}
       w="fit-content"
-      boxShadow="inset 0 1px 0 rgba(255,255,255,0.74)"
       _empty={{ display: 'none' }}
       sx={{
-        backdropFilter: 'blur(16px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-        '& .chakra-button': {
-          borderRadius: '999px',
-          height: '30px',
-          minWidth: '30px',
+        '& > .chakra-button, & > button, & > a': {
+          borderRadius: '12px',
+          h: '36px',
+          minH: '36px',
+          minW: '36px',
         },
       }}
       {...props}
@@ -310,55 +201,45 @@ export function EmptyTableRow({
   description?: ReactNode;
   text?: string;
 }) {
+  const nextStep =
+    description ??
+    (action
+      ? '请使用下方操作继续。'
+      : '请检查筛选条件，或刷新后重新获取数据。');
+
   return (
     <Tbody>
-      <Tr>
-        <Td colSpan={colSpan} py={4}>
+      <Tr data-empty-state>
+        <Td colSpan={colSpan} p={0}>
           <Center
+            layerStyle="subtleSurface"
             flexDirection="column"
-            minH="220px"
-            color="ink.400"
-            rounded="26px"
-            borderWidth="1px"
-            borderColor="rgba(255,255,255,0.78)"
-            bg="linear-gradient(135deg, rgba(255,255,255,0.62), rgba(238,247,255,0.48))"
-            boxShadow="inset 0 1px 0 rgba(255,255,255,0.82)"
-            sx={{
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            }}
+            minH="200px"
+            position={{ base: 'sticky', md: 'static' }}
+            left={{ base: 3, md: 'auto' }}
+            w={{ base: 'calc(100vw - 52px)', md: 'auto' }}
+            maxW={{ base: 'calc(100vw - 52px)', md: '560px' }}
+            mx={{ base: 0, md: 'auto' }}
+            my={{ base: 3, md: 4 }}
+            px={5}
+            py={8}
           >
-            <Center
-              w="58px"
-              h="58px"
-              rounded="full"
-              borderWidth="1px"
-              borderColor="rgba(255, 255, 255, 0.76)"
-              bg="linear-gradient(135deg, rgba(238,247,255,0.88), rgba(255,255,255,0.62))"
-              boxShadow="0 16px 36px rgba(22, 119, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.82)"
-              color="brand.600"
-              mb={3}
-              sx={{
-                backdropFilter: 'blur(18px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-              }}
-            >
-              <Icon as={Inbox} boxSize={6} />
+            <Center layerStyle="iconBrand" aria-hidden="true" mb={3}>
+              <Icon as={Inbox} boxSize={5} />
             </Center>
-            <Text color="ink.600" fontWeight="800">
+            <Text color="ink.700" fontWeight="700">
               {text}
             </Text>
-            {description ? (
-              <Text
-                mt={2}
-                color="ink.500"
-                fontSize="sm"
-                maxW="420px"
-                textAlign="center"
-              >
-                {description}
-              </Text>
-            ) : null}
+            <Text
+              mt={1.5}
+              color="ink.500"
+              fontSize="sm"
+              lineHeight="1.65"
+              maxW="420px"
+              textAlign="center"
+            >
+              {nextStep}
+            </Text>
             {action ? (
               <Box mt={4}>{action}</Box>
             ) : (

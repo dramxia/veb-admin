@@ -3,92 +3,83 @@ export const dynamic = 'force-dynamic';
 import {
   Badge,
   Box,
+  Button,
   Flex,
   HStack,
   SimpleGrid,
+  Stack,
   Text,
-  VStack,
 } from '@chakra-ui/react';
-import {
-  Compass,
-  KeyRound,
-  ListTree,
-  Shield,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { KeyRound, ListTree, Shield, Users } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { MetricIsland } from '@/components/common/metric-island';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
+import { auth } from '@/lib/auth';
+import { getUserMenuAndPermissions, type MenuNode } from '@/lib/menu';
 import { prisma } from '@/lib/prisma';
 
 const statMeta = [
-  { label: '用户数', icon: Users, accent: '#1677ff', help: '系统账号总量' },
-  { label: '角色数', icon: Shield, accent: '#0ea5e9', help: '权限分组规模' },
-  { label: '权限数', icon: KeyRound, accent: '#6d5dfc', help: '可控操作节点' },
-  { label: '菜单数', icon: ListTree, accent: '#22c55e', help: '已配置导航项' },
+  { label: '用户', icon: Users, tone: 'brand' as const, help: '系统账号总量' },
+  { label: '角色', icon: Shield, tone: 'cyan' as const, help: '权限分组数量' },
+  {
+    label: '权限',
+    icon: KeyRound,
+    tone: 'purple' as const,
+    help: '可授权能力数量',
+  },
+  {
+    label: '菜单',
+    icon: ListTree,
+    tone: 'green' as const,
+    help: '已配置导航数量',
+  },
 ];
 
+const quickLinkMeta = [
+  { path: '/system/user', icon: Users },
+  { path: '/system/role', icon: Shield },
+  { path: '/system/permission', icon: KeyRound },
+  { path: '/system/menu', icon: ListTree },
+];
+
+function flattenMenus(menus: MenuNode[]): MenuNode[] {
+  return menus.flatMap((menu) => [menu, ...flattenMenus(menu.children)]);
+}
+
 export default async function DashboardPage() {
-  const [userCount, roleCount, permissionCount, menuCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.role.count(),
-    prisma.permission.count(),
-    prisma.menu.count(),
-  ]);
+  const session = await auth();
+  if (!session?.user?.id) redirect('/login');
+
+  const [menuSnapshot, userCount, roleCount, permissionCount, menuCount] =
+    await Promise.all([
+      getUserMenuAndPermissions(session.user.id),
+      prisma.user.count(),
+      prisma.role.count(),
+      prisma.permission.count(),
+      prisma.menu.count(),
+    ]);
   const values = [userCount, roleCount, permissionCount, menuCount];
   const total = values.reduce((sum, value) => sum + value, 0);
+  const menuByPath = new Map(
+    flattenMenus(menuSnapshot.menus).map((menu) => [menu.path, menu]),
+  );
+  const quickLinks = quickLinkMeta.flatMap(({ path, icon }) => {
+    const menu = menuByPath.get(path);
+    return menu ? [{ href: menu.path, label: menu.name, icon }] : [];
+  });
 
   return (
     <WorkspaceCanvas
-      eyebrow="Overview"
-      title="清爽、聚焦、可配置的管理工作台"
-      description="VEB 汇总账号、角色、权限和菜单的核心配置状态，让管理员从一个轻量工作空间进入日常维护。"
+      eyebrow="工作概览"
+      title="仪表盘"
+      description="查看账号、角色、权限与菜单的当前配置规模，并快速进入常用管理模块。"
       heroSlot={
-        <HStack spacing={3} wrap="wrap">
-          <Badge colorScheme="brand">RBAC</Badge>
-          <Badge colorScheme="cyan">动态菜单</Badge>
-          <Badge colorScheme="purple">操作审计</Badge>
+        <HStack spacing={2} wrap="wrap">
+          <Badge colorScheme="brand">{total} 项配置</Badge>
+          <Badge colorScheme="green">服务正常</Badge>
         </HStack>
-      }
-      sideSlot={
-        <GlassPanel variant="soft" p={6} minH="220px">
-          <VStack align="stretch" spacing={5}>
-            <Flex align="center" justify="space-between">
-              <Box>
-                <Text color="ink.500" fontWeight="800" fontSize="sm">
-                  系统配置密度
-                </Text>
-                <Text
-                  color="ink.900"
-                  fontSize="5xl"
-                  fontWeight="900"
-                  lineHeight="1"
-                >
-                  {total}
-                </Text>
-              </Box>
-              <Flex
-                w="58px"
-                h="58px"
-                rounded="3xl"
-                align="center"
-                justify="center"
-                bg="rgba(238, 247, 255, 0.88)"
-                color="brand.700"
-              >
-                <Sparkles size={28} />
-              </Flex>
-            </Flex>
-            <Text color="ink.600" lineHeight="1.8">
-              当前工作台保持轻量信息架构，导航、权限与数据管理仍完全由数据库配置驱动。
-            </Text>
-            <HStack spacing={2} wrap="wrap">
-              <Badge colorScheme="green">健康</Badge>
-              <Badge colorScheme="gray">M4 UI</Badge>
-            </HStack>
-          </VStack>
-        </GlassPanel>
       }
     >
       <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={5}>
@@ -101,67 +92,62 @@ export default async function DashboardPage() {
               label={item.label}
               value={values[index]}
               help={item.help}
-              accent={item.accent}
-              transform={{
-                xl: index % 2 === 0 ? 'translateY(18px)' : 'translateY(-6px)',
-              }}
+              tone={item.tone}
             />
           );
         })}
       </SimpleGrid>
 
-      <SimpleGrid
-        columns={{ base: 1, lg: 2 }}
-        spacing={5}
-        mt={{ base: 5, xl: 9 }}
-      >
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5} mt={5}>
         <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
-          <HStack align="flex-start" spacing={4}>
-            <Flex
-              w="48px"
-              h="48px"
-              rounded="2xl"
-              align="center"
-              justify="center"
-              bg="rgba(238, 247, 255, 0.88)"
-              color="brand.700"
-              flexShrink={0}
-            >
-              <Compass size={20} />
-            </Flex>
+          <Stack spacing={4}>
             <Box>
-              <Text color="ink.900" fontSize="lg" fontWeight="900">
-                导航由菜单树驱动
+              <Text color="ink.900" fontSize="lg" fontWeight="800">
+                常用入口
               </Text>
-              <Text mt={2} color="ink.600" lineHeight="1.8">
-                底部 Liquid Dock
-                继续复用服务端下发的菜单树，权限变化后仍按当前用户可见范围渲染。
+              <Text mt={1.5} color="ink.500" fontSize="sm">
+                直接进入高频系统配置页面。
               </Text>
             </Box>
-          </HStack>
+            {quickLinks.length > 0 ? (
+              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+                {quickLinks.map((item) => {
+                  const QuickLinkIcon = item.icon;
+                  return (
+                    <Button
+                      key={item.href}
+                      as={Link}
+                      href={item.href}
+                      variant="outline"
+                      justifyContent="flex-start"
+                    >
+                      <HStack spacing={2}>
+                        <QuickLinkIcon size={16} aria-hidden />
+                        <Text>{item.label}</Text>
+                      </HStack>
+                    </Button>
+                  );
+                })}
+              </SimpleGrid>
+            ) : (
+              <Text color="ink.500" fontSize="sm">
+                当前账号暂无可用的系统配置入口。
+              </Text>
+            )}
+          </Stack>
         </GlassPanel>
 
         <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
           <HStack align="flex-start" spacing={4}>
-            <Flex
-              w="48px"
-              h="48px"
-              rounded="2xl"
-              align="center"
-              justify="center"
-              bg="rgba(240, 249, 255, 0.88)"
-              color="#0ea5e9"
-              flexShrink={0}
-            >
-              <Shield size={20} />
+            <Flex layerStyle="iconBrand" w="46px" h="46px" flexShrink={0}>
+              <Shield size={20} aria-hidden />
             </Flex>
             <Box>
-              <Text color="ink.900" fontSize="lg" fontWeight="900">
-                权限边界保持不变
+              <Text color="ink.900" fontSize="lg" fontWeight="800">
+                权限状态
               </Text>
-              <Text mt={2} color="ink.600" lineHeight="1.8">
-                UI 改造只影响交互层和展示层，按钮权限、页面守卫和 API
-                守卫仍沿用原有链路。
+              <Text mt={2} color="ink.600" lineHeight="1.75">
+                页面、按钮与接口继续使用同一套权限链路。角色和菜单调整后，用户只能看到被授权的操作入口。
               </Text>
             </Box>
           </HStack>

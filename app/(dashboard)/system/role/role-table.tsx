@@ -1,16 +1,22 @@
 'use client';
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Badge,
-  Button,
   Icon,
+  IconButton,
   Menu,
   MenuButton,
   MenuItem,
   MenuList,
+  Portal,
+  Stack,
   Table,
   Tbody,
   Td,
+  Text,
   Th,
   Thead,
   Tr,
@@ -65,7 +71,9 @@ export function RoleTable({
   permissions: Permission[];
   users: User[];
 }) {
-  const { loading, run } = useActionFeedback({ refresh: true });
+  const { clearError, error, loading, run } = useActionFeedback({
+    refresh: true,
+  });
   const formModal = useDisclosure();
   const permissionDrawer = useDisclosure();
   const userDrawer = useDisclosure();
@@ -77,16 +85,25 @@ export function RoleTable({
   return (
     <>
       <DataTableCard
-        minW="900px"
+        minW={{ base: '680px', lg: '900px' }}
         title="角色矩阵"
-        description="管理角色身份、授权范围与用户关联，保持权限体系可追踪。"
+        description="集中维护角色状态、授权范围与用户关联。"
         meta={`${roles.length} 个角色 · ${permissions.length} 个权限 · ${users.length} 个用户`}
+        toolbar={
+          error ? (
+            <Alert status="error" aria-live="polite">
+              <AlertIcon />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : undefined
+        }
         primaryAction={
           <AuthButton
             code="system:role:create"
             isLoading={loading}
             icon={<Icon as={Plus} boxSize={4} />}
             onClick={() => {
+              clearError();
               setEditingRole(null);
               formModal.onOpen();
             }}
@@ -95,15 +112,19 @@ export function RoleTable({
           </AuthButton>
         }
       >
-        <Table size="sm">
+        <Table size="sm" aria-label="角色授权矩阵">
           <Thead>
             <Tr>
               <Th>编码</Th>
               <Th>名称</Th>
               <Th>状态</Th>
-              <Th isNumeric>用户数</Th>
-              <Th isNumeric>权限数</Th>
-              <Th>系统</Th>
+              <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                用户数
+              </Th>
+              <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                权限数
+              </Th>
+              <Th display={{ base: 'none', lg: 'table-cell' }}>归属</Th>
               <Th>操作</Th>
             </Tr>
           </Thead>
@@ -111,18 +132,48 @@ export function RoleTable({
             <Tbody>
               {roles.map((role) => (
                 <Tr key={role.id}>
-                  <Td>{role.code}</Td>
-                  <Td>{role.name}</Td>
+                  <Td>
+                    <Text
+                      color="ink.700"
+                      fontWeight="700"
+                      wordBreak="break-all"
+                    >
+                      {role.code}
+                    </Text>
+                  </Td>
+                  <Td>
+                    <Stack spacing={1} minW="140px">
+                      <Text color="ink.800" fontWeight="800">
+                        {role.name}
+                      </Text>
+                      <Text
+                        display={{ base: 'block', md: 'none' }}
+                        color="ink.500"
+                        fontSize="xs"
+                      >
+                        {role._count.users} 个用户 · {role._count.permissions}{' '}
+                        个权限
+                      </Text>
+                    </Stack>
+                  </Td>
                   <Td>
                     <Badge
                       colorScheme={role.status === 'ENABLED' ? 'green' : 'red'}
                     >
-                      {role.status}
+                      {role.status === 'ENABLED' ? '启用' : '停用'}
                     </Badge>
                   </Td>
-                  <Td isNumeric>{role._count.users}</Td>
-                  <Td isNumeric>{role._count.permissions}</Td>
-                  <Td>{role.isSystem ? '是' : '否'}</Td>
+                  <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                    {role._count.users}
+                  </Td>
+                  <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                    {role._count.permissions}
+                  </Td>
+                  <Td display={{ base: 'none', lg: 'table-cell' }}>
+                    <Badge colorScheme={role.isSystem ? 'purple' : 'gray'}>
+                      {role.isSystem ? '系统内置' : '自定义'}
+                    </Badge>
+                  </Td>
                   <Td>
                     <TableActions>
                       <AuthButton
@@ -131,9 +182,11 @@ export function RoleTable({
                         intent="neutral"
                         variant="ghost"
                         tooltip="编辑角色"
+                        aria-label={`编辑角色 ${role.name}`}
                         icon={<Icon as={Pencil} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setEditingRole(role);
                           formModal.onOpen();
                         }}
@@ -144,50 +197,55 @@ export function RoleTable({
                         intent="neutral"
                         variant="ghost"
                         tooltip="分配权限"
+                        aria-label={`为角色 ${role.name} 分配权限`}
                         icon={<Icon as={KeyRound} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setSelectedRole(role);
                           permissionDrawer.onOpen();
                         }}
                       />
-                      <Menu placement="bottom-end">
+                      <Menu placement="bottom-end" strategy="fixed">
                         <MenuButton
-                          as={Button}
+                          as={IconButton}
                           size="xs"
                           variant="ghost"
-                          aria-label="更多角色操作"
-                          px={2.5}
+                          aria-label={`更多角色操作：${role.name}`}
+                          icon={<Icon as={MoreHorizontal} boxSize={4} />}
                           isDisabled={loading}
-                        >
-                          <Icon as={MoreHorizontal} boxSize={4} />
-                        </MenuButton>
-                        <MenuList>
-                          <Auth code="system:role:assign-user">
-                            <MenuItem
-                              icon={<Icon as={Users} boxSize={4} />}
-                              onClick={() => {
-                                setSelectedRole(role);
-                                userDrawer.onOpen();
-                              }}
-                            >
-                              分配用户
-                            </MenuItem>
-                          </Auth>
-                          <Auth code="system:role:delete">
-                            <MenuItem
-                              icon={<Icon as={Trash2} boxSize={4} />}
-                              color="red.600"
-                              isDisabled={role.isSystem}
-                              onClick={() => {
-                                setDeletingRole(role);
-                                deleteDialog.onOpen();
-                              }}
-                            >
-                              删除角色
-                            </MenuItem>
-                          </Auth>
-                        </MenuList>
+                        />
+                        <Portal>
+                          <MenuList>
+                            <Auth code="system:role:assign-user">
+                              <MenuItem
+                                icon={<Icon as={Users} boxSize={4} />}
+                                isDisabled={loading}
+                                onClick={() => {
+                                  clearError();
+                                  setSelectedRole(role);
+                                  userDrawer.onOpen();
+                                }}
+                              >
+                                分配用户
+                              </MenuItem>
+                            </Auth>
+                            <Auth code="system:role:delete">
+                              <MenuItem
+                                icon={<Icon as={Trash2} boxSize={4} />}
+                                color="red.600"
+                                isDisabled={loading || role.isSystem}
+                                onClick={() => {
+                                  clearError();
+                                  setDeletingRole(role);
+                                  deleteDialog.onOpen();
+                                }}
+                              >
+                                删除角色
+                              </MenuItem>
+                            </Auth>
+                          </MenuList>
+                        </Portal>
                       </Menu>
                     </TableActions>
                   </Td>
@@ -204,7 +262,10 @@ export function RoleTable({
         isOpen={formModal.isOpen}
         isLoading={loading}
         role={editingRole}
-        onClose={formModal.onClose}
+        onClose={() => {
+          clearError();
+          formModal.onClose();
+        }}
         onSubmit={(payload) =>
           run(async () => {
             if (editingRole) {
@@ -240,10 +301,14 @@ export function RoleTable({
         isOpen={deleteDialog.isOpen}
         title="删除角色"
         description={`确认删除角色 ${deletingRole?.name ?? ''}？有关联用户的角色会被后端拒绝删除。`}
+        error={error}
         confirmLabel="删除"
         intent="danger"
         isLoading={loading}
-        onClose={deleteDialog.onClose}
+        onClose={() => {
+          clearError();
+          deleteDialog.onClose();
+        }}
         onConfirm={async () => {
           const ok = await run(async () => {
             if (!deletingRole) return;

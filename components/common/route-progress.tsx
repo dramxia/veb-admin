@@ -12,14 +12,33 @@ export function RouteProgress() {
 
   useEffect(() => {
     const handleStart = (event: MouseEvent) => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
 
       const anchor = (event.target as Element | null)?.closest('a');
       if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || anchor.hasAttribute('download'))
+        return;
 
       const targetUrl = new URL(anchor.href, window.location.href);
-      if (targetUrl.origin !== window.location.origin || anchor.target === '_blank') return;
-      if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) return;
+      if (
+        targetUrl.origin !== window.location.origin ||
+        (anchor.target && anchor.target !== '_self') ||
+        targetUrl.pathname.startsWith('/api/')
+      )
+        return;
+      if (
+        targetUrl.pathname === window.location.pathname &&
+        targetUrl.search === window.location.search
+      )
+        return;
 
       NProgress.start();
     };

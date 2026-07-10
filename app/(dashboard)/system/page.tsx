@@ -1,38 +1,23 @@
-import { Badge, HStack, Text, VStack } from '@chakra-ui/react';
-import { Compass } from 'lucide-react';
+import { Badge, HStack, Text } from '@chakra-ui/react';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 
 export default function SystemPage() {
   return (
     <WorkspaceCanvas
-      eyebrow="System"
+      eyebrow="后台配置"
       title="系统管理"
-      description="从底部 Dock 进入用户、角色、权限、菜单、文件或日志模块。"
+      description="集中管理用户、角色、权限、菜单、文件与操作日志。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
           <Badge colorScheme="brand">权限配置</Badge>
           <Badge colorScheme="gray">菜单驱动</Badge>
         </HStack>
       }
-      sideSlot={
-        <GlassPanel variant="soft" p={5}>
-          <VStack align="stretch" spacing={3}>
-            <Compass size={28} color="#0f5ed7" />
-            <Text color="surface.900" fontWeight="900">
-              选择一个模块继续
-            </Text>
-            <Text color="surface.600" lineHeight="1.8">
-              系统管理页作为模块集合入口，不承载官网式介绍内容。
-            </Text>
-          </VStack>
-        </GlassPanel>
-      }
     >
       <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
-        <Text color="surface.600" lineHeight="1.8">
-          当前用户可见的模块会出现在底部 Liquid Dock
-          中，权限变化后重新登录或刷新会同步菜单范围。
+        <Text color="ink.600" lineHeight="1.75">
+          请从桌面侧栏或移动端底部导航选择具体模块。可见入口会根据当前账号权限自动过滤。
         </Text>
       </GlassPanel>
     </WorkspaceCanvas>

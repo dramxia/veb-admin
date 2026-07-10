@@ -9,12 +9,24 @@ import {
 import type { ReactNode } from 'react';
 import { GlassPanel } from './glass-panel';
 
+export type MetricIslandTone = 'brand' | 'cyan' | 'purple' | 'green';
+
 type MetricIslandProps = BoxProps & {
   icon: ReactNode;
   label: string;
   value: ReactNode;
   help?: ReactNode;
-  accent?: string;
+  tone?: MetricIslandTone;
+};
+
+const toneStyles: Record<
+  MetricIslandTone,
+  { dot: string; iconLayerStyle: string }
+> = {
+  brand: { dot: 'brand.500', iconLayerStyle: 'iconBrand' },
+  cyan: { dot: 'statusInfo', iconLayerStyle: 'iconCyan' },
+  purple: { dot: 'purple.500', iconLayerStyle: 'iconPurple' },
+  green: { dot: 'statusSuccess', iconLayerStyle: 'iconGreen' },
 };
 
 export function MetricIsland({
@@ -22,9 +34,11 @@ export function MetricIsland({
   label,
   value,
   help,
-  accent = '#1677ff',
+  tone = 'brand',
   ...props
 }: MetricIslandProps) {
+  const styles = toneStyles[tone];
+
   return (
     <GlassPanel
       role="group"
@@ -32,42 +46,45 @@ export function MetricIsland({
       p={5}
       transition="transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease"
       _hover={{
+        borderColor: 'glassBorderStrong',
+        boxShadow: 'card',
         transform: 'translateY(-2px)',
-        boxShadow: '0 18px 44px rgba(15, 23, 42, 0.08)',
-        borderColor: 'rgba(255,255,255,0.9)',
       }}
       {...props}
     >
       <HStack align="flex-start" justify="space-between" spacing={4}>
         <Flex
-          w="46px"
-          h="46px"
-          rounded="2xl"
-          align="center"
-          justify="center"
-          color={accent}
-          bg={`${accent}18`}
-          boxShadow={`inset 0 0 0 1px ${accent}22`}
+          layerStyle={styles.iconLayerStyle}
+          aria-hidden="true"
+          w="44px"
+          h="44px"
         >
           {icon}
         </Flex>
-        <Box w="8px" h="8px" rounded="full" bg={accent} opacity={0.7} />
+        <Box
+          aria-hidden="true"
+          w="8px"
+          h="8px"
+          rounded="full"
+          bg={styles.dot}
+          opacity={0.72}
+        />
       </HStack>
 
-      <VStack align="stretch" spacing={1} mt={5}>
-        <Text color="ink.500" fontSize="sm" fontWeight="800">
+      <VStack align="stretch" spacing={1} mt={4}>
+        <Text color="ink.500" fontSize="sm" fontWeight="700">
           {label}
         </Text>
         <Text
           color="ink.900"
-          fontSize={{ base: '3xl', md: '4xl' }}
-          fontWeight="900"
-          lineHeight="1"
+          fontSize={{ base: '2xl', md: '3xl' }}
+          fontWeight="800"
+          lineHeight="1.15"
         >
           {value}
         </Text>
         {help ? (
-          <Text color="ink.500" fontSize="sm">
+          <Text color="ink.500" fontSize="sm" lineHeight="1.6">
             {help}
           </Text>
         ) : null}

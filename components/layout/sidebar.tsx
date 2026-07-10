@@ -2,73 +2,59 @@
 
 import {
   Box,
+  Divider,
   Flex,
+  HStack,
   Icon,
+  IconButton,
   Link as ChakraLink,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Portal,
   Stack,
   Text,
+  VStack,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
 import {
   Circle,
   Compass,
+  ExternalLink,
   FileBox,
   Folder,
   Home,
   LayoutDashboard,
   ListTree,
-  LucideIcon,
+  type LucideIcon,
   ScrollText,
   Shield,
+  Sparkles,
   User,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import { GlassPanel } from '@/components/common/glass-panel';
 import type { MenuNode } from '@/lib/menu';
 import { useMenuStore } from '@/stores/menu-store';
+import {
+  flattenNavigableMenus,
+  getCurrentMenu,
+  getHref,
+  isExternalHref,
+  isMenuBranchActive,
+} from './navigation-utils';
 
-type DockMenu = {
+export const DESKTOP_SIDEBAR_WIDTH = '272px';
+
+const INTERACTION_DURATION = '180ms';
+
+type MobileDockItem = {
   menu: MenuNode;
-  children: MenuNode[];
+  entries: MenuNode[];
 };
-
-function isActive(pathname: string, path: string) {
-  if (path === '/') return pathname === '/';
-  return pathname === path || pathname.startsWith(`${path}/`);
-}
-
-function getHref(menu: MenuNode) {
-  return menu.type === 'LINK' ? menu.externalUrl || menu.path : menu.path;
-}
-
-function isExternalHref(href: string) {
-  return /^https?:\/\//.test(href);
-}
-
-function collectDockChildren(menu: MenuNode): MenuNode[] {
-  return menu.children.flatMap((child) => {
-    if (child.children.length === 0) return [child];
-    if (child.type === 'DIR') return collectDockChildren(child);
-    return [child, ...collectDockChildren(child)];
-  });
-}
-
-function toDockMenus(menus: MenuNode[]): DockMenu[] {
-  return menus.map((menu) => ({ menu, children: collectDockChildren(menu) }));
-}
-
-function getParentHref(item: DockMenu) {
-  return item.children[0] ? getHref(item.children[0]) : getHref(item.menu);
-}
-
-function isDockItemActive(pathname: string, item: DockMenu) {
-  return (
-    isActive(pathname, item.menu.path) ||
-    item.children.some((child) => isActive(pathname, child.path))
-  );
-}
 
 const iconMap: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -101,242 +87,487 @@ function getMenuIcon(menu: MenuNode): LucideIcon {
   return Circle;
 }
 
-// Dock 只保留轻微弹性，避免影响后台高频操作的稳定感。
-const springTransition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-const fadeTransition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
-
-function DockSubMenu({
-  childrenMenus,
+function DesktopMenuBranch({
+  menu,
   pathname,
+  currentMenuId,
+  level = 0,
 }: {
-  childrenMenus: MenuNode[];
+  menu: MenuNode;
   pathname: string;
+  currentMenuId?: string;
+  level?: number;
 }) {
-  if (childrenMenus.length === 0) return null;
+  const branchActive = isMenuBranchActive(pathname, menu);
+  const isCurrent = currentMenuId === menu.id;
+  const hasChildren = menu.children.length > 0;
+  const MenuIcon = getMenuIcon(menu);
+  const nestedPadding = 3 + Math.min(level, 3) * 2;
+
+  if (menu.type === 'DIR') {
+    return (
+      <Box role="group" aria-label={menu.name}>
+        <HStack
+          px={3}
+          ps={nestedPadding}
+          py={2}
+          spacing={2.5}
+          color={branchActive ? 'brand.700' : 'ink.500'}
+        >
+          <Icon as={MenuIcon} boxSize={5} flexShrink={0} aria-hidden />
+          <Text
+            fontSize="xs"
+            fontWeight="800"
+            letterSpacing="wide"
+            noOfLines={1}
+          >
+            {menu.name}
+          </Text>
+        </HStack>
+
+        {hasChildren && (
+          <Stack
+            spacing={1}
+            ms={level === 0 ? 4 : 6}
+            ps={2}
+            borderStartWidth="1px"
+            borderColor={branchActive ? 'brand.100' : 'ink.100'}
+          >
+            {menu.children.map((child) => (
+              <DesktopMenuBranch
+                key={child.id}
+                menu={child}
+                pathname={pathname}
+                currentMenuId={currentMenuId}
+                level={level + 1}
+              />
+            ))}
+          </Stack>
+        )}
+      </Box>
+    );
+  }
+
+  const href = getHref(menu);
+  const external = isExternalHref(href);
 
   return (
-    <Stack
-      spacing={1}
-      position="absolute"
-      bottom="calc(100% + 16px)" // 距离父菜单顶部有一定呼吸空间
-      left="50%"
-      transform="translateX(-50%) translateY(10px) scale(0.9)"
-      transformOrigin="bottom center"
-      zIndex={10}
-      minW="148px"
-      p={1.5}
-      rounded="2xl"
-      bg="rgba(255, 255, 255, 0.72)"
-      border="1px solid rgba(255, 255, 255, 0.78)"
-      boxShadow="0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.72)"
-      opacity={0}
-      pointerEvents="none"
-      transition={springTransition}
-      sx={{
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      }}
-      // 利用伪元素填补子菜单与父级菜单之间的空隙，防止鼠标移出导致菜单消失
-      _after={{
-        content: '""',
-        position: 'absolute',
-        bottom: '-16px',
-        left: 0,
-        right: 0,
-        height: '16px',
-        bg: 'transparent',
-      }}
-      _groupHover={{
-        opacity: 1,
-        pointerEvents: 'auto',
-        transform: 'translateX(-50%) translateY(0) scale(1)',
-      }}
-    >
-      {childrenMenus.map((child) => {
-        const href = getHref(child);
-        const external = isExternalHref(href);
-        const active = isActive(pathname, child.path);
+    <Box>
+      <ChakraLink
+        as={Link}
+        href={href}
+        target={external ? '_blank' : undefined}
+        rel={external ? 'noreferrer' : undefined}
+        aria-current={isCurrent ? 'page' : undefined}
+        display="flex"
+        alignItems="center"
+        gap={2.5}
+        minH="42px"
+        px={3}
+        ps={nestedPadding}
+        rounded="xl"
+        bg={isCurrent ? 'brand.50' : 'transparent'}
+        color={isCurrent || branchActive ? 'brand.700' : 'ink.600'}
+        fontSize="sm"
+        fontWeight={isCurrent ? '800' : '700'}
+        transitionProperty="common"
+        transitionDuration={INTERACTION_DURATION}
+        _hover={{
+          bg: 'brand.50',
+          color: 'brand.700',
+          textDecoration: 'none',
+        }}
+        _focusVisible={{
+          outline: '2px solid',
+          outlineColor: 'brand.300',
+          outlineOffset: '2px',
+        }}
+      >
+        <Icon as={MenuIcon} boxSize={5} flexShrink={0} aria-hidden />
+        <Text flex={1} minW={0} noOfLines={1}>
+          {menu.name}
+        </Text>
+        {external && (
+          <Icon
+            as={ExternalLink}
+            boxSize={4}
+            color="ink.400"
+            flexShrink={0}
+            aria-hidden
+          />
+        )}
+      </ChakraLink>
 
-        return (
-          <ChakraLink
-            key={child.id}
-            as={Link}
-            href={href}
-            target={external ? '_blank' : undefined}
-            rel={external ? 'noreferrer' : undefined}
-            px={3}
-            py={2}
-            rounded="xl"
-            fontSize="sm"
-            fontWeight={active ? '600' : '500'}
-            color={active ? 'ink.900' : 'ink.600'}
-            bg={active ? 'rgba(22, 119, 255, 0.10)' : 'transparent'}
-            whiteSpace="nowrap"
-            transition={fadeTransition}
-            _hover={{
-              bg: 'rgba(22, 119, 255, 0.10)',
-              color: 'ink.900',
-              textDecoration: 'none',
-              transform: 'scale(1.01)',
-            }}
-          >
-            {child.name}
-          </ChakraLink>
-        );
-      })}
-    </Stack>
+      {hasChildren && (
+        <Stack
+          spacing={1}
+          mt={1}
+          ms={level === 0 ? 4 : 6}
+          ps={2}
+          borderStartWidth="1px"
+          borderColor={branchActive ? 'brand.100' : 'ink.100'}
+        >
+          {menu.children.map((child) => (
+            <DesktopMenuBranch
+              key={child.id}
+              menu={child}
+              pathname={pathname}
+              currentMenuId={currentMenuId}
+              level={level + 1}
+            />
+          ))}
+        </Stack>
+      )}
+    </Box>
   );
 }
 
-function DockMenuItem({
-  item,
+function DesktopSidebar({
+  menus,
   pathname,
+  currentMenuId,
 }: {
-  item: DockMenu;
+  menus: MenuNode[];
   pathname: string;
+  currentMenuId?: string;
 }) {
-  const href = getParentHref(item);
-  const external = isExternalHref(href);
-  const active = isDockItemActive(pathname, item);
-  const hasChildren = item.children.length > 0;
-  const MenuIcon = getMenuIcon(item.menu);
-
   return (
     <Box
-      role="group"
-      position="relative"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
+      display={{ base: 'none', lg: 'block' }}
+      position="fixed"
+      insetBlock={0}
+      insetInlineStart={0}
+      w={DESKTOP_SIDEBAR_WIDTH}
+      p={4}
+      zIndex="sticky"
     >
-      {hasChildren && (
-        <DockSubMenu childrenMenus={item.children} pathname={pathname} />
-      )}
-
-      <motion.div
-        whileHover={{ y: -6, scale: 1.12 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+      <GlassPanel
+        as="aside"
+        variant="solid"
+        h="full"
+        display="flex"
+        flexDirection="column"
+        p={3}
+        rounded="3xl"
       >
-        <ChakraLink
-          as={Link}
-          href={href}
-          target={external ? '_blank' : undefined}
-          rel={external ? 'noreferrer' : undefined}
-          aria-label={item.menu.name}
-          display="grid"
-          placeItems="center"
-          w="48px"
-          h="48px"
-          rounded="2xl"
-          bg={active ? 'rgba(22, 119, 255, 0.14)' : 'rgba(255,255,255,0.22)'}
-          color={active ? 'brand.700' : 'ink.700'}
-          transition={springTransition}
-          boxShadow={
-            active
-              ? 'inset 0 1px 0 rgba(255,255,255,0.82), 0 12px 26px rgba(22,119,255,0.18)'
-              : 'inset 0 1px 0 rgba(255,255,255,0.64)'
-          }
-          _groupHover={{
-            bg: 'rgba(255, 255, 255, 0.56)',
-            boxShadow:
-              '0 16px 30px rgba(15,23,42,0.10), inset 0 1px 1px rgba(255,255,255,0.82)',
-            color: 'ink.900',
-            zIndex: 2,
-          }}
-          _hover={{ textDecoration: 'none' }}
-          _focusVisible={{
-            outline: 'none',
-            boxShadow: '0 0 0 3px rgba(22,119,255,0.24)',
-          }}
+        <HStack px={2} py={2} spacing={3}>
+          <Flex
+            layerStyle="iconBrand"
+            w={10}
+            h={10}
+            rounded="2xl"
+            align="center"
+            justify="center"
+            flexShrink={0}
+          >
+            <Icon as={Sparkles} boxSize={5} aria-hidden />
+          </Flex>
+          <Box minW={0}>
+            <Text color="ink.900" fontWeight="900" noOfLines={1}>
+              VEB
+            </Text>
+            <Text color="ink.500" fontSize="xs" fontWeight="700" noOfLines={1}>
+              管理工作台
+            </Text>
+          </Box>
+        </HStack>
+
+        <Divider my={3} borderColor="ink.100" />
+
+        <Box
+          as="nav"
+          aria-label="桌面主菜单"
+          flex={1}
+          minH={0}
+          overflowY="auto"
+          overscrollBehavior="contain"
+          pe={1}
         >
-          <Icon as={MenuIcon} boxSize={5} strokeWidth={2.2} />
-        </ChakraLink>
-      </motion.div>
+          {menus.length > 0 ? (
+            <Stack spacing={1}>
+              {menus.map((menu) => (
+                <DesktopMenuBranch
+                  key={menu.id}
+                  menu={menu}
+                  pathname={pathname}
+                  currentMenuId={currentMenuId}
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Box layerStyle="subtleSurface" px={3} py={4} rounded="2xl">
+              <Text color="ink.500" fontSize="sm">
+                暂无可用菜单
+              </Text>
+            </Box>
+          )}
+        </Box>
+      </GlassPanel>
+    </Box>
+  );
+}
 
-      {/* 活跃状态的小圆点 (Mac 经典指示器) */}
-      <Box
-        position="absolute"
-        bottom="-4px"
-        w="4px"
-        h="4px"
-        rounded="full"
-        bg={active ? 'brand.600' : 'transparent'}
-        transition={fadeTransition}
-      />
+function MobileDockMenuItem({
+  item,
+  pathname,
+  currentMenuId,
+}: {
+  item: MobileDockItem;
+  pathname: string;
+  currentMenuId?: string;
+}) {
+  const active = isMenuBranchActive(pathname, item.menu);
+  const hasSubMenu = item.menu.children.length > 0 && item.entries.length > 0;
+  const MenuIcon = getMenuIcon(item.menu);
 
-      {/* 悬浮提示 (Tooltip) - 只有在没有子菜单时才显示，避免重叠混乱 */}
-      {!hasChildren && (
+  if (hasSubMenu) {
+    return (
+      <VStack spacing={0.5} flexShrink={0}>
+        <Menu placement="top" strategy="fixed" gutter={12} closeOnSelect isLazy>
+          <MenuButton
+            as={IconButton}
+            aria-label={`打开 ${item.menu.name} 子菜单`}
+            aria-current={active ? 'page' : undefined}
+            icon={<Icon as={MenuIcon} boxSize={5.5} aria-hidden />}
+            variant="ghost"
+            size="md"
+            w={11}
+            h={11}
+            rounded="2xl"
+            bg={active ? 'brand.50' : 'transparent'}
+            color={active ? 'brand.700' : 'ink.600'}
+            transitionProperty="common"
+            transitionDuration={INTERACTION_DURATION}
+            _hover={{
+              bg: 'brand.50',
+              color: 'brand.700',
+              transform: 'translateY(-2px)',
+            }}
+            _expanded={{ bg: 'brand.50', color: 'brand.700' }}
+            _focusVisible={{
+              outline: '2px solid',
+              outlineColor: 'brand.300',
+              outlineOffset: '2px',
+            }}
+          />
+          <Portal>
+            <MenuList
+              layerStyle="glassFloating"
+              minW="220px"
+              maxW="calc(100vw - 24px)"
+              maxH="min(60dvh, 420px)"
+              overflowY="auto"
+              p={2}
+              rounded="2xl"
+              zIndex="popover"
+            >
+              {item.entries.map((entry) => {
+                const href = getHref(entry);
+                const external = isExternalHref(href);
+                const isCurrent = currentMenuId === entry.id;
+                const EntryIcon = getMenuIcon(entry);
+
+                return (
+                  <MenuItem
+                    key={entry.id}
+                    as={Link}
+                    href={href}
+                    target={external ? '_blank' : undefined}
+                    rel={external ? 'noreferrer' : undefined}
+                    aria-current={isCurrent ? 'page' : undefined}
+                    icon={<Icon as={EntryIcon} boxSize={4.5} aria-hidden />}
+                    bg={isCurrent ? 'brand.50' : undefined}
+                    color={isCurrent ? 'brand.700' : 'ink.700'}
+                    rounded="xl"
+                  >
+                    <Flex
+                      align="center"
+                      justify="space-between"
+                      gap={3}
+                      w="full"
+                    >
+                      <Text
+                        fontWeight={isCurrent ? '800' : '700'}
+                        noOfLines={1}
+                      >
+                        {entry.name}
+                      </Text>
+                      {external && (
+                        <Icon
+                          as={ExternalLink}
+                          boxSize={4}
+                          color="ink.400"
+                          flexShrink={0}
+                          aria-hidden
+                        />
+                      )}
+                    </Flex>
+                  </MenuItem>
+                );
+              })}
+            </MenuList>
+          </Portal>
+        </Menu>
+
         <Text
-          position="absolute"
-          top="-36px"
-          px={3}
-          py={1.5}
-          rounded="xl"
-          bg="rgba(15, 23, 42, 0.82)"
-          color="white"
+          maxW={14}
+          color={active ? 'brand.700' : 'ink.500'}
           fontSize="xs"
-          fontWeight="medium"
-          whiteSpace="nowrap"
-          opacity={0}
-          pointerEvents="none"
-          transform="translateY(8px) scale(0.9)"
-          transition={springTransition}
-          boxShadow="0 4px 12px rgba(0,0,0,0.15)"
-          sx={{ backdropFilter: 'blur(8px)' }}
-          _groupHover={{
-            opacity: 1,
-            transform: 'translateY(0) scale(1)',
-          }}
+          fontWeight={active ? '800' : '700'}
+          noOfLines={1}
+          aria-hidden
         >
           {item.menu.name}
         </Text>
-      )}
-    </Box>
+      </VStack>
+    );
+  }
+
+  const href = getHref(item.menu);
+  const external = isExternalHref(href);
+  const isCurrent = currentMenuId === item.menu.id;
+
+  return (
+    <VStack spacing={0.5} flexShrink={0}>
+      <IconButton
+        as={Link}
+        href={href}
+        target={external ? '_blank' : undefined}
+        rel={external ? 'noreferrer' : undefined}
+        aria-label={item.menu.name}
+        aria-current={isCurrent ? 'page' : undefined}
+        icon={<Icon as={MenuIcon} boxSize={5.5} aria-hidden />}
+        variant="ghost"
+        size="md"
+        w={11}
+        h={11}
+        rounded="2xl"
+        bg={isCurrent ? 'brand.50' : 'transparent'}
+        color={isCurrent ? 'brand.700' : 'ink.600'}
+        transitionProperty="common"
+        transitionDuration={INTERACTION_DURATION}
+        _hover={{
+          bg: 'brand.50',
+          color: 'brand.700',
+          transform: 'translateY(-2px)',
+        }}
+        _focusVisible={{
+          outline: '2px solid',
+          outlineColor: 'brand.300',
+          outlineOffset: '2px',
+        }}
+      />
+
+      <Text
+        maxW={14}
+        color={isCurrent ? 'brand.700' : 'ink.500'}
+        fontSize="xs"
+        fontWeight={isCurrent ? '800' : '700'}
+        noOfLines={1}
+        aria-hidden
+      >
+        {item.menu.name}
+      </Text>
+    </VStack>
+  );
+}
+
+function MobileDock({
+  items,
+  pathname,
+  currentMenuId,
+}: {
+  items: MobileDockItem[];
+  pathname: string;
+  currentMenuId?: string;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <Flex
+      display={{ base: 'flex', lg: 'none' }}
+      position="fixed"
+      insetInline={0}
+      bottom={0}
+      justify="center"
+      px={3}
+      pt={2}
+      pb="calc(10px + env(safe-area-inset-bottom))"
+      pointerEvents="none"
+      zIndex="overlay"
+    >
+      <GlassPanel
+        variant="floating"
+        maxW="calc(100vw - 24px)"
+        pointerEvents="auto"
+        rounded="full"
+      >
+        <Box
+          as="nav"
+          aria-label="移动端主菜单"
+          maxW="full"
+          overflowX="auto"
+          overflowY="hidden"
+          overscrollBehaviorX="contain"
+          px={2}
+          py={2}
+          sx={{
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': { display: 'none' },
+          }}
+        >
+          <Flex w="max-content" minW="full" justify="center" gap={1.5}>
+            {items.map((item) => (
+              <MobileDockMenuItem
+                key={item.menu.id}
+                item={item}
+                pathname={pathname}
+                currentMenuId={currentMenuId}
+              />
+            ))}
+          </Flex>
+        </Box>
+      </GlassPanel>
+    </Flex>
   );
 }
 
 export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
   const storedMenus = useMenuStore((state) => state.menus);
   const pathname = usePathname();
-  const allMenus = storedMenus.length > 0 ? storedMenus : initialMenus;
-  const dockMenus = useMemo(() => toDockMenus(allMenus), [allMenus]);
-
-  if (dockMenus.length === 0) return null;
+  const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
+  const currentMenu = useMemo(
+    () => getCurrentMenu(pathname, menus),
+    [menus, pathname],
+  );
+  const mobileDockItems = useMemo<MobileDockItem[]>(
+    () =>
+      menus.map((menu) => ({
+        menu,
+        entries:
+          menu.children.length > 0
+            ? [
+                ...(menu.type === 'DIR' ? [] : [menu]),
+                ...flattenNavigableMenus(menu.children),
+              ]
+            : [],
+      })),
+    [menus],
+  );
 
   return (
-    <Flex
-      as="nav"
-      aria-label="主菜单"
-      position="fixed"
-      left="50%"
-      bottom="24px"
-      transform="translateX(-50%)"
-      zIndex="sticky"
-      px={3}
-      py={2.5}
-      gap={2}
-      rounded="3xl"
-      bg="rgba(255, 255, 255, 0.44)"
-      border="1px solid rgba(255, 255, 255, 0.62)"
-      borderTopColor="rgba(255, 255, 255, 0.8)"
-      boxShadow="0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.48)"
-      overflow="visible"
-      maxW="calc(100vw - 24px)"
-      sx={{
-        backdropFilter: 'blur(34px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(34px) saturate(200%)',
-        '@media (max-width: 640px)': {
-          overflowX: 'auto',
-          overflowY: 'visible',
-          justifyContent: 'flex-start',
-        },
-      }}
-    >
-      {dockMenus.map((item) => (
-        <DockMenuItem key={item.menu.id} item={item} pathname={pathname} />
-      ))}
-    </Flex>
+    <>
+      <DesktopSidebar
+        menus={menus}
+        pathname={pathname}
+        currentMenuId={currentMenu?.id}
+      />
+      <MobileDock
+        items={mobileDockItems}
+        pathname={pathname}
+        currentMenuId={currentMenu?.id}
+      />
+    </>
   );
 }

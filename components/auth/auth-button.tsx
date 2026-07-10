@@ -1,6 +1,11 @@
 'use client';
 
-import { Button, Tooltip, type ButtonProps } from '@chakra-ui/react';
+import {
+  Button,
+  IconButton,
+  Tooltip,
+  type ButtonProps,
+} from '@chakra-ui/react';
 import type { ReactElement, ReactNode } from 'react';
 import { Auth } from './auth';
 import type { PermissionCode } from './use-has-permission';
@@ -26,20 +31,37 @@ export function AuthButton({
   ...buttonProps
 }: AuthButtonProps) {
   const resolvedVariant =
-    variant ?? (intent === 'danger' || intent === 'neutral' ? 'outline' : 'solid');
-  const button = (
+    variant ??
+    (intent === 'danger' || intent === 'neutral' ? 'outline' : 'solid');
+  const resolvedColorScheme =
+    colorScheme ?? (intent === 'danger' ? 'red' : 'brand');
+  const resolvedColor =
+    intent === 'danger' && resolvedVariant !== 'solid' ? 'red.600' : undefined;
+  const resolvedAriaLabel = ariaLabel ?? tooltip;
+
+  const button = children ? (
     <Button
-      colorScheme={colorScheme ?? (intent === 'danger' ? 'red' : 'brand')}
+      colorScheme={resolvedColorScheme}
       variant={resolvedVariant}
-      color={intent === 'danger' && resolvedVariant !== 'solid' ? 'red.600' : undefined}
-      leftIcon={children ? icon : undefined}
-      aria-label={ariaLabel ?? tooltip}
-      px={children ? undefined : 2.5}
+      color={resolvedColor}
+      leftIcon={icon}
+      aria-label={resolvedAriaLabel}
       {...buttonProps}
     >
-      {children ?? icon}
+      {children}
     </Button>
-  );
+  ) : icon && resolvedAriaLabel ? (
+    <IconButton
+      colorScheme={resolvedColorScheme}
+      variant={resolvedVariant}
+      color={resolvedColor}
+      aria-label={resolvedAriaLabel}
+      icon={icon}
+      {...buttonProps}
+    />
+  ) : null;
+
+  if (!button) return null;
 
   return (
     <Auth code={code} fallback={fallback}>

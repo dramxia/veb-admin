@@ -18,18 +18,30 @@ export function useActionFeedback(defaultOptions: RunOptions = {}) {
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const run = useCallback(
     async (action: () => Promise<void> | void, options: RunOptions = {}) => {
-      const merged = { successTitle: '操作成功', errorTitle: '操作失败', refresh: false, ...defaultOptions, ...options };
+      const merged = {
+        successTitle: '操作成功',
+        errorTitle: '操作失败',
+        refresh: false,
+        ...defaultOptions,
+        ...options,
+      };
+      setError(null);
       setLoading(true);
       try {
         await action();
-        if (merged.successTitle) toast({ title: merged.successTitle, status: 'success' });
+        if (merged.successTitle) {
+          toast({ title: merged.successTitle, status: 'success' });
+        }
         if (merged.refresh) router.refresh();
         return true;
       } catch (error) {
-        toast({ title: getErrorMessage(error, merged.errorTitle), status: 'error' });
+        const message = getErrorMessage(error, merged.errorTitle);
+        setError(message);
+        toast({ title: message, status: 'error' });
         return false;
       } finally {
         setLoading(false);
@@ -38,5 +50,7 @@ export function useActionFeedback(defaultOptions: RunOptions = {}) {
     [defaultOptions, router, toast],
   );
 
-  return { loading, run };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { clearError, error, loading, run };
 }

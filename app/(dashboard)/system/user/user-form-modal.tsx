@@ -1,10 +1,15 @@
 'use client';
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Button,
+  Box,
   Checkbox,
   CheckboxGroup,
   FormControl,
+  FormHelperText,
   FormLabel,
   HStack,
   Input,
@@ -20,6 +25,7 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type Role = { id: string; code: string; name: string };
 type User = {
@@ -43,6 +49,7 @@ type UserFormPayload = {
 type UserFormModalProps = {
   isOpen: boolean;
   isLoading?: boolean;
+  error?: ReactNode;
   user?: User | null;
   roles: Role[];
   onClose: () => void;
@@ -52,6 +59,7 @@ type UserFormModalProps = {
 export function UserFormModal({
   isOpen,
   isLoading,
+  error,
   user,
   roles,
   onClose,
@@ -83,27 +91,33 @@ export function UserFormModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
-      <ModalOverlay
-        bg="rgba(248, 251, 255, 0.62)"
-        backdropFilter="blur(16px)"
-      />
-      <ModalContent
-        rounded="3xl"
-        bg="rgba(255,255,255,0.86)"
-        borderWidth="1px"
-        borderColor="rgba(255,255,255,0.78)"
-        boxShadow="glass"
-        sx={{
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-        }}
-      >
-        <form action={handleSubmit}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      isCentered
+      scrollBehavior="inside"
+    >
+      <ModalOverlay />
+      <ModalContent>
+        <Box
+          as="form"
+          action={handleSubmit}
+          display="flex"
+          flex="1"
+          flexDirection="column"
+          minH={0}
+        >
           <ModalHeader>{editing ? '编辑用户' : '新增用户'}</ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton aria-label="关闭用户表单" />
           <ModalBody>
             <Stack spacing={5}>
+              {error ? (
+                <Alert status="error" aria-live="polite">
+                  <AlertIcon />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 <FormControl isRequired={!editing}>
                   <FormLabel>用户名</FormLabel>
@@ -112,6 +126,7 @@ export function UserFormModal({
                     defaultValue={user?.username ?? ''}
                     isDisabled={editing}
                     placeholder="例如 admin"
+                    autoComplete="off"
                   />
                 </FormControl>
                 {!editing ? (
@@ -119,9 +134,12 @@ export function UserFormModal({
                     <FormLabel>初始密码</FormLabel>
                     <Input
                       name="password"
-                      defaultValue="Admin@123"
                       type="password"
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="至少 6 个字符"
                     />
+                    <FormHelperText>请使用独立的初始密码。</FormHelperText>
                   </FormControl>
                 ) : null}
                 <FormControl>
@@ -134,6 +152,7 @@ export function UserFormModal({
                     name="email"
                     defaultValue={user?.email ?? ''}
                     type="email"
+                    autoComplete="email"
                   />
                 </FormControl>
                 <FormControl>
@@ -151,18 +170,20 @@ export function UserFormModal({
               {!editing ? (
                 <FormControl>
                   <FormLabel>初始角色</FormLabel>
-                  <CheckboxGroup
-                    value={roleIds}
-                    onChange={(value) => setRoleIds(value.map(String))}
-                  >
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
-                      {roles.map((role) => (
-                        <Checkbox key={role.id} value={role.id}>
-                          {role.name}
-                        </Checkbox>
-                      ))}
-                    </SimpleGrid>
-                  </CheckboxGroup>
+                  <Stack maxH="240px" overflowY="auto" pr={2}>
+                    <CheckboxGroup
+                      value={roleIds}
+                      onChange={(value) => setRoleIds(value.map(String))}
+                    >
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                        {roles.map((role) => (
+                          <Checkbox key={role.id} value={role.id}>
+                            {role.name}
+                          </Checkbox>
+                        ))}
+                      </SimpleGrid>
+                    </CheckboxGroup>
+                  </Stack>
                 </FormControl>
               ) : null}
             </Stack>
@@ -177,7 +198,7 @@ export function UserFormModal({
               </Button>
             </HStack>
           </ModalFooter>
-        </form>
+        </Box>
       </ModalContent>
     </Modal>
   );

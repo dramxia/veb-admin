@@ -1,9 +1,12 @@
 'use client';
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Badge,
-  Button,
   Icon,
+  IconButton,
   Link,
   Table,
   Tbody,
@@ -48,7 +51,9 @@ function formatSize(size: number) {
 
 export function FileTable({ files }: { files: ManagedFile[] }) {
   const router = useRouter();
-  const { loading, run } = useActionFeedback({ refresh: true });
+  const { clearError, error, loading, run } = useActionFeedback({
+    refresh: true,
+  });
   const deleteDialog = useDisclosure();
   const [deletingFile, setDeletingFile] = useState<ManagedFile | null>(null);
 
@@ -59,6 +64,12 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
           <FileUpload onChange={() => router.refresh()} />
         </GlassPanel>
       </Auth>
+      {error ? (
+        <Alert status="error" mb={4} aria-live="polite">
+          <AlertIcon />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
       <DataTableCard
         minW="960px"
         title="文件资产"
@@ -80,9 +91,11 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
             <Tbody>
               {files.map((file) => (
                 <Tr key={file.id}>
-                  <Td>{file.name}</Td>
+                  <Td fontWeight="700" color="ink.800">
+                    {file.name}
+                  </Td>
                   <Td>
-                    <Badge>{file.mime}</Badge>
+                    <Badge colorScheme="gray">{file.mime}</Badge>
                   </Td>
                   <Td isNumeric>{formatSize(file.size)}</Td>
                   <Td>
@@ -96,27 +109,26 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
                   <Td>
                     <TableActions>
                       <Tooltip label="预览文件" hasArrow>
-                        <Button
+                        <IconButton
                           as={Link}
                           href={file.url}
                           target="_blank"
+                          rel="noreferrer"
                           size="xs"
                           variant="ghost"
                           aria-label="预览文件"
-                        >
-                          <Icon as={ExternalLink} boxSize={4} />
-                        </Button>
+                          icon={<Icon as={ExternalLink} boxSize={4} />}
+                        />
                       </Tooltip>
                       <Tooltip label="下载文件" hasArrow>
-                        <Button
+                        <IconButton
                           as={Link}
                           href={`${file.url}?download=1`}
                           size="xs"
                           variant="ghost"
                           aria-label="下载文件"
-                        >
-                          <Icon as={Download} boxSize={4} />
-                        </Button>
+                          icon={<Icon as={Download} boxSize={4} />}
+                        />
                       </Tooltip>
                       <AuthButton
                         code="system:file:delete"
@@ -127,6 +139,7 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
                         icon={<Icon as={Trash2} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setDeletingFile(file);
                           deleteDialog.onOpen();
                         }}
@@ -137,7 +150,11 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
               ))}
             </Tbody>
           ) : (
-            <EmptyTableRow colSpan={6} text="暂无文件数据" />
+            <EmptyTableRow
+              colSpan={6}
+              text="暂无文件数据"
+              description="上传文件后，可在这里预览、下载或删除。"
+            />
           )}
         </Table>
       </DataTableCard>
@@ -146,10 +163,14 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
         isOpen={deleteDialog.isOpen}
         title="删除文件"
         description={`确认删除文件 ${deletingFile?.name ?? ''}？该操作不可撤销。`}
+        error={error}
         confirmLabel="删除"
         intent="danger"
         isLoading={loading}
-        onClose={deleteDialog.onClose}
+        onClose={() => {
+          clearError();
+          deleteDialog.onClose();
+        }}
         onConfirm={async () => {
           const ok = await run(
             () =>

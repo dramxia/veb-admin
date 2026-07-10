@@ -1,13 +1,21 @@
 'use client';
 
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Badge,
+  Box,
   Button,
   FormControl,
+  FormHelperText,
   FormLabel,
   HStack,
   Icon,
+  IconButton,
   Input,
+  InputGroup,
+  InputLeftElement,
   Menu,
   MenuButton,
   MenuItem,
@@ -19,6 +27,8 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Portal,
+  Stack,
   Table,
   Tbody,
   Td,
@@ -32,10 +42,12 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Search,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -66,12 +78,14 @@ function api<T = unknown>(path: string, init: RequestInit) {
 function ResetPasswordModal({
   isOpen,
   isLoading,
+  error,
   user,
   onClose,
   onSubmit,
 }: {
   isOpen: boolean;
   isLoading?: boolean;
+  error?: ReactNode;
   user: User | null;
   onClose: () => void;
   onSubmit: (password: string) => Promise<boolean> | boolean;
@@ -84,30 +98,38 @@ function ResetPasswordModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
-      <ModalOverlay
-        bg="rgba(248, 251, 255, 0.62)"
-        backdropFilter="blur(16px)"
-      />
-      <ModalContent
-        rounded="3xl"
-        bg="rgba(255,255,255,0.86)"
-        borderWidth="1px"
-        borderColor="rgba(255,255,255,0.78)"
-        boxShadow="glass"
-        sx={{
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-        }}
-      >
-        <form action={handleSubmit}>
+      <ModalOverlay />
+      <ModalContent>
+        <Box
+          as="form"
+          key={user?.id ?? 'reset-password'}
+          action={handleSubmit}
+          display="flex"
+          flex="1"
+          flexDirection="column"
+          minH={0}
+        >
           <ModalHeader>重置密码</ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton aria-label="关闭密码重置" />
           <ModalBody>
+            {error ? (
+              <Alert status="error" mb={4} aria-live="polite">
+                <AlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
             <FormControl isRequired>
               <FormLabel>
                 {user?.nickname || user?.username || '用户'} 的新密码
               </FormLabel>
-              <Input name="password" defaultValue="Admin@123" type="password" />
+              <Input
+                name="password"
+                type="password"
+                minLength={6}
+                autoComplete="new-password"
+                placeholder="至少 6 个字符"
+              />
+              <FormHelperText>保存后旧密码将立即失效。</FormHelperText>
             </FormControl>
           </ModalBody>
           <ModalFooter>
@@ -120,36 +142,73 @@ function ResetPasswordModal({
               </Button>
             </HStack>
           </ModalFooter>
-        </form>
+        </Box>
       </ModalContent>
     </Modal>
   );
 }
 
 export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
-  const { loading, run } = useActionFeedback({ refresh: true });
+  const { clearError, error, loading, run } = useActionFeedback({
+    refresh: true,
+  });
   const formModal = useDisclosure();
   const assignModal = useDisclosure();
   const resetModal = useDisclosure();
   const deleteDialog = useDisclosure();
+  const [query, setQuery] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [assigningUser, setAssigningUser] = useState<User | null>(null);
   const [resettingUser, setResettingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+
+  const filteredUsers = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) return users;
+    return users.filter((user) => {
+      const roleNames = user.roles.map((item) => item.role.name).join(' ');
+      return `${user.username} ${user.nickname ?? ''} ${user.email ?? ''} ${roleNames}`
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }, [query, users]);
 
   return (
     <>
       <DataTableCard
         minW="920px"
         title="用户账号"
-        description="集中维护登录账号、角色分配与账号状态，确保后台访问边界清晰。"
-        meta={`${users.length} 个账号 · ${roles.length} 个可分配角色`}
+        description="维护登录账号、角色分配与启停状态。"
+        meta={`${filteredUsers.length} / ${users.length} 个账号 · ${roles.length} 个角色`}
+        toolbar={
+          <Stack spacing={3}>
+            {error ? (
+              <Alert status="error" aria-live="polite">
+                <AlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+            <InputGroup maxW={{ base: 'full', md: '360px' }}>
+              <InputLeftElement pointerEvents="none" color="ink.400">
+                <Icon as={Search} boxSize={4} />
+              </InputLeftElement>
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索用户名、昵称、邮箱或角色"
+                aria-label="搜索用户"
+                pl={10}
+              />
+            </InputGroup>
+          </Stack>
+        }
         primaryAction={
           <AuthButton
             code="system:user:create"
             isLoading={loading}
             icon={<Icon as={Plus} boxSize={4} />}
             onClick={() => {
+              clearError();
               setEditingUser(null);
               formModal.onOpen();
             }}
@@ -169,21 +228,23 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
               <Th>操作</Th>
             </Tr>
           </Thead>
-          {users.length > 0 ? (
+          {filteredUsers.length > 0 ? (
             <Tbody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <Tr key={user.id}>
-                  <Td>{user.username}</Td>
+                  <Td fontWeight="700" color="ink.800">
+                    {user.username}
+                  </Td>
                   <Td>{user.nickname || '-'}</Td>
                   <Td>{user.email || '-'}</Td>
                   <Td>
-                    {user.roles.map((item) => item.role.name).join(', ') || '-'}
+                    {user.roles.map((item) => item.role.name).join('、') || '-'}
                   </Td>
                   <Td>
                     <Badge
                       colorScheme={user.status === 'ENABLED' ? 'green' : 'red'}
                     >
-                      {user.status}
+                      {user.status === 'ENABLED' ? '已启用' : '已停用'}
                     </Badge>
                   </Td>
                   <Td>
@@ -197,6 +258,7 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
                         icon={<Icon as={Pencil} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setEditingUser(user);
                           formModal.onOpen();
                         }}
@@ -210,46 +272,49 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
                         icon={<Icon as={ShieldCheck} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setAssigningUser(user);
                           assignModal.onOpen();
                         }}
                       />
-                      <Menu placement="bottom-end">
+                      <Menu placement="bottom-end" strategy="fixed">
                         <MenuButton
-                          as={Button}
+                          as={IconButton}
                           size="xs"
                           variant="ghost"
-                          aria-label="更多用户操作"
-                          px={2.5}
+                          aria-label={`更多用户操作：${user.username}`}
+                          icon={<Icon as={MoreHorizontal} boxSize={4} />}
                           isDisabled={loading}
-                        >
-                          <Icon as={MoreHorizontal} boxSize={4} />
-                        </MenuButton>
-                        <MenuList>
-                          <Auth code="system:user:reset-password">
-                            <MenuItem
-                              icon={<Icon as={KeyRound} boxSize={4} />}
-                              onClick={() => {
-                                setResettingUser(user);
-                                resetModal.onOpen();
-                              }}
-                            >
-                              重置密码
-                            </MenuItem>
-                          </Auth>
-                          <Auth code="system:user:delete">
-                            <MenuItem
-                              icon={<Icon as={Trash2} boxSize={4} />}
-                              color="red.600"
-                              onClick={() => {
-                                setDeletingUser(user);
-                                deleteDialog.onOpen();
-                              }}
-                            >
-                              删除用户
-                            </MenuItem>
-                          </Auth>
-                        </MenuList>
+                        />
+                        <Portal>
+                          <MenuList>
+                            <Auth code="system:user:reset-password">
+                              <MenuItem
+                                icon={<Icon as={KeyRound} boxSize={4} />}
+                                onClick={() => {
+                                  clearError();
+                                  setResettingUser(user);
+                                  resetModal.onOpen();
+                                }}
+                              >
+                                重置密码
+                              </MenuItem>
+                            </Auth>
+                            <Auth code="system:user:delete">
+                              <MenuItem
+                                icon={<Icon as={Trash2} boxSize={4} />}
+                                color="red.600"
+                                onClick={() => {
+                                  clearError();
+                                  setDeletingUser(user);
+                                  deleteDialog.onOpen();
+                                }}
+                              >
+                                删除用户
+                              </MenuItem>
+                            </Auth>
+                          </MenuList>
+                        </Portal>
                       </Menu>
                     </TableActions>
                   </Td>
@@ -257,7 +322,26 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
               ))}
             </Tbody>
           ) : (
-            <EmptyTableRow colSpan={6} text="暂无用户数据" />
+            <EmptyTableRow
+              colSpan={6}
+              text={users.length === 0 ? '暂无用户数据' : '没有匹配的用户'}
+              description={
+                users.length === 0
+                  ? '创建首个用户后，可在这里分配角色和管理账号状态。'
+                  : '请调整搜索关键词后重试。'
+              }
+              action={
+                users.length > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setQuery('')}
+                  >
+                    清除搜索
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
         </Table>
       </DataTableCard>
@@ -265,9 +349,13 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
       <UserFormModal
         isOpen={formModal.isOpen}
         isLoading={loading}
+        error={error}
         user={editingUser}
         roles={roles}
-        onClose={formModal.onClose}
+        onClose={() => {
+          clearError();
+          formModal.onClose();
+        }}
         onSubmit={(payload) =>
           run(async () => {
             if (editingUser) {
@@ -288,9 +376,13 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
       <AssignRolesModal
         isOpen={assignModal.isOpen}
         isLoading={loading}
+        error={error}
         user={assigningUser}
         roles={roles}
-        onClose={assignModal.onClose}
+        onClose={() => {
+          clearError();
+          assignModal.onClose();
+        }}
         onSubmit={(roleIds) =>
           run(async () => {
             if (!assigningUser) return;
@@ -305,8 +397,12 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
       <ResetPasswordModal
         isOpen={resetModal.isOpen}
         isLoading={loading}
+        error={error}
         user={resettingUser}
-        onClose={resetModal.onClose}
+        onClose={() => {
+          clearError();
+          resetModal.onClose();
+        }}
         onSubmit={(password) =>
           run(async () => {
             if (!resettingUser) return;
@@ -322,10 +418,14 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
         isOpen={deleteDialog.isOpen}
         title="删除用户"
         description={`确认删除用户 ${deletingUser?.username ?? ''}？该操作不可撤销。`}
+        error={error}
         confirmLabel="删除"
         intent="danger"
         isLoading={loading}
-        onClose={deleteDialog.onClose}
+        onClose={() => {
+          clearError();
+          deleteDialog.onClose();
+        }}
         onConfirm={async () => {
           const ok = await run(async () => {
             if (!deletingUser) return;

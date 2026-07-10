@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { Badge, HStack, Text, VStack } from '@chakra-ui/react';
+import { Badge, HStack } from '@chakra-ui/react';
 import { LogStatus, Prisma } from '@prisma/client';
-import { ScrollText } from 'lucide-react';
-import { GlassPanel } from '@/components/common/glass-panel';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { ParamError } from '@/lib/errors';
 import { t } from '@/lib/i18n';
@@ -72,7 +70,7 @@ export default async function OperationLogPage({
 
   return (
     <WorkspaceCanvas
-      eyebrow="Audit"
+      eyebrow="系统管理"
       title={t('log.title')}
       description={t('log.description')}
       heroSlot={
@@ -80,19 +78,6 @@ export default async function OperationLogPage({
           <Badge colorScheme="brand">{logs.length} 条最近记录</Badge>
           <Badge colorScheme="gray">最多展示 50 条</Badge>
         </HStack>
-      }
-      sideSlot={
-        <GlassPanel variant="soft" p={5}>
-          <VStack align="stretch" spacing={3}>
-            <ScrollText size={28} color="#0f5ed7" />
-            <Text color="surface.900" fontWeight="900">
-              审计筛选保持可扫读
-            </Text>
-            <Text color="surface.600" lineHeight="1.8">
-              筛选和导出被固定在数据舱工具栏内，方便在日志密集时反复查询。
-            </Text>
-          </VStack>
-        </GlassPanel>
       }
     >
       <OperationLogTable logs={logs} />

@@ -1,6 +1,9 @@
 'use client';
 
+import { Box } from '@chakra-ui/react';
 import { useEffect } from 'react';
+import { ErrorState } from '@/components/common/error-state';
+import { Providers } from './providers';
 
 export default function GlobalError({
   error,
@@ -15,64 +18,23 @@ export default function GlobalError({
 
   return (
     <html lang="zh-CN">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
-        }}
-      >
-        <main
-          style={{
-            minHeight: '100vh',
-            display: 'grid',
-            placeItems: 'center',
-            padding: 24,
-            background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)',
-            color: '#0f172a',
-          }}
-        >
-          <section
-            style={{
-              width: '100%',
-              maxWidth: 560,
-              borderRadius: 24,
-              padding: 32,
-              background: 'rgba(255,255,255,0.9)',
-              boxShadow: '0 18px 44px rgba(15,23,42,0.08)',
-              border: '1px solid rgba(255,255,255,0.8)',
-            }}
-          >
-            <p
-              style={{ margin: '0 0 12px', color: '#dc2626', fontWeight: 800 }}
-            >
-              全局运行异常
-            </p>
-            <h1 style={{ margin: '0 0 12px', fontSize: 28, letterSpacing: 0 }}>
-              应用暂时不可用
-            </h1>
-            <p
-              style={{ margin: '0 0 24px', color: '#64748b', lineHeight: 1.8 }}
-            >
-              {error.message || '当前应用发生未知错误。'}
-            </p>
-            <button
-              type="button"
-              onClick={reset}
-              style={{
-                border: 0,
-                borderRadius: 14,
-                padding: '12px 18px',
-                color: '#fff',
-                fontWeight: 800,
-                cursor: 'pointer',
-                background: 'linear-gradient(135deg, #1677ff 0%, #6d5dfc 100%)',
-              }}
-            >
-              重试
-            </button>
-          </section>
-        </main>
+      <body>
+        <Providers>
+          <Box as="main" layerStyle="appCanvas">
+            <ErrorState
+              eyebrow="全局运行异常"
+              title="应用暂时不可用"
+              description="应用未能完成当前请求，请稍后重试。"
+              message="你可以先重新加载应用；若问题持续，请记录错误标识并联系管理员。"
+              digest={error.digest}
+              minH="100vh"
+              actions={[
+                { label: '重试', onClick: reset },
+                { label: '返回首页', href: '/', variant: 'outline' },
+              ]}
+            />
+          </Box>
+        </Providers>
       </body>
     </html>
   );

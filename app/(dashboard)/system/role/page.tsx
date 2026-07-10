@@ -1,8 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { Badge, HStack, Text, VStack } from '@chakra-ui/react';
-import { ShieldCheck } from 'lucide-react';
-import { GlassPanel } from '@/components/common/glass-panel';
+import { Badge, HStack } from '@chakra-ui/react';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/permission';
@@ -26,28 +24,15 @@ export default async function RolePage() {
   ]);
   return (
     <WorkspaceCanvas
-      eyebrow="RBAC"
+      eyebrow="访问控制"
       title="角色管理"
-      description="维护角色、启停状态、权限集合和用户绑定，抽屉式分配适合批量勾选。"
+      description="维护角色状态、权限集合与用户绑定。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
           <Badge colorScheme="brand">{roles.length} 个角色</Badge>
           <Badge colorScheme="cyan">{permissions.length} 个权限</Badge>
           <Badge colorScheme="gray">{users.length} 个用户</Badge>
         </HStack>
-      }
-      sideSlot={
-        <GlassPanel variant="soft" p={5}>
-          <VStack align="stretch" spacing={3}>
-            <ShieldCheck size={28} color="#0f5ed7" />
-            <Text color="surface.900" fontWeight="900">
-              授权关系一屏维护
-            </Text>
-            <Text color="surface.600" lineHeight="1.8">
-              分配权限和分配用户从原生输入框升级为可搜索、可勾选的侧向抽屉。
-            </Text>
-          </VStack>
-        </GlassPanel>
       }
     >
       <RoleTable roles={roles} permissions={permissions} users={users} />

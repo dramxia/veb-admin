@@ -1,8 +1,26 @@
 'use client';
 
-import { Badge, Icon, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from '@chakra-ui/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  Badge,
+  Button,
+  Icon,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Stack,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+  useDisclosure,
+} from '@chakra-ui/react';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -23,6 +41,11 @@ type Permission = {
   isSystem: boolean;
 };
 
+const permissionTypeLabels: Record<string, string> = {
+  BUTTON: '按钮',
+  MENU: '菜单',
+};
+
 function api<T = unknown>(path: string, init: RequestInit) {
   return requestJson<T>(path, init);
 }
@@ -32,11 +55,27 @@ export function PermissionTable({
 }: {
   permissions: Permission[];
 }) {
-  const { loading, run } = useActionFeedback({ refresh: true });
+  const { clearError, error, loading, run } = useActionFeedback({
+    refresh: true,
+  });
   const formModal = useDisclosure();
   const deleteDialog = useDisclosure();
-  const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
-  const [deletingPermission, setDeletingPermission] = useState<Permission | null>(null);
+  const [query, setQuery] = useState('');
+  const [editingPermission, setEditingPermission] = useState<Permission | null>(
+    null,
+  );
+  const [deletingPermission, setDeletingPermission] =
+    useState<Permission | null>(null);
+
+  const filteredPermissions = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) return permissions;
+    return permissions.filter((permission) =>
+      `${permission.code} ${permission.name} ${permission.description ?? ''}`
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [permissions, query]);
 
   return (
     <>
@@ -44,13 +83,36 @@ export function PermissionTable({
         minW="760px"
         title="权限码"
         description="维护菜单与按钮级权限码，为角色授权提供稳定的能力清单。"
-        meta={`${permissions.length} 个权限码`}
+        meta={`${filteredPermissions.length} / ${permissions.length} 个权限码`}
+        toolbar={
+          <Stack spacing={3}>
+            {error ? (
+              <Alert status="error" aria-live="polite">
+                <AlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+            <InputGroup maxW={{ base: 'full', md: '360px' }}>
+              <InputLeftElement pointerEvents="none" color="ink.400">
+                <Icon as={Search} boxSize={4} />
+              </InputLeftElement>
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索权限码、名称或描述"
+                aria-label="搜索权限"
+                pl={10}
+              />
+            </InputGroup>
+          </Stack>
+        }
         primaryAction={
           <AuthButton
             code="system:permission:create"
             isLoading={loading}
             icon={<Icon as={Plus} boxSize={4} />}
             onClick={() => {
+              clearError();
               setEditingPermission(null);
               formModal.onOpen();
             }}
@@ -65,20 +127,34 @@ export function PermissionTable({
               <Th>权限码</Th>
               <Th>名称</Th>
               <Th>类型</Th>
-              <Th>系统</Th>
+              <Th>来源</Th>
               <Th>操作</Th>
             </Tr>
           </Thead>
-          {permissions.length > 0 ? (
+          {filteredPermissions.length > 0 ? (
             <Tbody>
-              {permissions.map((permission) => (
+              {filteredPermissions.map((permission) => (
                 <Tr key={permission.id}>
-                  <Td>{permission.code}</Td>
+                  <Td fontWeight="700" color="ink.800">
+                    {permission.code}
+                  </Td>
                   <Td>{permission.name}</Td>
                   <Td>
-                    <Badge>{permission.type}</Badge>
+                    <Badge
+                      colorScheme={
+                        permission.type === 'MENU' ? 'brand' : 'cyan'
+                      }
+                    >
+                      {permissionTypeLabels[permission.type] ?? permission.type}
+                    </Badge>
                   </Td>
-                  <Td>{permission.isSystem ? '是' : '否'}</Td>
+                  <Td>
+                    <Badge
+                      colorScheme={permission.isSystem ? 'purple' : 'gray'}
+                    >
+                      {permission.isSystem ? '系统内置' : '自定义'}
+                    </Badge>
+                  </Td>
                   <Td>
                     <TableActions>
                       <AuthButton
@@ -90,6 +166,7 @@ export function PermissionTable({
                         icon={<Icon as={Pencil} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
+                          clearError();
                           setEditingPermission(permission);
                           formModal.onOpen();
                         }}
@@ -103,6 +180,7 @@ export function PermissionTable({
                         icon={<Icon as={Trash2} boxSize={4} />}
                         isDisabled={loading || permission.isSystem}
                         onClick={() => {
+                          clearError();
                           setDeletingPermission(permission);
                           deleteDialog.onOpen();
                         }}
@@ -113,7 +191,28 @@ export function PermissionTable({
               ))}
             </Tbody>
           ) : (
-            <EmptyTableRow colSpan={5} text="暂无权限数据" />
+            <EmptyTableRow
+              colSpan={5}
+              text={
+                permissions.length === 0 ? '暂无权限数据' : '没有匹配的权限'
+              }
+              description={
+                permissions.length === 0
+                  ? '新增权限后，可将其分配给角色。'
+                  : '请调整搜索关键词后重试。'
+              }
+              action={
+                permissions.length > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setQuery('')}
+                  >
+                    清除搜索
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
         </Table>
       </DataTableCard>
@@ -121,8 +220,12 @@ export function PermissionTable({
       <PermissionFormModal
         isOpen={formModal.isOpen}
         isLoading={loading}
+        error={error}
         permission={editingPermission}
-        onClose={formModal.onClose}
+        onClose={() => {
+          clearError();
+          formModal.onClose();
+        }}
         onSubmit={(payload) =>
           run(async () => {
             if (editingPermission) {
@@ -144,14 +247,20 @@ export function PermissionTable({
         isOpen={deleteDialog.isOpen}
         title="删除权限"
         description={`确认删除权限 ${deletingPermission?.code ?? ''}？该操作会影响后续授权配置。`}
+        error={error}
         confirmLabel="删除"
         intent="danger"
         isLoading={loading}
-        onClose={deleteDialog.onClose}
+        onClose={() => {
+          clearError();
+          deleteDialog.onClose();
+        }}
         onConfirm={async () => {
           const ok = await run(async () => {
             if (!deletingPermission) return;
-            await api(`/api/system/permissions/${deletingPermission.id}`, { method: 'DELETE' });
+            await api(`/api/system/permissions/${deletingPermission.id}`, {
+              method: 'DELETE',
+            });
           });
           if (ok) deleteDialog.onClose();
         }}

@@ -130,7 +130,7 @@ lib/              服务端工具、认证、权限、菜单、存储、日志
 prisma/           Prisma schema 与 seed
 stores/           Zustand 客户端状态
 types/            类型扩展
-docs/             架构、权限、部署文档
+docs/             架构、权限、部署与 UI 风格文档
 ```
 
 ## 🧪 常用命令
@@ -149,6 +149,7 @@ pnpm prisma       # Prisma CLI 入口
 - `docs/architecture.md`：系统架构、请求链路、数据流。
 - `docs/permission.md`：权限码规范与新增权限步骤。
 - `docs/deployment.md`：Docker、环境变量、HTTPS 和上线注意事项。
+- [docs/ui-style-guide.md](docs/ui-style-guide.md)：后台 UI 主题、毛玻璃样式、组件与外部依赖对齐规范。
 - `PRD.md`：产品需求。
 - `IMPLEMENTATION.md`：里程碑实施记录。
 

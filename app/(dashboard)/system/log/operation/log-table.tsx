@@ -87,7 +87,7 @@ export function OperationLogTable({ logs }: { logs: OperationLog[] }) {
                   <Badge
                     colorScheme={log.status === 'SUCCESS' ? 'green' : 'red'}
                   >
-                    {log.status}
+                    {log.status === 'SUCCESS' ? '成功' : '失败'}
                   </Badge>
                 </Td>
                 <Td>{log.ip || '-'}</Td>
@@ -96,7 +96,11 @@ export function OperationLogTable({ logs }: { logs: OperationLog[] }) {
             ))}
           </Tbody>
         ) : (
-          <EmptyTableRow colSpan={7} text="暂无操作日志" />
+          <EmptyTableRow
+            colSpan={7}
+            text="暂无操作日志"
+            description="请调整筛选条件，或等待新的后台操作记录。"
+          />
         )}
       </Table>
     </DataTableCard>

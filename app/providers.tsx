@@ -9,133 +9,319 @@ import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { RouteProgress } from '@/components/common/route-progress';
 
-const badgeSubtleStyles = ({ colorScheme }: StyleFunctionProps) => {
-  const scheme = colorScheme ?? 'brand';
-  const styles: Record<
-    string,
-    { bg: string; borderColor: string; boxShadow: string; color: string }
-  > = {
-    brand: {
-      bg: 'rgba(238, 247, 255, 0.78)',
-      borderColor: 'rgba(22, 119, 255, 0.18)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.74)',
-      color: '#0f5ed7',
-    },
-    blue: {
-      bg: 'rgba(238, 247, 255, 0.78)',
-      borderColor: 'rgba(22, 119, 255, 0.18)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.74)',
-      color: '#0f5ed7',
-    },
-    cyan: {
-      bg: 'rgba(240, 249, 255, 0.78)',
-      borderColor: 'rgba(14, 165, 233, 0.20)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
-      color: '#0369a1',
-    },
-    gray: {
-      bg: 'rgba(248, 250, 252, 0.66)',
-      borderColor: 'rgba(148, 163, 184, 0.22)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
-      color: '#475569',
-    },
-    green: {
-      bg: 'rgba(236, 253, 245, 0.76)',
-      borderColor: 'rgba(22, 163, 74, 0.22)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)',
-      color: '#15803d',
-    },
-    orange: {
-      bg: 'rgba(255, 251, 235, 0.78)',
-      borderColor: 'rgba(245, 158, 11, 0.24)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)',
-      color: '#b45309',
-    },
-    purple: {
-      bg: 'rgba(245, 243, 255, 0.78)',
-      borderColor: 'rgba(109, 93, 252, 0.20)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)',
-      color: '#5b4be5',
-    },
-    red: {
-      bg: 'rgba(254, 242, 242, 0.68)',
-      borderColor: 'rgba(229, 62, 62, 0.22)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
-      color: '#b91c1c',
-    },
-  };
+const canvasBackground =
+  'radial-gradient(circle at 12% 10%, rgba(22, 119, 255, 0.14), transparent 28%), radial-gradient(circle at 88% 4%, rgba(99, 102, 241, 0.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.10), transparent 32%), linear-gradient(135deg, #f8fbff 0%, #f3f7ff 46%, #eef4ff 100%)';
 
+const glassBlur = 'blur(18px) saturate(160%)';
+const floatingGlassBlur = 'blur(28px) saturate(190%)';
+
+const statusPalettes = {
+  brand: { bg: 'brand.50', border: 'brand.100', fg: 'brand.700' },
+  blue: { bg: 'statusInfoBg', border: 'statusInfoBorder', fg: 'statusInfo' },
+  cyan: { bg: 'statusInfoBg', border: 'statusInfoBorder', fg: 'statusInfo' },
+  gray: { bg: 'surfaceSubtleBg', border: 'borderDefault', fg: 'ink.600' },
+  green: {
+    bg: 'statusSuccessBg',
+    border: 'statusSuccessBorder',
+    fg: 'statusSuccess',
+  },
+  orange: {
+    bg: 'statusWarningBg',
+    border: 'statusWarningBorder',
+    fg: 'statusWarning',
+  },
+  purple: { bg: 'purple.50', border: 'purple.200', fg: 'purple.700' },
+  red: {
+    bg: 'statusDangerBg',
+    border: 'statusDangerBorder',
+    fg: 'statusDanger',
+  },
+  yellow: {
+    bg: 'statusWarningBg',
+    border: 'statusWarningBorder',
+    fg: 'statusWarning',
+  },
+} as const;
+
+function getStatusPalette(colorScheme?: string) {
   return (
-    styles[scheme] ?? {
-      bg: 'rgba(238, 247, 255, 0.78)',
-      borderColor: 'rgba(22, 119, 255, 0.18)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
-      color: '#0f5ed7',
-    }
+    statusPalettes[colorScheme as keyof typeof statusPalettes] ??
+    statusPalettes.brand
   );
+}
+
+const badgeSubtleStyles = ({ colorScheme }: StyleFunctionProps) => {
+  const palette = getStatusPalette(colorScheme);
+
+  return {
+    bg: palette.bg,
+    borderColor: palette.border,
+    boxShadow: 'insetHairline',
+    color: palette.fg,
+  };
+};
+
+const alertSubtleStyles = ({ colorScheme }: StyleFunctionProps) => {
+  const palette = getStatusPalette(colorScheme);
+
+  return {
+    container: {
+      bg: palette.bg,
+      borderColor: palette.border,
+      color: 'ink.800',
+    },
+    description: { color: 'ink.700' },
+    icon: { color: palette.fg },
+    spinner: { color: palette.fg },
+    title: { color: palette.fg },
+  };
 };
 
 const solidButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
   if (colorScheme === 'red') {
     return {
-      bg: '#ef4444',
+      bg: 'statusDanger',
       color: 'white',
-      boxShadow: '0 14px 28px rgba(239, 68, 68, 0.20)',
+      boxShadow: 'buttonDanger',
       _hover: {
-        bg: '#dc2626',
+        bg: 'statusDangerHover',
+        boxShadow: 'buttonDangerHover',
         transform: 'translateY(-1px)',
-        boxShadow: '0 18px 38px rgba(239, 68, 68, 0.24)',
-        _disabled: { bg: '#ef4444', transform: 'none' },
+        _disabled: {
+          bg: 'statusDanger',
+          boxShadow: 'none',
+          transform: 'none',
+        },
       },
-      _active: { bg: '#b91c1c', transform: 'translateY(0)' },
+      _active: { bg: 'statusDangerActive', transform: 'translateY(0)' },
+      _focusVisible: { boxShadow: 'focusRingDanger' },
     };
   }
 
   if (colorScheme === 'green') {
     return {
-      bg: '#16a34a',
+      bg: 'statusSuccess',
       color: 'white',
-      boxShadow: '0 14px 28px rgba(22, 163, 74, 0.18)',
+      boxShadow: 'buttonSuccess',
       _hover: {
-        bg: '#15803d',
+        bg: 'statusSuccessHover',
+        boxShadow: 'buttonSuccessHover',
         transform: 'translateY(-1px)',
-        boxShadow: '0 18px 38px rgba(22, 163, 74, 0.22)',
-        _disabled: { bg: '#16a34a', transform: 'none' },
+        _disabled: {
+          bg: 'statusSuccess',
+          boxShadow: 'none',
+          transform: 'none',
+        },
       },
-      _active: { bg: '#166534', transform: 'translateY(0)' },
+      _active: { bg: 'statusSuccessActive', transform: 'translateY(0)' },
     };
   }
 
   if (colorScheme === 'orange' || colorScheme === 'yellow') {
     return {
-      bg: '#f59e0b',
+      bg: 'statusWarning',
       color: 'white',
-      boxShadow: '0 14px 28px rgba(245, 158, 11, 0.18)',
+      boxShadow: 'buttonWarning',
       _hover: {
-        bg: '#d97706',
+        bg: 'statusWarningHover',
+        boxShadow: 'buttonWarningHover',
         transform: 'translateY(-1px)',
-        boxShadow: '0 18px 38px rgba(245, 158, 11, 0.22)',
-        _disabled: { bg: '#f59e0b', transform: 'none' },
+        _disabled: {
+          bg: 'statusWarning',
+          boxShadow: 'none',
+          transform: 'none',
+        },
       },
-      _active: { bg: '#b45309', transform: 'translateY(0)' },
+      _active: { bg: 'statusWarningActive', transform: 'translateY(0)' },
     };
   }
 
   return {
-    bg: 'linear-gradient(135deg, #1677ff 0%, #63b3ed 54%, #6d5dfc 100%)',
+    bg: 'linear-gradient(135deg, #1677ff 0%, #48a8ff 54%, #6d5dfc 100%)',
     color: 'white',
-    boxShadow: '0 14px 30px rgba(22, 119, 255, 0.22)',
+    boxShadow: 'button',
     _hover: {
-      bg: 'linear-gradient(135deg, #0f5ed7 0%, #3ba0e8 54%, #5b4be5 100%)',
+      bg: 'linear-gradient(135deg, #0f5ed7 0%, #318fe8 54%, #5b4be5 100%)',
+      boxShadow: 'buttonHover',
       transform: 'translateY(-1px)',
-      boxShadow: '0 18px 40px rgba(22, 119, 255, 0.28)',
-      _disabled: { bg: 'brand.500', transform: 'none' },
+      _disabled: {
+        bg: 'brand.500',
+        boxShadow: 'none',
+        transform: 'none',
+      },
     },
     _active: { bg: 'brand.700', transform: 'translateY(0)' },
   };
 };
 
-const theme = extendTheme({
+const outlineButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
+  const isDanger = colorScheme === 'red';
+
+  return {
+    bg: 'controlBg',
+    borderColor: isDanger ? 'statusDangerBorder' : 'borderDefault',
+    color: isDanger ? 'statusDanger' : 'ink.700',
+    boxShadow: 'insetHairline',
+    _hover: {
+      bg: isDanger ? 'statusDangerBg' : 'brand.50',
+      borderColor: isDanger ? 'statusDanger' : 'brand.300',
+      color: isDanger ? 'statusDangerHover' : 'ink.900',
+      transform: 'translateY(-1px)',
+      _disabled: { transform: 'none' },
+    },
+    _active: {
+      bg: isDanger ? 'statusDangerBg' : 'brand.100',
+      transform: 'translateY(0)',
+    },
+    _focusVisible: {
+      boxShadow: isDanger ? 'focusRingDanger' : 'focusRing',
+    },
+  };
+};
+
+const ghostButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
+  const isDanger = colorScheme === 'red';
+
+  return {
+    color: isDanger ? 'statusDanger' : 'ink.700',
+    _hover: {
+      bg: isDanger ? 'statusDangerBg' : 'brand.50',
+      color: isDanger ? 'statusDangerHover' : 'ink.900',
+      transform: 'translateY(-1px)',
+      _disabled: { transform: 'none' },
+    },
+    _active: {
+      bg: isDanger ? 'statusDangerBg' : 'brand.100',
+      transform: 'translateY(0)',
+    },
+    _focusVisible: {
+      boxShadow: isDanger ? 'focusRingDanger' : 'focusRing',
+    },
+  };
+};
+
+const inputFieldStyles = {
+  bg: 'controlBg',
+  borderColor: 'borderDefault',
+  borderRadius: '14px',
+  color: 'ink.800',
+  _hover: { borderColor: 'brand.300' },
+  _focusVisible: {
+    borderColor: 'brand.500',
+    boxShadow: 'focusRing',
+  },
+  _invalid: {
+    bg: 'statusDangerBg',
+    borderColor: 'statusDanger',
+    boxShadow: 'focusRingDanger',
+  },
+  _placeholder: { color: 'ink.400' },
+};
+
+const glassBaseLayerStyle = {
+  position: 'relative',
+  overflow: 'hidden',
+  borderWidth: '1px',
+  borderStyle: 'solid',
+  borderColor: 'glassBorder',
+  borderRadius: '2xl',
+};
+
+const glassSoftLayerStyle = {
+  ...glassBaseLayerStyle,
+  bg: 'glassSoftBg',
+  boxShadow: 'glass',
+  backdropFilter: glassBlur,
+  WebkitBackdropFilter: glassBlur,
+};
+
+const glassSolidLayerStyle = {
+  ...glassBaseLayerStyle,
+  bg: 'glassSolidBg',
+  boxShadow: 'card',
+  backdropFilter: glassBlur,
+  WebkitBackdropFilter: glassBlur,
+};
+
+const glassFloatingLayerStyle = {
+  ...glassBaseLayerStyle,
+  bg: 'glassFloatingBg',
+  boxShadow: 'floating',
+  backdropFilter: floatingGlassBlur,
+  WebkitBackdropFilter: floatingGlassBlur,
+};
+
+const iconLayerStyleBase = {
+  alignItems: 'center',
+  display: 'inline-flex',
+  flexShrink: 0,
+  h: 10,
+  justifyContent: 'center',
+  borderRadius: 'xl',
+  borderWidth: '1px',
+  w: 10,
+};
+
+const dialogTheme = {
+  baseStyle: {
+    overlay: {
+      bg: 'overlayBg',
+      backdropFilter: 'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
+    },
+    dialog: {
+      bg: 'dialogBg',
+      borderColor: 'glassBorderStrong',
+      borderRadius: '2xl',
+      borderWidth: '1px',
+      boxShadow: 'dialog',
+      color: 'ink.800',
+      overflow: 'hidden',
+      backdropFilter: floatingGlassBlur,
+      WebkitBackdropFilter: floatingGlassBlur,
+    },
+    header: {
+      borderBottomColor: 'borderSubtle',
+      color: 'ink.900',
+      fontSize: 'lg',
+      fontWeight: 800,
+      pb: 3,
+    },
+    body: {
+      color: 'ink.600',
+      lineHeight: '1.75',
+      py: 4,
+    },
+    footer: {
+      borderTopColor: 'borderSubtle',
+      gap: 3,
+      pt: 3,
+    },
+    closeButton: {
+      color: 'ink.500',
+      top: 3,
+      insetEnd: 3,
+    },
+  },
+};
+
+const toastMotionVariants = {
+  initial: { opacity: 0, scale: 0.98, y: -8 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    y: -6,
+    transition: { duration: 0.16, ease: [0.4, 0, 1, 1] },
+  },
+};
+
+export const theme = extendTheme({
   colors: {
     brand: {
       50: '#eef7ff',
@@ -148,43 +334,6 @@ const theme = extendTheme({
       700: '#104cad',
       800: '#13428c',
       900: '#153a75',
-    },
-    // 兼容旧组件 token，实际视觉映射到同一套浅蓝/蓝灰体系。
-    mint: {
-      50: '#eef7ff',
-      100: '#d8ecff',
-      200: '#b7ddff',
-      300: '#83c8ff',
-      400: '#48a8ff',
-      500: '#1677ff',
-      600: '#0f5ed7',
-      700: '#104cad',
-      800: '#13428c',
-      900: '#153a75',
-    },
-    sage: {
-      50: '#f8fafc',
-      100: '#f1f5f9',
-      200: '#e2e8f0',
-      300: '#cbd5e1',
-      400: '#94a3b8',
-      500: '#64748b',
-      600: '#475569',
-      700: '#334155',
-      800: '#1e293b',
-      900: '#0f172a',
-    },
-    surface: {
-      50: '#f8fafc',
-      100: '#f1f5f9',
-      200: '#e2e8f0',
-      300: '#cbd5e1',
-      400: '#94a3b8',
-      500: '#64748b',
-      600: '#475569',
-      700: '#334155',
-      800: '#1e293b',
-      900: '#0f172a',
     },
     ink: {
       50: '#f8fafc',
@@ -199,6 +348,46 @@ const theme = extendTheme({
       900: '#0f172a',
     },
   },
+  semanticTokens: {
+    colors: {
+      canvasBg: '#f8fbff',
+      controlBg: 'rgba(255, 255, 255, 0.92)',
+      dialogBg: 'rgba(255, 255, 255, 0.94)',
+      glassFloatingBg: 'rgba(255, 255, 255, 0.76)',
+      glassSoftBg: 'rgba(255, 255, 255, 0.68)',
+      glassSolidBg: 'rgba(255, 255, 255, 0.86)',
+      overlayBg: 'rgba(248, 251, 255, 0.66)',
+      surfaceSolidBg: 'rgba(255, 255, 255, 0.96)',
+      surfaceSubtleBg: 'rgba(248, 250, 252, 0.78)',
+      toolbarBg: 'rgba(255, 255, 255, 0.8)',
+      borderDefault: 'ink.200',
+      borderInteractive: 'brand.300',
+      borderSubtle: 'ink.100',
+      glassBorder: 'rgba(255, 255, 255, 0.76)',
+      glassBorderStrong: 'rgba(255, 255, 255, 0.92)',
+      statusDanger: '#b91c1c',
+      statusDangerActive: '#7f1d1d',
+      statusDangerBg: '#fef2f2',
+      statusDangerBorder: '#fecaca',
+      statusDangerHover: '#991b1b',
+      statusInfo: '#0369a1',
+      statusInfoBg: '#f0f9ff',
+      statusInfoBorder: '#bae6fd',
+      statusSuccess: '#15803d',
+      statusSuccessActive: '#14532d',
+      statusSuccessBg: '#ecfdf5',
+      statusSuccessBorder: '#bbf7d0',
+      statusSuccessHover: '#166534',
+      statusWarning: '#b45309',
+      statusWarningActive: '#78350f',
+      statusWarningBg: '#fffbeb',
+      statusWarningBorder: '#fde68a',
+      statusWarningHover: '#92400e',
+      tableHoverBg: 'rgba(22, 119, 255, 0.04)',
+      tableSelectedBg: 'brand.50',
+      tooltipBg: 'rgba(15, 23, 42, 0.88)',
+    },
+  },
   fonts: {
     heading:
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -211,11 +400,28 @@ const theme = extendTheme({
     '2xl': '24px',
   },
   shadows: {
-    soft: '0 18px 50px rgba(15, 23, 42, 0.08)',
+    avatar: '0 0 0 1px rgba(255, 255, 255, 0.9)',
+    button: '0 12px 26px rgba(22, 119, 255, 0.2)',
+    buttonDanger: '0 12px 26px rgba(239, 68, 68, 0.16)',
+    buttonDangerHover: '0 16px 34px rgba(239, 68, 68, 0.2)',
+    buttonHover: '0 16px 36px rgba(22, 119, 255, 0.25)',
+    buttonSuccess: '0 12px 26px rgba(22, 163, 74, 0.14)',
+    buttonSuccessHover: '0 16px 34px rgba(22, 163, 74, 0.18)',
+    buttonWarning: '0 12px 26px rgba(245, 158, 11, 0.14)',
+    buttonWarningHover: '0 16px 34px rgba(245, 158, 11, 0.18)',
     card: '0 18px 44px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04)',
+    dialog: '0 24px 80px rgba(15, 23, 42, 0.14)',
+    floating:
+      '0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.74)',
+    focusRing: '0 0 0 3px rgba(22, 119, 255, 0.16)',
+    focusRingDanger: '0 0 0 3px rgba(239, 68, 68, 0.16)',
     glass:
-      '0 20px 46px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.72)',
-    glow: '0 24px 80px rgba(22, 119, 255, 0.24)',
+      '0 18px 44px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72)',
+    insetHairline: 'inset 0 1px 0 rgba(255, 255, 255, 0.72)',
+    outline: '0 0 0 3px rgba(22, 119, 255, 0.16)',
+    soft: '0 18px 50px rgba(15, 23, 42, 0.08)',
+    toolbar:
+      '0 10px 28px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.72)',
   },
   transition: {
     property: {
@@ -223,16 +429,68 @@ const theme = extendTheme({
         'transform, opacity, background, border-color, box-shadow, filter',
     },
   },
+  layerStyles: {
+    appCanvas: {
+      bg: 'canvasBg',
+      backgroundImage: canvasBackground,
+      backgroundAttachment: 'fixed',
+      color: 'ink.800',
+      minH: '100vh',
+      position: 'relative',
+    },
+    glassSoft: glassSoftLayerStyle,
+    glassSolid: glassSolidLayerStyle,
+    glassFloating: glassFloatingLayerStyle,
+    toolbarSurface: {
+      bg: 'toolbarBg',
+      borderColor: 'glassBorder',
+      borderRadius: 'xl',
+      borderWidth: '1px',
+      boxShadow: 'toolbar',
+      backdropFilter: glassBlur,
+      WebkitBackdropFilter: glassBlur,
+    },
+    subtleSurface: {
+      bg: 'surfaceSubtleBg',
+      borderColor: 'borderSubtle',
+      borderRadius: 'lg',
+      borderWidth: '1px',
+    },
+    iconBrand: {
+      ...iconLayerStyleBase,
+      bg: 'brand.50',
+      borderColor: 'brand.100',
+      color: 'brand.600',
+    },
+    iconCyan: {
+      ...iconLayerStyleBase,
+      bg: 'statusInfoBg',
+      borderColor: 'statusInfoBorder',
+      color: 'statusInfo',
+    },
+    iconGreen: {
+      ...iconLayerStyleBase,
+      bg: 'statusSuccessBg',
+      borderColor: 'statusSuccessBorder',
+      color: 'statusSuccess',
+    },
+    iconPurple: {
+      ...iconLayerStyleBase,
+      bg: 'purple.50',
+      borderColor: 'purple.200',
+      color: 'purple.600',
+    },
+  },
   styles: {
     global: {
       'html, body': {
         minHeight: '100%',
-        bg: '#f8fbff',
+        bg: 'canvasBg',
         color: 'ink.800',
       },
       body: {
-        background:
-          'radial-gradient(circle at 12% 10%, rgba(22, 119, 255, 0.14), transparent 28%), radial-gradient(circle at 88% 4%, rgba(99, 102, 241, 0.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.10), transparent 32%), linear-gradient(135deg, #f8fbff 0%, #f3f7ff 46%, #eef4ff 100%)',
+        backgroundImage: canvasBackground,
+        backgroundAttachment: 'fixed',
         textRendering: 'optimizeLegibility',
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
@@ -257,52 +515,69 @@ const theme = extendTheme({
   components: {
     Button: {
       baseStyle: {
-        fontWeight: 700,
         borderRadius: '14px',
+        fontWeight: 700,
         letterSpacing: '0',
-        transitionProperty: 'liquid',
         transitionDuration: '180ms',
+        transitionProperty: 'liquid',
+        _disabled: {
+          boxShadow: 'none',
+          cursor: 'not-allowed',
+          opacity: 0.56,
+          transform: 'none',
+        },
+        _focusVisible: {
+          boxShadow: 'focusRing',
+          outline: 'none',
+        },
       },
       defaultProps: {
         colorScheme: 'brand',
       },
       variants: {
+        ghost: ghostButtonVariant,
+        outline: outlineButtonVariant,
         solid: solidButtonVariant,
-        ghost: {
-          color: 'ink.700',
-          _hover: {
-            bg: 'rgba(22, 119, 255, 0.06)',
-            color: 'ink.900',
-            transform: 'translateY(-1px)',
-          },
-          _active: {
-            bg: 'rgba(22, 119, 255, 0.10)',
-            transform: 'translateY(0)',
-          },
-        },
-        outline: {
-          borderColor: 'ink.200',
-          bg: 'rgba(255, 255, 255, 0.72)',
-          _hover: {
-            borderColor: 'brand.300',
-            bg: 'brand.50',
-            transform: 'translateY(-1px)',
-          },
-          _active: { transform: 'translateY(0)' },
-        },
+      },
+    },
+    IconButton: {
+      baseStyle: {
+        borderRadius: '12px',
+        h: '36px',
+        minH: '36px',
+        minW: '36px',
+        p: 0,
+        w: '36px',
+        _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
+      },
+      defaultProps: {
+        colorScheme: 'brand',
+        variant: 'ghost',
+      },
+    },
+    CloseButton: {
+      baseStyle: {
+        borderRadius: '12px',
+        color: 'ink.500',
+        h: '36px',
+        minH: '36px',
+        minW: '36px',
+        w: '36px',
+        _hover: { bg: 'brand.50', color: 'ink.800' },
+        _active: { bg: 'brand.100' },
+        _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
       },
     },
     Badge: {
       baseStyle: {
+        borderRadius: 'full',
         borderWidth: '1px',
+        fontSize: 'xs',
+        fontWeight: 700,
+        letterSpacing: '0',
         px: 2.25,
         py: 0.5,
-        borderRadius: 'full',
-        fontWeight: 700,
-        fontSize: 'xs',
-        letterSpacing: '0',
         textTransform: 'none',
-        backdropFilter: 'blur(12px) saturate(170%)',
       },
       defaultProps: {
         variant: 'subtle',
@@ -313,79 +588,49 @@ const theme = extendTheme({
     },
     Card: {
       baseStyle: {
-        container: {
-          borderRadius: '24px',
-          borderWidth: '1px',
-          borderColor: 'rgba(255, 255, 255, 0.74)',
-          bg: 'rgba(255, 255, 255, 0.70)',
-          boxShadow: 'glass',
-          overflow: 'hidden',
-          backdropFilter: 'blur(26px) saturate(180%)',
-        },
+        container: glassSolidLayerStyle,
       },
     },
     Input: {
       variants: {
         outline: {
-          field: {
-            borderRadius: '14px',
-            borderColor: 'ink.200',
-            bg: 'whiteAlpha.900',
-            color: 'ink.800',
-            _placeholder: { color: 'ink.400' },
-            _hover: { borderColor: 'brand.300' },
-            _focusVisible: {
-              borderColor: 'brand.500',
-              boxShadow: '0 0 0 3px rgba(22, 119, 255, 0.14)',
-            },
-            _invalid: {
-              borderColor: '#ef4444',
-              bg: '#fef2f2',
-            },
-          },
+          field: inputFieldStyles,
         },
       },
     },
     Select: {
       variants: {
         outline: {
-          field: {
-            borderRadius: '14px',
-            borderColor: 'ink.200',
-            bg: 'whiteAlpha.900',
-            color: 'ink.800',
-            _placeholder: { color: 'ink.400' },
-            _hover: { borderColor: 'brand.300' },
-            _focusVisible: {
-              borderColor: 'brand.500',
-              boxShadow: '0 0 0 3px rgba(22, 119, 255, 0.14)',
-            },
-            _invalid: {
-              borderColor: '#ef4444',
-              bg: '#fef2f2',
-            },
-          },
+          field: inputFieldStyles,
+          icon: { color: 'ink.500' },
         },
       },
     },
     Textarea: {
       variants: {
-        outline: {
-          borderRadius: '14px',
-          borderColor: 'ink.200',
-          bg: 'whiteAlpha.900',
-          color: 'ink.800',
-          _placeholder: { color: 'ink.400' },
-          _hover: { borderColor: 'brand.300' },
-          _focusVisible: {
-            borderColor: 'brand.500',
-            boxShadow: '0 0 0 3px rgba(22, 119, 255, 0.14)',
-          },
-          _invalid: {
-            borderColor: '#ef4444',
-            bg: '#fef2f2',
-          },
+        outline: inputFieldStyles,
+      },
+    },
+    NumberInput: {
+      baseStyle: {
+        field: { pe: 11 },
+        stepperGroup: { w: 9 },
+        stepper: {
+          bg: 'surfaceSubtleBg',
+          borderColor: 'borderDefault',
+          color: 'ink.600',
+          _hover: { bg: 'brand.50', color: 'brand.700' },
+          _active: { bg: 'brand.100' },
+          _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
         },
+      },
+      variants: {
+        outline: {
+          field: inputFieldStyles,
+        },
+      },
+      defaultProps: {
+        variant: 'outline',
       },
     },
     FormLabel: {
@@ -402,9 +647,9 @@ const theme = extendTheme({
     FormError: {
       baseStyle: {
         text: {
-          color: '#dc2626',
-          fontWeight: 600,
+          color: 'statusDangerHover',
           fontSize: 'sm',
+          fontWeight: 600,
         },
       },
     },
@@ -422,16 +667,25 @@ const theme = extendTheme({
     },
     Skeleton: {
       baseStyle: {
-        startColor: 'brand.50',
         endColor: 'ink.100',
+        startColor: 'brand.50',
+      },
+    },
+    Spinner: {
+      baseStyle: {
+        borderWidth: '2px',
+        color: 'brand.500',
+      },
+      defaultProps: {
+        size: 'md',
       },
     },
     Tooltip: {
       baseStyle: {
-        bg: 'rgba(15, 23, 42, 0.84)',
-        color: 'white',
+        bg: 'tooltipBg',
         borderRadius: '12px',
         boxShadow: 'card',
+        color: 'white',
         fontWeight: 600,
       },
     },
@@ -440,51 +694,66 @@ const theme = extendTheme({
         container: {
           borderRadius: '18px',
           borderWidth: '1px',
-          borderColor: 'rgba(255,255,255,0.70)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70)',
+          boxShadow: 'insetHairline',
         },
+        title: { fontWeight: 700 },
+      },
+      defaultProps: {
+        variant: 'subtle',
+      },
+      variants: {
+        subtle: alertSubtleStyles,
       },
     },
-    Modal: {
+    Modal: dialogTheme,
+    // Chakra v2 的 AlertDialog 内部复用 Modal；保留同名配置供统一主题入口识别。
+    AlertDialog: dialogTheme,
+    Drawer: {
       baseStyle: {
         overlay: {
-          bg: 'rgba(248, 251, 255, 0.58)',
-          backdropFilter: 'blur(16px)',
+          bg: 'overlayBg',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
         },
         dialog: {
-          borderRadius: '24px',
-          borderWidth: '1px',
-          borderColor: 'rgba(255,255,255,0.76)',
-          bg: 'rgba(255,255,255,0.88)',
-          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.14)',
-          overflow: 'hidden',
-          backdropFilter: 'blur(24px) saturate(180%)',
+          bg: 'dialogBg',
+          borderColor: 'glassBorderStrong',
+          borderStartWidth: '1px',
+          boxShadow: 'dialog',
+          color: 'ink.800',
+          backdropFilter: floatingGlassBlur,
+          WebkitBackdropFilter: floatingGlassBlur,
         },
         header: {
           color: 'ink.900',
-          fontWeight: 900,
+          fontWeight: 800,
         },
         body: {
           color: 'ink.700',
         },
+        closeButton: {
+          color: 'ink.500',
+        },
       },
     },
-    Drawer: {
+    Avatar: {
       baseStyle: {
-        overlay: {
-          bg: 'rgba(248, 251, 255, 0.58)',
-          backdropFilter: 'blur(16px)',
+        badge: {
+          borderColor: 'surfaceSolidBg',
+          borderWidth: '2px',
         },
-        dialog: {
-          bg: 'rgba(255,255,255,0.92)',
-          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.14)',
-          backdropFilter: 'blur(24px) saturate(180%)',
+        container: {
+          bg: 'brand.50',
+          borderColor: 'glassBorderStrong',
+          borderWidth: '2px',
+          boxShadow: 'avatar',
+          color: 'brand.700',
+          flexShrink: 0,
         },
-        header: {
-          color: 'ink.900',
-          fontWeight: 900,
-        },
-        body: {
+        excessLabel: {
+          bg: 'ink.100',
+          borderColor: 'glassBorderStrong',
+          borderWidth: '2px',
           color: 'ink.700',
         },
       },
@@ -492,25 +761,59 @@ const theme = extendTheme({
     Checkbox: {
       baseStyle: {
         control: {
+          borderColor: 'borderDefault',
           borderRadius: '8px',
-          borderColor: 'ink.300',
           _checked: {
             bg: 'brand.500',
             borderColor: 'brand.500',
           },
           _focusVisible: {
-            boxShadow: '0 0 0 3px rgba(22, 119, 255, 0.14)',
+            boxShadow: 'focusRing',
           },
         },
+        label: { color: 'ink.700' },
+      },
+      defaultProps: {
+        colorScheme: 'brand',
+      },
+    },
+    Radio: {
+      baseStyle: {
+        control: {
+          borderColor: 'borderDefault',
+          color: 'white',
+          _checked: {
+            bg: 'brand.500',
+            borderColor: 'brand.500',
+            color: 'white',
+            _before: {
+              bg: 'currentColor',
+              borderRadius: 'full',
+              content: '""',
+              display: 'inline-block',
+              h: '50%',
+              position: 'relative',
+              w: '50%',
+            },
+          },
+          _focusVisible: { boxShadow: 'focusRing' },
+        },
+        label: { color: 'ink.700' },
+      },
+      defaultProps: {
+        colorScheme: 'brand',
+        size: 'md',
       },
     },
     Switch: {
       baseStyle: {
         track: {
-          _checked: {
-            bg: 'brand.500',
-          },
+          _checked: { bg: 'brand.500' },
+          _focusVisible: { boxShadow: 'focusRing' },
         },
+      },
+      defaultProps: {
+        colorScheme: 'brand',
       },
     },
     Tabs: {
@@ -518,8 +821,8 @@ const theme = extendTheme({
         softRounded: {
           tab: {
             borderRadius: 'full',
-            fontWeight: 700,
             color: 'ink.500',
+            fontWeight: 700,
             _selected: {
               bg: 'brand.50',
               color: 'brand.700',
@@ -531,46 +834,74 @@ const theme = extendTheme({
     Table: {
       baseStyle: {
         th: {
+          borderColor: 'borderSubtle',
           color: 'ink.500',
           fontSize: 'xs',
           fontWeight: 700,
           letterSpacing: '0',
-          borderColor: 'ink.100',
           lineHeight: '1.35',
-          py: 2.5,
+          py: 3,
           textTransform: 'uppercase',
         },
         td: {
-          borderColor: 'ink.100',
+          borderColor: 'borderSubtle',
           color: 'ink.700',
           fontSize: 'sm',
           lineHeight: '1.55',
-          py: 4,
+          py: 3.5,
         },
       },
     },
     Menu: {
       baseStyle: {
         list: {
+          bg: 'glassFloatingBg',
+          borderColor: 'glassBorderStrong',
           borderRadius: '18px',
-          borderColor: 'rgba(255,255,255,0.72)',
-          boxShadow: 'glass',
+          boxShadow: 'floating',
           p: 2,
-          bg: 'rgba(255,255,255,0.74)',
-          backdropFilter: 'blur(24px) saturate(180%)',
+          backdropFilter: floatingGlassBlur,
+          WebkitBackdropFilter: floatingGlassBlur,
         },
         item: {
           borderRadius: '12px',
-          fontWeight: 600,
           color: 'ink.700',
-          _hover: {
-            bg: 'rgba(22, 119, 255, 0.06)',
-            color: 'ink.900',
-          },
-          _focus: {
-            bg: 'rgba(22, 119, 255, 0.08)',
-            color: 'ink.900',
-          },
+          fontWeight: 600,
+          _active: { bg: 'brand.100', color: 'ink.900' },
+          _focus: { bg: 'brand.50', color: 'ink.900' },
+          _hover: { bg: 'brand.50', color: 'ink.900' },
+        },
+      },
+    },
+    Popover: {
+      baseStyle: {
+        content: {
+          bg: 'glassFloatingBg',
+          borderColor: 'glassBorderStrong',
+          borderRadius: '18px',
+          boxShadow: 'floating',
+          color: 'ink.700',
+          backdropFilter: floatingGlassBlur,
+          WebkitBackdropFilter: floatingGlassBlur,
+          _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
+        },
+        header: {
+          borderColor: 'borderSubtle',
+          color: 'ink.900',
+          fontWeight: 700,
+          px: 4,
+          py: 3,
+        },
+        body: { px: 4, py: 3 },
+        footer: {
+          borderColor: 'borderSubtle',
+          px: 4,
+          py: 3,
+        },
+        closeButton: {
+          borderRadius: '12px',
+          insetEnd: 2,
+          top: 2,
         },
       },
     },
@@ -579,7 +910,20 @@ const theme = extendTheme({
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider
+      theme={theme}
+      toastOptions={{
+        defaultOptions: {
+          duration: 4200,
+          isClosable: true,
+          position: 'top-right',
+          variant: 'subtle',
+          containerStyle: { maxWidth: '420px' },
+        },
+        motionVariants: toastMotionVariants,
+        toastSpacing: '12px',
+      }}
+    >
       <Suspense fallback={null}>
         <RouteProgress />
       </Suspense>
