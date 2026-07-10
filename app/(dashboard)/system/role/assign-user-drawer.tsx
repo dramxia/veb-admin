@@ -98,7 +98,10 @@ export function AssignUserDrawer({
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} placement="right" size="md">
-      <DrawerOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <DrawerOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <DrawerContent
         bg="rgba(255,255,255,0.86)"
         borderLeftWidth="1px"
@@ -114,20 +117,33 @@ export function AssignUserDrawer({
           <Stack spacing={2}>
             <Text>分配用户</Text>
             <HStack spacing={2} wrap="wrap">
-              <Badge colorScheme="green">{role?.name ?? '-'}</Badge>
+              <Badge colorScheme="brand">{role?.name ?? '-'}</Badge>
               <Badge>{selectedIds.length} 人</Badge>
             </HStack>
           </Stack>
         </DrawerHeader>
         <DrawerBody>
           <Stack spacing={4}>
-            <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索用户名或昵称" />
-            <CheckboxGroup value={selectedIds} onChange={(value) => setSelectedIds(value.map(String))}>
+            <Input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="搜索用户名或昵称"
+            />
+            <CheckboxGroup
+              value={selectedIds}
+              onChange={(value) => setSelectedIds(value.map(String))}
+            >
               <SimpleGrid columns={1} spacing={3}>
                 {filtered.map((user) => (
-                  <Checkbox key={user.id} value={user.id} isDisabled={loading || detailLoading}>
+                  <Checkbox
+                    key={user.id}
+                    value={user.id}
+                    isDisabled={loading || detailLoading}
+                  >
                     <Stack spacing={0}>
-                      <Text fontWeight="800">{user.nickname || user.username}</Text>
+                      <Text fontWeight="800">
+                        {user.nickname || user.username}
+                      </Text>
                       <Text color="surface.500" fontSize="xs">
                         {user.username}
                       </Text>
@@ -139,7 +155,11 @@ export function AssignUserDrawer({
           </Stack>
         </DrawerBody>
         <DrawerFooter gap={3}>
-          <Button variant="ghost" onClick={onClose} isDisabled={loading || detailLoading}>
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            isDisabled={loading || detailLoading}
+          >
             取消
           </Button>
           <Button onClick={handleSubmit} isLoading={loading || detailLoading}>

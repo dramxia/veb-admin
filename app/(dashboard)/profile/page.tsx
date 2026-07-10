@@ -15,7 +15,13 @@ export default async function ProfilePage() {
   if (!session?.user?.id) redirect('/login');
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, username: true, nickname: true, email: true, avatar: true },
+    select: {
+      id: true,
+      username: true,
+      nickname: true,
+      email: true,
+      avatar: true,
+    },
   });
   if (!user) redirect('/login');
   return (
@@ -25,14 +31,14 @@ export default async function ProfilePage() {
       description="维护个人资料与登录密码，表单保持轻量、安静和可重复操作。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="green">{user.username}</Badge>
+          <Badge colorScheme="brand">{user.username}</Badge>
           <Badge colorScheme="gray">{user.email || '未设置邮箱'}</Badge>
         </HStack>
       }
       sideSlot={
         <GlassPanel variant="soft" p={5}>
           <VStack align="stretch" spacing={3}>
-            <UserCircle size={28} color="#168654" />
+            <UserCircle size={28} color="#0f5ed7" />
             <Text color="surface.900" fontWeight="900">
               个人信息只影响当前账号
             </Text>

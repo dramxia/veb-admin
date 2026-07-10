@@ -19,9 +19,9 @@ import {
 import {
   ChevronDown,
   Home,
-  Leaf,
   LogOut,
   Search,
+  Sparkles,
   UserCircle,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
@@ -69,14 +69,19 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
   const storedMenus = useMenuStore((state) => state.menus);
   const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const flatMenus = useMemo(
-    () => flattenMenus(menus).filter((menu) => menu.type !== 'DIR' || menu.path === '/'),
+    () =>
+      flattenMenus(menus).filter(
+        (menu) => menu.type !== 'DIR' || menu.path === '/',
+      ),
     [menus],
   );
   const filteredMenus = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return flatMenus.slice(0, 8);
     return flatMenus
-      .filter((menu) => `${menu.name} ${menu.path}`.toLowerCase().includes(keyword))
+      .filter((menu) =>
+        `${menu.name} ${menu.path}`.toLowerCase().includes(keyword),
+      )
       .slice(0, 8);
   }, [flatMenus, query]);
   const routeLabel = getRouteLabel(pathname, menus);
@@ -85,7 +90,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
     <GlassPanel
       as="header"
       variant="floating"
-      maxW="1460px"
+      maxW="1280px"
       mx="auto"
       px={{ base: 3, md: 4 }}
       py={3}
@@ -103,21 +108,21 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
             align="center"
             justify="center"
             color="brand.700"
-            bg="rgba(232, 246, 236, 0.86)"
-            boxShadow="inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 26px rgba(33,166,108,0.16)"
+            bg="linear-gradient(135deg, rgba(238,247,255,0.92), rgba(216,236,255,0.72))"
+            boxShadow="inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 26px rgba(22,119,255,0.14)"
           >
-            <Icon as={Leaf} boxSize={5} />
+            <Icon as={Sparkles} boxSize={5} />
           </Flex>
           <Box minW={0}>
             <Text
-              color="surface.900"
+              color="ink.900"
               fontWeight="900"
               lineHeight="1.1"
               noOfLines={1}
             >
               VEB 管理后台
             </Text>
-            <Text color="surface.500" fontSize="sm" fontWeight="700" noOfLines={1}>
+            <Text color="ink.500" fontSize="sm" fontWeight="700" noOfLines={1}>
               {routeLabel}
             </Text>
           </Box>
@@ -125,14 +130,26 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
 
         <HStack spacing={2} flexShrink={0}>
           <Tooltip label="返回仪表盘" hasArrow>
-            <Button as={Link} href="/" variant="ghost" size="sm" aria-label="返回仪表盘" px={3}>
+            <Button
+              as={Link}
+              href="/"
+              variant="ghost"
+              size="sm"
+              aria-label="返回仪表盘"
+              px={3}
+            >
               <Icon as={Home} boxSize={4} />
             </Button>
           </Tooltip>
 
           <Menu placement="bottom-end" closeOnSelect>
             <Tooltip label="查找模块" hasArrow>
-              <MenuButton as={Button} variant="outline" size="sm" leftIcon={<Icon as={Search} boxSize={4} />}>
+              <MenuButton
+                as={Button}
+                variant="outline"
+                size="sm"
+                leftIcon={<Icon as={Search} boxSize={4} />}
+              >
                 <Text as="span" display={{ base: 'none', md: 'inline' }}>
                   查找
                 </Text>
@@ -164,7 +181,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                         <Text fontWeight="800" noOfLines={1}>
                           {menu.name}
                         </Text>
-                        <Text color="surface.500" fontSize="xs" noOfLines={1}>
+                        <Text color="ink.500" fontSize="xs" noOfLines={1}>
                           {menu.path}
                         </Text>
                       </VStack>
@@ -172,7 +189,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                   );
                 })
               ) : (
-                <Text px={3} py={4} color="surface.500" fontSize="sm">
+                <Text px={3} py={4} color="ink.500" fontSize="sm">
                   没有匹配的模块
                 </Text>
               )}
@@ -188,14 +205,28 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
               pr={3}
               rounded="full"
               rightIcon={<Icon as={ChevronDown} boxSize={4} />}
-              leftIcon={<Avatar size="sm" src={user.avatar ?? undefined} name={displayName} />}
+              leftIcon={
+                <Avatar
+                  size="sm"
+                  src={user.avatar ?? undefined}
+                  name={displayName}
+                />
+              }
             >
-              <Text as="span" display={{ base: 'none', sm: 'inline' }} fontWeight="800">
+              <Text
+                as="span"
+                display={{ base: 'none', sm: 'inline' }}
+                fontWeight="800"
+              >
                 {displayName}
               </Text>
             </MenuButton>
             <MenuList>
-              <MenuItem as={Link} href="/profile" icon={<Icon as={UserCircle} boxSize={4} />}>
+              <MenuItem
+                as={Link}
+                href="/profile"
+                icon={<Icon as={UserCircle} boxSize={4} />}
+              >
                 个人中心
               </MenuItem>
               <MenuItem
@@ -211,4 +242,3 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
     </GlassPanel>
   );
 }
-

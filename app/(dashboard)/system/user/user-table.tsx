@@ -8,6 +8,10 @@ import {
   HStack,
   Icon,
   Input,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -23,8 +27,16 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react';
-import { KeyRound, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  KeyRound,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
+import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -72,7 +84,10 @@ function ResetPasswordModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -89,7 +104,9 @@ function ResetPasswordModal({
           <ModalCloseButton />
           <ModalBody>
             <FormControl isRequired>
-              <FormLabel>{user?.nickname || user?.username || '用户'} 的新密码</FormLabel>
+              <FormLabel>
+                {user?.nickname || user?.username || '用户'} 的新密码
+              </FormLabel>
               <Input name="password" defaultValue="Admin@123" type="password" />
             </FormControl>
           </ModalBody>
@@ -163,7 +180,9 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
                     {user.roles.map((item) => item.role.name).join(', ') || '-'}
                   </Td>
                   <Td>
-                    <Badge colorScheme={user.status === 'ENABLED' ? 'green' : 'red'}>
+                    <Badge
+                      colorScheme={user.status === 'ENABLED' ? 'green' : 'red'}
+                    >
                       {user.status}
                     </Badge>
                   </Td>
@@ -183,19 +202,6 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
                         }}
                       />
                       <AuthButton
-                        code="system:user:reset-password"
-                        size="xs"
-                        intent="neutral"
-                        variant="ghost"
-                        tooltip="重置密码"
-                        icon={<Icon as={KeyRound} boxSize={4} />}
-                        isDisabled={loading}
-                        onClick={() => {
-                          setResettingUser(user);
-                          resetModal.onOpen();
-                        }}
-                      />
-                      <AuthButton
                         code="system:user:assign-role"
                         size="xs"
                         intent="neutral"
@@ -208,19 +214,43 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
                           assignModal.onOpen();
                         }}
                       />
-                      <AuthButton
-                        code="system:user:delete"
-                        size="xs"
-                        intent="danger"
-                        variant="ghost"
-                        tooltip="删除用户"
-                        icon={<Icon as={Trash2} boxSize={4} />}
-                        isDisabled={loading}
-                        onClick={() => {
-                          setDeletingUser(user);
-                          deleteDialog.onOpen();
-                        }}
-                      />
+                      <Menu placement="bottom-end">
+                        <MenuButton
+                          as={Button}
+                          size="xs"
+                          variant="ghost"
+                          aria-label="更多用户操作"
+                          px={2.5}
+                          isDisabled={loading}
+                        >
+                          <Icon as={MoreHorizontal} boxSize={4} />
+                        </MenuButton>
+                        <MenuList>
+                          <Auth code="system:user:reset-password">
+                            <MenuItem
+                              icon={<Icon as={KeyRound} boxSize={4} />}
+                              onClick={() => {
+                                setResettingUser(user);
+                                resetModal.onOpen();
+                              }}
+                            >
+                              重置密码
+                            </MenuItem>
+                          </Auth>
+                          <Auth code="system:user:delete">
+                            <MenuItem
+                              icon={<Icon as={Trash2} boxSize={4} />}
+                              color="red.600"
+                              onClick={() => {
+                                setDeletingUser(user);
+                                deleteDialog.onOpen();
+                              }}
+                            >
+                              删除用户
+                            </MenuItem>
+                          </Auth>
+                        </MenuList>
+                      </Menu>
                     </TableActions>
                   </Td>
                 </Tr>
@@ -299,7 +329,9 @@ export function UserTable({ users, roles }: { users: User[]; roles: Role[] }) {
         onConfirm={async () => {
           const ok = await run(async () => {
             if (!deletingUser) return;
-            await api(`/api/system/users/${deletingUser.id}`, { method: 'DELETE' });
+            await api(`/api/system/users/${deletingUser.id}`, {
+              method: 'DELETE',
+            });
           });
           if (ok) deleteDialog.onClose();
         }}

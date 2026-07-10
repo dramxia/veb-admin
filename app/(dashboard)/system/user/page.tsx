@@ -20,10 +20,15 @@ export default async function UserPage() {
         nickname: true,
         status: true,
         createdAt: true,
-        roles: { select: { role: { select: { id: true, code: true, name: true } } } },
+        roles: {
+          select: { role: { select: { id: true, code: true, name: true } } },
+        },
       },
     }),
-    prisma.role.findMany({ orderBy: { sort: 'asc' }, select: { id: true, code: true, name: true } }),
+    prisma.role.findMany({
+      orderBy: { sort: 'asc' },
+      select: { id: true, code: true, name: true },
+    }),
   ]);
 
   return (
@@ -33,14 +38,14 @@ export default async function UserPage() {
       description="管理账号资料、启停状态、登录密码与角色分配，所有按钮仍受权限码控制。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="green">{users.length} 个账号</Badge>
+          <Badge colorScheme="brand">{users.length} 个账号</Badge>
           <Badge colorScheme="gray">{roles.length} 个可分配角色</Badge>
         </HStack>
       }
       sideSlot={
         <GlassPanel variant="soft" p={5}>
           <VStack align="stretch" spacing={3}>
-            <UserRoundCheck size={28} color="#168654" />
+            <UserRoundCheck size={28} color="#0f5ed7" />
             <Text color="surface.900" fontWeight="900">
               账号生命周期
             </Text>

@@ -47,6 +47,17 @@ export function ErrorState({
   minH = 'calc(100vh - 160px)',
   actions = [],
 }: ErrorStateProps) {
+  const effectiveActions =
+    actions.length > 0
+      ? actions
+      : [
+          {
+            label: '刷新页面',
+            onClick: () => window.location.reload(),
+            variant: 'outline' as const,
+          },
+        ];
+
   return (
     <Center minH={minH} px={{ base: 4, md: 6 }}>
       <Card w="full" maxW="640px">
@@ -56,12 +67,16 @@ export function ErrorState({
               <AlertIcon mt={1} />
               <Stack spacing={1}>
                 <AlertTitle>{eyebrow}</AlertTitle>
-                {description ? <AlertDescription color="ink.600">{description}</AlertDescription> : null}
+                {description ? (
+                  <AlertDescription color="ink.600">
+                    {description}
+                  </AlertDescription>
+                ) : null}
               </Stack>
             </Alert>
 
             <Box>
-              <Heading size="lg" color="ink.900" letterSpacing="-0.03em" mb={3}>
+              <Heading size="lg" color="ink.900" letterSpacing="0" mb={3}>
                 {title}
               </Heading>
               {message ? (
@@ -70,24 +85,49 @@ export function ErrorState({
                 </Text>
               ) : null}
               {digest ? (
-                <Text mt={3} color="ink.400" fontSize="sm">
-                  错误标识：{digest}
-                </Text>
+                <Box as="details" mt={3}>
+                  <Text
+                    as="summary"
+                    color="ink.500"
+                    cursor="pointer"
+                    fontSize="sm"
+                    fontWeight="700"
+                  >
+                    查看错误标识
+                  </Text>
+                  <Text
+                    mt={2}
+                    color="ink.400"
+                    fontSize="sm"
+                    wordBreak="break-all"
+                  >
+                    {digest}
+                  </Text>
+                </Box>
               ) : null}
             </Box>
 
-            {actions.length > 0 ? (
+            {effectiveActions.length > 0 ? (
               <HStack spacing={3} wrap="wrap">
-                {actions.map((action) => {
+                {effectiveActions.map((action) => {
                   if (action.href) {
                     return (
-                      <Button key={action.label} as={Link} href={action.href} variant={action.variant}>
+                      <Button
+                        key={action.label}
+                        as={Link}
+                        href={action.href}
+                        variant={action.variant}
+                      >
                         {action.label}
                       </Button>
                     );
                   }
                   return (
-                    <Button key={action.label} onClick={action.onClick} variant={action.variant}>
+                    <Button
+                      key={action.label}
+                      onClick={action.onClick}
+                      variant={action.variant}
+                    >
                       {action.label}
                     </Button>
                   );

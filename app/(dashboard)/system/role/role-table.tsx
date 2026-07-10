@@ -1,8 +1,31 @@
 'use client';
 
-import { Badge, Icon, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from '@chakra-ui/react';
-import { KeyRound, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Icon,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+  useDisclosure,
+} from '@chakra-ui/react';
+import {
+  KeyRound,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { useState } from 'react';
+import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -78,8 +101,8 @@ export function RoleTable({
               <Th>编码</Th>
               <Th>名称</Th>
               <Th>状态</Th>
-              <Th>用户数</Th>
-              <Th>权限数</Th>
+              <Th isNumeric>用户数</Th>
+              <Th isNumeric>权限数</Th>
               <Th>系统</Th>
               <Th>操作</Th>
             </Tr>
@@ -91,12 +114,14 @@ export function RoleTable({
                   <Td>{role.code}</Td>
                   <Td>{role.name}</Td>
                   <Td>
-                    <Badge colorScheme={role.status === 'ENABLED' ? 'green' : 'red'}>
+                    <Badge
+                      colorScheme={role.status === 'ENABLED' ? 'green' : 'red'}
+                    >
                       {role.status}
                     </Badge>
                   </Td>
-                  <Td>{role._count.users}</Td>
-                  <Td>{role._count.permissions}</Td>
+                  <Td isNumeric>{role._count.users}</Td>
+                  <Td isNumeric>{role._count.permissions}</Td>
                   <Td>{role.isSystem ? '是' : '否'}</Td>
                   <Td>
                     <TableActions>
@@ -126,32 +151,44 @@ export function RoleTable({
                           permissionDrawer.onOpen();
                         }}
                       />
-                      <AuthButton
-                        code="system:role:assign-user"
-                        size="xs"
-                        intent="neutral"
-                        variant="ghost"
-                        tooltip="分配用户"
-                        icon={<Icon as={Users} boxSize={4} />}
-                        isDisabled={loading}
-                        onClick={() => {
-                          setSelectedRole(role);
-                          userDrawer.onOpen();
-                        }}
-                      />
-                      <AuthButton
-                        code="system:role:delete"
-                        size="xs"
-                        intent="danger"
-                        variant="ghost"
-                        tooltip="删除角色"
-                        icon={<Icon as={Trash2} boxSize={4} />}
-                        isDisabled={loading || role.isSystem}
-                        onClick={() => {
-                          setDeletingRole(role);
-                          deleteDialog.onOpen();
-                        }}
-                      />
+                      <Menu placement="bottom-end">
+                        <MenuButton
+                          as={Button}
+                          size="xs"
+                          variant="ghost"
+                          aria-label="更多角色操作"
+                          px={2.5}
+                          isDisabled={loading}
+                        >
+                          <Icon as={MoreHorizontal} boxSize={4} />
+                        </MenuButton>
+                        <MenuList>
+                          <Auth code="system:role:assign-user">
+                            <MenuItem
+                              icon={<Icon as={Users} boxSize={4} />}
+                              onClick={() => {
+                                setSelectedRole(role);
+                                userDrawer.onOpen();
+                              }}
+                            >
+                              分配用户
+                            </MenuItem>
+                          </Auth>
+                          <Auth code="system:role:delete">
+                            <MenuItem
+                              icon={<Icon as={Trash2} boxSize={4} />}
+                              color="red.600"
+                              isDisabled={role.isSystem}
+                              onClick={() => {
+                                setDeletingRole(role);
+                                deleteDialog.onOpen();
+                              }}
+                            >
+                              删除角色
+                            </MenuItem>
+                          </Auth>
+                        </MenuList>
+                      </Menu>
                     </TableActions>
                   </Td>
                 </Tr>
@@ -210,7 +247,9 @@ export function RoleTable({
         onConfirm={async () => {
           const ok = await run(async () => {
             if (!deletingRole) return;
-            await api(`/api/system/roles/${deletingRole.id}`, { method: 'DELETE' });
+            await api(`/api/system/roles/${deletingRole.id}`, {
+              method: 'DELETE',
+            });
           });
           if (ok) deleteDialog.onClose();
         }}

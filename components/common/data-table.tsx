@@ -3,6 +3,7 @@
 import {
   Box,
   Center,
+  Button,
   Flex,
   HStack,
   Heading,
@@ -49,25 +50,24 @@ export function DataTableCard({
       rounded="3xl"
       overflow="hidden"
       className={['data-table-card', className].filter(Boolean).join(' ')}
-      borderColor="rgba(255, 255, 255, 0.82)"
-      bg="linear-gradient(135deg, rgba(255,255,255,0.54), rgba(239,250,245,0.38) 42%, rgba(248,251,252,0.48))"
-      boxShadow="0 34px 96px rgba(23, 33, 29, 0.12), 0 1px 2px rgba(23, 33, 29, 0.04), inset 0 1px 0 rgba(255,255,255,0.88)"
+      borderColor="rgba(255, 255, 255, 0.78)"
+      bg="rgba(255, 255, 255, 0.74)"
+      boxShadow="0 18px 44px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255,255,255,0.82)"
       isolation="isolate"
       _before={{
-        animation: 'table-glass-drift 16s ease-in-out infinite alternate',
-        bg: 'radial-gradient(circle at 16% 18%, rgba(134, 217, 173, 0.34), transparent 30%), radial-gradient(circle at 86% 8%, rgba(142, 167, 255, 0.13), transparent 28%), radial-gradient(circle at 70% 72%, rgba(116, 199, 187, 0.18), transparent 34%), linear-gradient(115deg, transparent 8%, rgba(255,255,255,0.54) 34%, rgba(239,252,245,0.50) 52%, transparent 78%)',
+        bg: 'radial-gradient(circle at 16% 12%, rgba(22, 119, 255, 0.08), transparent 28%), radial-gradient(circle at 86% 6%, rgba(109, 93, 252, 0.06), transparent 26%)',
         content: '""',
-        filter: 'blur(36px)',
-        inset: '-42% -28%',
-        opacity: 0.88,
+        filter: 'blur(24px)',
+        inset: '-34% -24% 48% -24%',
+        opacity: 0.9,
         pointerEvents: 'none',
         position: 'absolute',
-        transform: 'translate3d(-6%, -4%, 0)',
         zIndex: 0,
       }}
       _after={{
-        bg: 'linear-gradient(180deg, rgba(255,255,255,0.70), transparent 34%), linear-gradient(90deg, rgba(255,255,255,0.48), transparent 22%, transparent 78%, rgba(255,255,255,0.38))',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(255,255,255,0.42)',
+        bg: 'linear-gradient(180deg, rgba(255,255,255,0.62), transparent 36%)',
+        boxShadow:
+          'inset 0 1px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(255,255,255,0.42)',
         content: '""',
         inset: 0,
         pointerEvents: 'none',
@@ -97,7 +97,7 @@ export function DataTableCard({
                   borderWidth="1px"
                   borderColor="rgba(255,255,255,0.76)"
                   bg="rgba(255,255,255,0.48)"
-                  color="mint.700"
+                  color="brand.700"
                   fontSize="xs"
                   fontWeight="800"
                   lineHeight="1.2"
@@ -113,7 +113,7 @@ export function DataTableCard({
               {title ? (
                 <Heading
                   as="h2"
-                  color="surface.900"
+                  color="ink.900"
                   fontSize={{ base: 'xl', md: '2xl' }}
                   letterSpacing="0"
                   lineHeight="1.08"
@@ -122,13 +122,21 @@ export function DataTableCard({
                 </Heading>
               ) : null}
               {description ? (
-                <Text color="surface.600" fontSize="sm" lineHeight="1.75" maxW="720px">
+                <Text
+                  color="ink.600"
+                  fontSize="sm"
+                  lineHeight="1.75"
+                  maxW="720px"
+                >
                   {description}
                 </Text>
               ) : null}
             </VStack>
             {primaryAction ? (
-              <Flex justify={{ base: 'flex-start', md: 'flex-end' }} flexShrink={0}>
+              <Flex
+                justify={{ base: 'flex-start', md: 'flex-end' }}
+                flexShrink={0}
+              >
                 <Box
                   className="data-table-primary-action"
                   rounded="18px"
@@ -136,7 +144,7 @@ export function DataTableCard({
                   borderColor="rgba(255,255,255,0.72)"
                   bg="rgba(255,255,255,0.36)"
                   p={1.5}
-                  boxShadow="inset 0 1px 0 rgba(255,255,255,0.72), 0 16px 36px rgba(23,33,29,0.08)"
+                  boxShadow="inset 0 1px 0 rgba(255,255,255,0.72), 0 12px 28px rgba(15,23,42,0.06)"
                   _empty={{ display: 'none' }}
                   sx={{
                     backdropFilter: 'blur(18px) saturate(180%)',
@@ -158,9 +166,9 @@ export function DataTableCard({
             rounded="24px"
             borderWidth="1px"
             borderColor="rgba(255,255,255,0.74)"
-            bg="linear-gradient(135deg, rgba(255,255,255,0.56), rgba(244,251,247,0.40))"
+            bg="rgba(255,255,255,0.64)"
             zIndex={4}
-            boxShadow="0 16px 42px rgba(23,33,29,0.08), inset 0 1px 0 rgba(255,255,255,0.82)"
+            boxShadow="0 12px 30px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.82)"
             sx={{
               backdropFilter: 'blur(30px) saturate(190%)',
               WebkitBackdropFilter: 'blur(30px) saturate(190%)',
@@ -178,26 +186,24 @@ export function DataTableCard({
             '& table': {
               minWidth: minW,
               borderCollapse: 'separate',
-              borderSpacing: '0 12px',
+              borderSpacing: '0 8px',
             },
             '& thead th': {
               position: 'sticky',
               top: 0,
               zIndex: 2,
-              bg: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(241,250,246,0.66))',
-              borderBottomColor: 'rgba(255,255,255,0.72)',
+              bg: 'rgba(255,255,255,0.82)',
+              borderBottomColor: 'ink.100',
               borderTopWidth: '1px',
               borderTopColor: 'rgba(255,255,255,0.72)',
-              color: 'surface.600',
-              fontSize: '11px',
-              fontWeight: 800,
+              color: 'ink.500',
+              fontSize: 'xs',
+              fontWeight: 700,
               letterSpacing: '0',
               py: 3,
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82), 0 12px 30px rgba(23,33,29,0.06)',
-              backdropFilter: 'blur(26px) saturate(190%)',
-              WebkitBackdropFilter: 'blur(26px) saturate(190%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.82)',
             },
             '& thead th:first-of-type': {
               borderLeftWidth: '1px',
@@ -215,27 +221,26 @@ export function DataTableCard({
             },
             '& tbody tr': {
               position: 'relative',
-              transition:
-                'background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease',
+              transition: 'background 0.2s ease, box-shadow 0.2s ease',
             },
             '& tbody td': {
-              bg: 'rgba(255,255,255,0.56)',
+              bg: 'rgba(255,255,255,0.68)',
               borderBottomWidth: '1px',
-              borderBottomColor: 'rgba(255,255,255,0.70)',
+              borderBottomColor: 'rgba(226,232,240,0.64)',
               borderTopWidth: '1px',
-              borderTopColor: 'rgba(255,255,255,0.68)',
-              color: 'surface.700',
+              borderTopColor: 'rgba(226,232,240,0.54)',
+              color: 'ink.700',
               py: 4,
               verticalAlign: 'middle',
               transition:
-                'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
             },
             '& tbody td:first-of-type': {
               borderLeftWidth: '1px',
               borderLeftColor: 'rgba(255,255,255,0.72)',
               borderTopLeftRadius: '22px',
               borderBottomLeftRadius: '22px',
-              boxShadow: 'inset 3px 0 0 rgba(49,168,120,0.14)',
+              boxShadow: 'inset 3px 0 0 rgba(22,119,255,0.12)',
               pl: 5,
             },
             '& tbody td:last-of-type': {
@@ -245,18 +250,13 @@ export function DataTableCard({
               borderBottomRightRadius: '22px',
               pr: 5,
             },
-            '& tbody tr:hover': {
-              transform: 'translateY(-1px)',
-            },
             '& tbody tr:hover td': {
-              bg: 'rgba(246,253,249,0.78)',
-              borderColor: 'rgba(255,255,255,0.86)',
-              boxShadow: '0 18px 42px rgba(33, 166, 108, 0.10)',
-              color: 'surface.800',
+              bg: 'rgba(238,247,255,0.62)',
+              borderColor: 'rgba(183,221,255,0.66)',
+              color: 'ink.800',
             },
             '& tbody tr:hover td:first-of-type': {
-              boxShadow:
-                'inset 4px 0 0 rgba(33,166,108,0.72), 0 18px 42px rgba(33, 166, 108, 0.10)',
+              boxShadow: 'inset 4px 0 0 rgba(22,119,255,0.62)',
             },
             '& tbody tr:last-of-type td': {
               borderBottomWidth: '1px',
@@ -300,10 +300,14 @@ export function TableActions({ children, ...props }: StackProps) {
 }
 
 export function EmptyTableRow({
+  action,
   colSpan,
+  description,
   text = '暂无数据',
 }: {
+  action?: ReactNode;
   colSpan: number;
+  description?: ReactNode;
   text?: string;
 }) {
   return (
@@ -313,11 +317,11 @@ export function EmptyTableRow({
           <Center
             flexDirection="column"
             minH="220px"
-            color="surface.400"
+            color="ink.400"
             rounded="26px"
             borderWidth="1px"
             borderColor="rgba(255,255,255,0.78)"
-            bg="linear-gradient(135deg, rgba(255,255,255,0.58), rgba(239,252,245,0.44))"
+            bg="linear-gradient(135deg, rgba(255,255,255,0.62), rgba(238,247,255,0.48))"
             boxShadow="inset 0 1px 0 rgba(255,255,255,0.82)"
             sx={{
               backdropFilter: 'blur(20px) saturate(180%)',
@@ -330,8 +334,8 @@ export function EmptyTableRow({
               rounded="full"
               borderWidth="1px"
               borderColor="rgba(255, 255, 255, 0.76)"
-              bg="linear-gradient(135deg, rgba(239,252,245,0.84), rgba(255,255,255,0.58))"
-              boxShadow="0 16px 36px rgba(33, 166, 108, 0.12), inset 0 1px 0 rgba(255,255,255,0.82)"
+              bg="linear-gradient(135deg, rgba(238,247,255,0.88), rgba(255,255,255,0.62))"
+              boxShadow="0 16px 36px rgba(22, 119, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.82)"
               color="brand.600"
               mb={3}
               sx={{
@@ -341,9 +345,32 @@ export function EmptyTableRow({
             >
               <Icon as={Inbox} boxSize={6} />
             </Center>
-            <Text color="surface.500" fontWeight="800">
+            <Text color="ink.600" fontWeight="800">
               {text}
             </Text>
+            {description ? (
+              <Text
+                mt={2}
+                color="ink.500"
+                fontSize="sm"
+                maxW="420px"
+                textAlign="center"
+              >
+                {description}
+              </Text>
+            ) : null}
+            {action ? (
+              <Box mt={4}>{action}</Box>
+            ) : (
+              <Button
+                mt={4}
+                size="sm"
+                variant="outline"
+                onClick={() => window.location.reload()}
+              >
+                刷新数据
+              </Button>
+            )}
           </Center>
         </Td>
       </Tr>

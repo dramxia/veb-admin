@@ -1,6 +1,13 @@
 'use client';
 
-import { Box, Flex, Icon, Link as ChakraLink, Stack, Text } from '@chakra-ui/react';
+import {
+  Box,
+  Flex,
+  Icon,
+  Link as ChakraLink,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import {
   Circle,
@@ -57,7 +64,10 @@ function getParentHref(item: DockMenu) {
 }
 
 function isDockItemActive(pathname: string, item: DockMenu) {
-  return isActive(pathname, item.menu.path) || item.children.some((child) => isActive(pathname, child.path));
+  return (
+    isActive(pathname, item.menu.path) ||
+    item.children.some((child) => isActive(pathname, child.path))
+  );
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -91,11 +101,17 @@ function getMenuIcon(menu: MenuNode): LucideIcon {
   return Circle;
 }
 
-// 动画曲线：模拟苹果的弹性动画
+// Dock 只保留轻微弹性，避免影响后台高频操作的稳定感。
 const springTransition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
 const fadeTransition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
 
-function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; pathname: string }) {
+function DockSubMenu({
+  childrenMenus,
+  pathname,
+}: {
+  childrenMenus: MenuNode[];
+  pathname: string;
+}) {
   if (childrenMenus.length === 0) return null;
 
   return (
@@ -112,7 +128,7 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
       rounded="2xl"
       bg="rgba(255, 255, 255, 0.72)"
       border="1px solid rgba(255, 255, 255, 0.78)"
-      boxShadow="0 20px 58px rgba(23, 33, 29, 0.14), inset 0 1px 0 rgba(255,255,255,0.72)"
+      boxShadow="0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.72)"
       opacity={0}
       pointerEvents="none"
       transition={springTransition}
@@ -128,7 +144,7 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
         left: 0,
         right: 0,
         height: '16px',
-        bg: 'transparent'
+        bg: 'transparent',
       }}
       _groupHover={{
         opacity: 1,
@@ -153,15 +169,15 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
             rounded="xl"
             fontSize="sm"
             fontWeight={active ? '600' : '500'}
-            color={active ? 'surface.900' : 'surface.600'}
-            bg={active ? 'rgba(33, 166, 108, 0.10)' : 'transparent'}
+            color={active ? 'ink.900' : 'ink.600'}
+            bg={active ? 'rgba(22, 119, 255, 0.10)' : 'transparent'}
             whiteSpace="nowrap"
             transition={fadeTransition}
             _hover={{
-              bg: 'rgba(33, 166, 108, 0.12)',
-              color: 'surface.900',
+              bg: 'rgba(22, 119, 255, 0.10)',
+              color: 'ink.900',
               textDecoration: 'none',
-              transform: 'scale(1.02)', // 子项轻微放大
+              transform: 'scale(1.01)',
             }}
           >
             {child.name}
@@ -172,7 +188,13 @@ function DockSubMenu({ childrenMenus, pathname }: { childrenMenus: MenuNode[]; p
   );
 }
 
-function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) {
+function DockMenuItem({
+  item,
+  pathname,
+}: {
+  item: DockMenu;
+  pathname: string;
+}) {
   const href = getParentHref(item);
   const external = isExternalHref(href);
   const active = isDockItemActive(pathname, item);
@@ -188,10 +210,12 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
       alignItems="center"
       justifyContent="center"
     >
-      {hasChildren && <DockSubMenu childrenMenus={item.children} pathname={pathname} />}
+      {hasChildren && (
+        <DockSubMenu childrenMenus={item.children} pathname={pathname} />
+      )}
 
       <motion.div
-        whileHover={{ y: -11, scale: 1.22 }}
+        whileHover={{ y: -6, scale: 1.12 }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 420, damping: 24 }}
       >
@@ -206,24 +230,25 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
           w="48px"
           h="48px"
           rounded="2xl"
-          bg={active ? 'rgba(33, 166, 108, 0.18)' : 'rgba(255,255,255,0.20)'}
-          color={active ? 'brand.700' : 'surface.700'}
+          bg={active ? 'rgba(22, 119, 255, 0.14)' : 'rgba(255,255,255,0.22)'}
+          color={active ? 'brand.700' : 'ink.700'}
           transition={springTransition}
           boxShadow={
             active
-              ? 'inset 0 1px 0 rgba(255,255,255,0.82), 0 12px 26px rgba(33,166,108,0.18)'
+              ? 'inset 0 1px 0 rgba(255,255,255,0.82), 0 12px 26px rgba(22,119,255,0.18)'
               : 'inset 0 1px 0 rgba(255,255,255,0.64)'
           }
           _groupHover={{
             bg: 'rgba(255, 255, 255, 0.56)',
-            boxShadow: '0 16px 30px rgba(23,33,29,0.12), inset 0 1px 1px rgba(255,255,255,0.82)',
-            color: 'surface.900',
+            boxShadow:
+              '0 16px 30px rgba(15,23,42,0.10), inset 0 1px 1px rgba(255,255,255,0.82)',
+            color: 'ink.900',
             zIndex: 2,
           }}
           _hover={{ textDecoration: 'none' }}
           _focusVisible={{
             outline: 'none',
-            boxShadow: '0 0 0 3px rgba(33,166,108,0.24)',
+            boxShadow: '0 0 0 3px rgba(22,119,255,0.24)',
           }}
         >
           <Icon as={MenuIcon} boxSize={5} strokeWidth={2.2} />
@@ -231,7 +256,7 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
       </motion.div>
 
       {/* 活跃状态的小圆点 (Mac 经典指示器) */}
-      <Box 
+      <Box
         position="absolute"
         bottom="-4px"
         w="4px"
@@ -249,7 +274,7 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
           px={3}
           py={1.5}
           rounded="xl"
-          bg="rgba(23, 33, 29, 0.78)"
+          bg="rgba(15, 23, 42, 0.82)"
           color="white"
           fontSize="xs"
           fontWeight="medium"
@@ -260,9 +285,9 @@ function DockMenuItem({ item, pathname }: { item: DockMenu; pathname: string }) 
           transition={springTransition}
           boxShadow="0 4px 12px rgba(0,0,0,0.15)"
           sx={{ backdropFilter: 'blur(8px)' }}
-          _groupHover={{ 
-            opacity: 1, 
-            transform: 'translateY(0) scale(1)' 
+          _groupHover={{
+            opacity: 1,
+            transform: 'translateY(0) scale(1)',
           }}
         >
           {item.menu.name}
@@ -292,11 +317,11 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
       px={3}
       py={2.5}
       gap={2}
-      rounded="3xl" // 整个 Dock 呈现大圆角胶囊状
-      bg="rgba(255, 255, 255, 0.48)" // 降低基础不透明度，强化毛玻璃
+      rounded="3xl"
+      bg="rgba(255, 255, 255, 0.44)"
       border="1px solid rgba(255, 255, 255, 0.62)"
-      borderTopColor="rgba(255, 255, 255, 0.8)" // 模拟光线从上方打下来的反光边
-      boxShadow="0 24px 70px rgba(23, 33, 29, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.48)"
+      borderTopColor="rgba(255, 255, 255, 0.8)"
+      boxShadow="0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.48)"
       overflow="visible"
       maxW="calc(100vw - 24px)"
       sx={{

@@ -63,7 +63,8 @@ export function RoleFormModal({
       status: String(formData.get('status') || 'ENABLED'),
       sort: Number(formData.get('sort') || 0),
     };
-    if (!editing || !role?.isSystem) payload.code = String(formData.get('code') || '');
+    if (!editing || !role?.isSystem)
+      payload.code = String(formData.get('code') || '');
 
     const ok = await onSubmit(payload);
     if (ok) onClose();
@@ -71,7 +72,10 @@ export function RoleFormModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -104,7 +108,10 @@ export function RoleFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select name="status" defaultValue={role?.status ?? 'ENABLED'}>
+                  <Select
+                    name="status"
+                    defaultValue={role?.status ?? 'ENABLED'}
+                  >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">禁用</option>
                   </Select>
@@ -118,7 +125,11 @@ export function RoleFormModal({
               </SimpleGrid>
               <FormControl>
                 <FormLabel>描述</FormLabel>
-                <Textarea name="description" defaultValue={role?.description ?? ''} rows={4} />
+                <Textarea
+                  name="description"
+                  defaultValue={role?.description ?? ''}
+                  rows={4}
+                />
               </FormControl>
             </Stack>
           </ModalBody>
@@ -137,4 +148,3 @@ export function RoleFormModal({
     </Modal>
   );
 }
-

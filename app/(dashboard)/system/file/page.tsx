@@ -25,14 +25,14 @@ export default async function FilePage() {
       description="上传、预览、下载与删除本地存储文件，上传区和数据舱保持轻量分层。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="green">{files.length} 个文件</Badge>
+          <Badge colorScheme="brand">{files.length} 个文件</Badge>
           <Badge colorScheme="gray">Local Storage</Badge>
         </HStack>
       }
       sideSlot={
         <GlassPanel variant="soft" p={5}>
           <VStack align="stretch" spacing={3}>
-            <FileBox size={28} color="#168654" />
+            <FileBox size={28} color="#0f5ed7" />
             <Text color="surface.900" fontWeight="900">
               资产轻量管理
             </Text>
@@ -43,7 +43,9 @@ export default async function FilePage() {
         </GlassPanel>
       }
     >
-      <FileTable files={files.map((file) => ({ ...file, url: storage.url(file) }))} />
+      <FileTable
+        files={files.map((file) => ({ ...file, url: storage.url(file) }))}
+      />
     </WorkspaceCanvas>
   );
 }

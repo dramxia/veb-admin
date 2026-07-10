@@ -1,6 +1,14 @@
 import { Suspense } from 'react';
-import { Badge, Box, Flex, Heading, HStack, Text, VStack } from '@chakra-ui/react';
-import { Leaf, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  Badge,
+  Box,
+  Flex,
+  Heading,
+  HStack,
+  Text,
+  VStack,
+} from '@chakra-ui/react';
+import { ShieldCheck, Sparkles } from 'lucide-react';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { LoginForm } from './login-form';
 
@@ -12,14 +20,14 @@ export default function LoginPage() {
       justify="center"
       px={{ base: 4, md: 8 }}
       py={10}
-      bg="linear-gradient(135deg, #fbfdfb 0%, #edf7f1 42%, #f7f8fb 72%, #edf7f8 100%)"
+      bg="radial-gradient(circle at 12% 10%, rgba(22, 119, 255, 0.14), transparent 28%), radial-gradient(circle at 88% 4%, rgba(99, 102, 241, 0.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.10), transparent 32%), linear-gradient(135deg, #f8fbff 0%, #f3f7ff 46%, #eef4ff 100%)"
       position="relative"
       overflow="hidden"
       _before={{
         content: '""',
         position: 'absolute',
         inset: 0,
-        bg: 'repeating-linear-gradient(90deg, rgba(23,33,29,0.028) 0, rgba(23,33,29,0.028) 1px, transparent 1px, transparent 118px)',
+        bg: 'repeating-linear-gradient(90deg, rgba(15,23,42,0.018) 0, rgba(15,23,42,0.018) 1px, transparent 1px, transparent 118px)',
         pointerEvents: 'none',
       }}
     >
@@ -38,7 +46,12 @@ export default function LoginPage() {
           p={{ base: 7, md: 10 }}
           minH={{ base: 'auto', lg: '520px' }}
         >
-          <VStack align="stretch" justify="space-between" minH="full" spacing={10}>
+          <VStack
+            align="stretch"
+            justify="space-between"
+            minH="full"
+            spacing={10}
+          >
             <Box>
               <HStack spacing={3} mb={10}>
                 <Flex
@@ -47,32 +60,38 @@ export default function LoginPage() {
                   rounded="2xl"
                   align="center"
                   justify="center"
-                  bg="rgba(232, 246, 236, 0.88)"
+                  bg="linear-gradient(135deg, rgba(238,247,255,0.92), rgba(216,236,255,0.72))"
                   color="brand.700"
                 >
-                  <Leaf size={24} />
+                  <Sparkles size={24} />
                 </Flex>
                 <Box>
-                  <Text color="surface.900" fontSize="xl" fontWeight="900">
+                  <Text color="ink.900" fontSize="xl" fontWeight="900">
                     VEB Admin
                   </Text>
-                  <Text color="surface.500" fontSize="sm" fontWeight="700">
+                  <Text color="ink.500" fontSize="sm" fontWeight="700">
                     Liquid Workspace
                   </Text>
                 </Box>
               </HStack>
-              <Badge colorScheme="green" rounded="full" px={3} py={1} mb={5}>
+              <Badge colorScheme="brand" rounded="full" px={3} py={1} mb={5}>
                 Enterprise Console
               </Badge>
-              <Heading size="2xl" letterSpacing="0" lineHeight="1.08" color="surface.900" mb={5}>
+              <Heading
+                size="2xl"
+                letterSpacing="0"
+                lineHeight="1.08"
+                color="ink.900"
+                mb={5}
+              >
                 回到你的管理工作台
               </Heading>
-              <Text color="surface.600" fontSize="lg" lineHeight="1.8" maxW="460px">
+              <Text color="ink.600" fontSize="lg" lineHeight="1.8" maxW="460px">
                 登录后进入权限、菜单和业务模块的统一操作空间。
               </Text>
             </Box>
             <HStack spacing={3} wrap="wrap">
-              <Badge colorScheme="green">权限控制</Badge>
+              <Badge colorScheme="brand">权限控制</Badge>
               <Badge colorScheme="cyan">菜单编排</Badge>
               <Badge colorScheme="purple">审计追踪</Badge>
             </HStack>
@@ -89,15 +108,15 @@ export default function LoginPage() {
         >
           <Box mb={8}>
             <HStack spacing={3} mb={4}>
-              <ShieldCheck size={20} color="#168654" />
-              <Text color="surface.500" fontWeight="900" fontSize="sm">
+              <ShieldCheck size={20} color="#0f5ed7" />
+              <Text color="ink.500" fontWeight="900" fontSize="sm">
                 Secure Sign In
               </Text>
             </HStack>
-            <Heading size="lg" color="surface.900" letterSpacing="0">
+            <Heading size="lg" color="ink.900" letterSpacing="0">
               欢迎回来
             </Heading>
-            <Text mt={2} color="surface.500">
+            <Text mt={2} color="ink.500">
               请输入账号密码登录管理后台
             </Text>
           </Box>

@@ -1,4 +1,11 @@
-import { Box, Flex, HStack, Text, VStack, type BoxProps } from '@chakra-ui/react';
+import {
+  Box,
+  Flex,
+  HStack,
+  Text,
+  VStack,
+  type BoxProps,
+} from '@chakra-ui/react';
 import type { ReactNode } from 'react';
 import { GlassPanel } from './glass-panel';
 
@@ -15,7 +22,7 @@ export function MetricIsland({
   label,
   value,
   help,
-  accent = '#21a66c',
+  accent = '#1677ff',
   ...props
 }: MetricIslandProps) {
   return (
@@ -25,8 +32,8 @@ export function MetricIsland({
       p={5}
       transition="transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease"
       _hover={{
-        transform: 'translateY(-4px)',
-        boxShadow: '0 24px 70px rgba(23, 33, 29, 0.14)',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 18px 44px rgba(15, 23, 42, 0.08)',
         borderColor: 'rgba(255,255,255,0.9)',
       }}
       {...props}
@@ -48,14 +55,19 @@ export function MetricIsland({
       </HStack>
 
       <VStack align="stretch" spacing={1} mt={5}>
-        <Text color="surface.500" fontSize="sm" fontWeight="800">
+        <Text color="ink.500" fontSize="sm" fontWeight="800">
           {label}
         </Text>
-        <Text color="surface.900" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="900" lineHeight="1">
+        <Text
+          color="ink.900"
+          fontSize={{ base: '3xl', md: '4xl' }}
+          fontWeight="900"
+          lineHeight="1"
+        >
           {value}
         </Text>
         {help ? (
-          <Text color="surface.500" fontSize="sm">
+          <Text color="ink.500" fontSize="sm">
             {help}
           </Text>
         ) : null}
@@ -63,4 +75,3 @@ export function MetricIsland({
     </GlassPanel>
   );
 }
-

@@ -81,7 +81,9 @@ export function AssignPermissionDrawer({
     const value = keyword.trim().toLowerCase();
     if (!value) return permissions;
     return permissions.filter((permission) =>
-      `${permission.code} ${permission.name} ${permission.type}`.toLowerCase().includes(value),
+      `${permission.code} ${permission.name} ${permission.type}`
+        .toLowerCase()
+        .includes(value),
     );
   }, [keyword, permissions]);
 
@@ -100,7 +102,10 @@ export function AssignPermissionDrawer({
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} placement="right" size="lg">
-      <DrawerOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <DrawerOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <DrawerContent
         bg="rgba(255,255,255,0.86)"
         borderLeftWidth="1px"
@@ -116,18 +121,29 @@ export function AssignPermissionDrawer({
           <Stack spacing={2}>
             <Text>分配权限</Text>
             <HStack spacing={2} wrap="wrap">
-              <Badge colorScheme="green">{role?.name ?? '-'}</Badge>
+              <Badge colorScheme="brand">{role?.name ?? '-'}</Badge>
               {locked ? <Badge colorScheme="red">超级管理员锁定</Badge> : null}
             </HStack>
           </Stack>
         </DrawerHeader>
         <DrawerBody>
           <Stack spacing={4}>
-            <Input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索权限码或名称" />
-            <CheckboxGroup value={selectedIds} onChange={(value) => setSelectedIds(value.map(String))}>
+            <Input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="搜索权限码或名称"
+            />
+            <CheckboxGroup
+              value={selectedIds}
+              onChange={(value) => setSelectedIds(value.map(String))}
+            >
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
                 {filtered.map((permission) => (
-                  <Checkbox key={permission.id} value={permission.id} isDisabled={locked || loading || detailLoading}>
+                  <Checkbox
+                    key={permission.id}
+                    value={permission.id}
+                    isDisabled={locked || loading || detailLoading}
+                  >
                     <Stack spacing={0}>
                       <Text fontWeight="800">{permission.name}</Text>
                       <Text color="surface.500" fontSize="xs">
@@ -141,10 +157,18 @@ export function AssignPermissionDrawer({
           </Stack>
         </DrawerBody>
         <DrawerFooter gap={3}>
-          <Button variant="ghost" onClick={onClose} isDisabled={loading || detailLoading}>
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            isDisabled={loading || detailLoading}
+          >
             取消
           </Button>
-          <Button onClick={handleSubmit} isLoading={loading || detailLoading} isDisabled={locked}>
+          <Button
+            onClick={handleSubmit}
+            isLoading={loading || detailLoading}
+            isDisabled={locked}
+          >
             保存
           </Button>
         </DrawerFooter>

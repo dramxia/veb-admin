@@ -57,7 +57,10 @@ export function AssignRolesModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -76,7 +79,10 @@ export function AssignRolesModal({
             <Text color="surface.600">
               {user?.nickname || user?.username || '当前用户'}
             </Text>
-            <CheckboxGroup value={roleIds} onChange={(value) => setRoleIds(value.map(String))}>
+            <CheckboxGroup
+              value={roleIds}
+              onChange={(value) => setRoleIds(value.map(String))}
+            >
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
                 {roles.map((role) => (
                   <Checkbox key={role.id} value={role.id}>
@@ -101,4 +107,3 @@ export function AssignRolesModal({
     </Modal>
   );
 }
-

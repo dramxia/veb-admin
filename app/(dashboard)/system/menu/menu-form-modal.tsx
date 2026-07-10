@@ -97,7 +97,8 @@ export function MenuFormModal({
       payload.parentId = String(formData.get('parentId') || '') || null;
       payload.path = String(formData.get('path') || '');
       payload.type = type;
-      payload.permissionCode = String(formData.get('permissionCode') || '') || null;
+      payload.permissionCode =
+        String(formData.get('permissionCode') || '') || null;
       payload.externalUrl = String(formData.get('externalUrl') || '') || null;
     }
 
@@ -107,7 +108,10 @@ export function MenuFormModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -152,7 +156,11 @@ export function MenuFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>父菜单</FormLabel>
-                  <Select name="parentId" defaultValue={menu?.parentId ?? ''} isDisabled={locked}>
+                  <Select
+                    name="parentId"
+                    defaultValue={menu?.parentId ?? ''}
+                    isDisabled={locked}
+                  >
                     <option value="">无父级</option>
                     {menus
                       .filter((item) => item.id !== menu?.id)
@@ -198,7 +206,11 @@ export function MenuFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>图标名称</FormLabel>
-                  <Input name="icon" defaultValue={menu?.icon ?? ''} placeholder="users / shield / file" />
+                  <Input
+                    name="icon"
+                    defaultValue={menu?.icon ?? ''}
+                    placeholder="users / shield / file"
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>排序</FormLabel>
@@ -208,13 +220,19 @@ export function MenuFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select name="status" defaultValue={menu?.status ?? 'ENABLED'}>
+                  <Select
+                    name="status"
+                    defaultValue={menu?.status ?? 'ENABLED'}
+                  >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">禁用</option>
                   </Select>
                 </FormControl>
               </SimpleGrid>
-              <Checkbox isChecked={visible} onChange={(event) => setVisible(event.target.checked)}>
+              <Checkbox
+                isChecked={visible}
+                onChange={(event) => setVisible(event.target.checked)}
+              >
                 在导航中显示
               </Checkbox>
             </Stack>
@@ -234,4 +252,3 @@ export function MenuFormModal({
     </Modal>
   );
 }
-

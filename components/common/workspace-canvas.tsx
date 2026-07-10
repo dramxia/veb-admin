@@ -57,8 +57,8 @@ export function WorkspaceCanvas({
       {actionsSlot ? (
         <Flex
           justify={{ base: 'flex-start', lg: 'flex-end' }}
-          mb={{ base: 4, lg: -12 }}
-          pr={{ base: 0, lg: 5 }}
+          mb={4}
+          pr={0}
           position="relative"
           zIndex={2}
         >
@@ -67,20 +67,19 @@ export function WorkspaceCanvas({
       ) : null}
 
       <Grid
-        templateColumns={{ base: '1fr', lg: sideSlot ? 'minmax(0, 1.36fr) minmax(280px, 0.64fr)' : '1fr' }}
+        templateColumns={{
+          base: '1fr',
+          lg: sideSlot ? 'minmax(0, 1.36fr) minmax(280px, 0.64fr)' : '1fr',
+        }}
         gap={{ base: 4, lg: 5 }}
         alignItems="stretch"
       >
         <GridItem>
-          <GlassPanel
-            variant="floating"
-            minH={{ base: 'auto', lg: '238px' }}
-            p={{ base: 6, md: 8 }}
-          >
-            <VStack align="stretch" spacing={5} maxW="780px">
+          <GlassPanel variant="floating" minH="auto" p={{ base: 5, md: 6 }}>
+            <VStack align="stretch" spacing={4} maxW="780px">
               {eyebrow ? (
                 <Text
-                  color="mint.700"
+                  color="brand.700"
                   fontSize="xs"
                   fontWeight="900"
                   letterSpacing="0"
@@ -93,14 +92,14 @@ export function WorkspaceCanvas({
                 <Heading
                   as="h1"
                   size={{ base: 'xl', md: '2xl' }}
-                  color="surface.900"
+                  color="ink.900"
                   letterSpacing="0"
                   lineHeight="1.08"
                 >
                   {title}
                 </Heading>
                 {description ? (
-                  <Text mt={3} color="surface.600" lineHeight="1.8" maxW="680px">
+                  <Text mt={3} color="ink.600" lineHeight="1.75" maxW="680px">
                     {description}
                   </Text>
                 ) : null}
@@ -110,20 +109,10 @@ export function WorkspaceCanvas({
           </GlassPanel>
         </GridItem>
 
-        {sideSlot ? (
-          <GridItem pt={{ base: 0, lg: 10 }}>
-            {sideSlot}
-          </GridItem>
-        ) : null}
+        {sideSlot ? <GridItem>{sideSlot}</GridItem> : null}
       </Grid>
 
-      <Box
-        mt={{ base: 4, lg: -6 }}
-        ml={{ base: 0, lg: sideSlot ? 8 : 0 }}
-        mr={{ base: 0, lg: sideSlot ? 4 : 0 }}
-        position="relative"
-        zIndex={1}
-      >
+      <Box mt={5} ml={0} mr={0} position="relative" zIndex={1}>
         {children}
       </Box>
     </Box>

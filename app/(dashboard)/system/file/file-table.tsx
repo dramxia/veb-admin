@@ -70,7 +70,7 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
             <Tr>
               <Th>文件名</Th>
               <Th>类型</Th>
-              <Th>大小</Th>
+              <Th isNumeric>大小</Th>
               <Th>上传人</Th>
               <Th>时间</Th>
               <Th>操作</Th>
@@ -84,7 +84,7 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
                   <Td>
                     <Badge>{file.mime}</Badge>
                   </Td>
-                  <Td>{formatSize(file.size)}</Td>
+                  <Td isNumeric>{formatSize(file.size)}</Td>
                   <Td>
                     {file.uploader?.nickname || file.uploader?.username || '-'}
                   </Td>
@@ -96,12 +96,25 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
                   <Td>
                     <TableActions>
                       <Tooltip label="预览文件" hasArrow>
-                        <Button as={Link} href={file.url} target="_blank" size="xs" variant="ghost" aria-label="预览文件">
+                        <Button
+                          as={Link}
+                          href={file.url}
+                          target="_blank"
+                          size="xs"
+                          variant="ghost"
+                          aria-label="预览文件"
+                        >
                           <Icon as={ExternalLink} boxSize={4} />
                         </Button>
                       </Tooltip>
                       <Tooltip label="下载文件" hasArrow>
-                        <Button as={Link} href={`${file.url}?download=1`} size="xs" variant="ghost" aria-label="下载文件">
+                        <Button
+                          as={Link}
+                          href={`${file.url}?download=1`}
+                          size="xs"
+                          variant="ghost"
+                          aria-label="下载文件"
+                        >
                           <Icon as={Download} boxSize={4} />
                         </Button>
                       </Tooltip>
@@ -141,7 +154,9 @@ export function FileTable({ files }: { files: ManagedFile[] }) {
           const ok = await run(
             () =>
               deletingFile
-                ? requestJson(`/api/files/${deletingFile.id}`, { method: 'DELETE' })
+                ? requestJson(`/api/files/${deletingFile.id}`, {
+                    method: 'DELETE',
+                  })
                 : undefined,
             {
               successTitle: '删除成功',

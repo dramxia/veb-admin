@@ -84,7 +84,10 @@ export function UserFormModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -114,7 +117,11 @@ export function UserFormModal({
                 {!editing ? (
                   <FormControl isRequired>
                     <FormLabel>初始密码</FormLabel>
-                    <Input name="password" defaultValue="Admin@123" type="password" />
+                    <Input
+                      name="password"
+                      defaultValue="Admin@123"
+                      type="password"
+                    />
                   </FormControl>
                 ) : null}
                 <FormControl>
@@ -123,11 +130,18 @@ export function UserFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>邮箱</FormLabel>
-                  <Input name="email" defaultValue={user?.email ?? ''} type="email" />
+                  <Input
+                    name="email"
+                    defaultValue={user?.email ?? ''}
+                    type="email"
+                  />
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select name="status" defaultValue={user?.status ?? 'ENABLED'}>
+                  <Select
+                    name="status"
+                    defaultValue={user?.status ?? 'ENABLED'}
+                  >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">禁用</option>
                   </Select>
@@ -137,7 +151,10 @@ export function UserFormModal({
               {!editing ? (
                 <FormControl>
                   <FormLabel>初始角色</FormLabel>
-                  <CheckboxGroup value={roleIds} onChange={(value) => setRoleIds(value.map(String))}>
+                  <CheckboxGroup
+                    value={roleIds}
+                    onChange={(value) => setRoleIds(value.map(String))}
+                  >
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
                       {roles.map((role) => (
                         <Checkbox key={role.id} value={role.id}>
@@ -165,4 +182,3 @@ export function UserFormModal({
     </Modal>
   );
 }
-

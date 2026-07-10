@@ -1,13 +1,13 @@
-import {
-  Box,
-  type BoxProps,
-} from '@chakra-ui/react';
+import { Box, type BoxProps } from '@chakra-ui/react';
 
 type GlassPanelProps = BoxProps & {
   variant?: 'soft' | 'solid' | 'floating';
 };
 
-const variantStyles: Record<NonNullable<GlassPanelProps['variant']>, BoxProps> = {
+const variantStyles: Record<
+  NonNullable<GlassPanelProps['variant']>,
+  BoxProps
+> = {
   soft: {
     bg: 'rgba(255, 255, 255, 0.62)',
     borderColor: 'rgba(255, 255, 255, 0.68)',
@@ -21,11 +21,16 @@ const variantStyles: Record<NonNullable<GlassPanelProps['variant']>, BoxProps> =
   floating: {
     bg: 'rgba(255, 255, 255, 0.56)',
     borderColor: 'rgba(255, 255, 255, 0.74)',
-    boxShadow: '0 26px 80px rgba(23, 33, 29, 0.14), inset 0 1px 0 rgba(255,255,255,0.72)',
+    boxShadow:
+      '0 20px 44px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.72)',
   },
 };
 
-export function GlassPanel({ variant = 'soft', sx, ...props }: GlassPanelProps) {
+export function GlassPanel({
+  variant = 'soft',
+  sx,
+  ...props
+}: GlassPanelProps) {
   return (
     <Box
       position="relative"
@@ -33,8 +38,8 @@ export function GlassPanel({ variant = 'soft', sx, ...props }: GlassPanelProps) 
       rounded="3xl"
       overflow="hidden"
       sx={{
-        backdropFilter: 'blur(28px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        backdropFilter: 'blur(18px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(160%)',
         ...sx,
       }}
       {...variantStyles[variant]}

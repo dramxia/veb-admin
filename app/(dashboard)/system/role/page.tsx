@@ -11,9 +11,18 @@ import { RoleTable } from './role-table';
 export default async function RolePage() {
   await requirePermission('system:role:view');
   const [roles, permissions, users] = await Promise.all([
-    prisma.role.findMany({ orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }], include: { _count: { select: { users: true, permissions: true } } } }),
-    prisma.permission.findMany({ orderBy: [{ type: 'asc' }, { code: 'asc' }], select: { id: true, code: true, name: true, type: true } }),
-    prisma.user.findMany({ orderBy: { createdAt: 'desc' }, select: { id: true, username: true, nickname: true } }),
+    prisma.role.findMany({
+      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+      include: { _count: { select: { users: true, permissions: true } } },
+    }),
+    prisma.permission.findMany({
+      orderBy: [{ type: 'asc' }, { code: 'asc' }],
+      select: { id: true, code: true, name: true, type: true },
+    }),
+    prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, username: true, nickname: true },
+    }),
   ]);
   return (
     <WorkspaceCanvas
@@ -22,7 +31,7 @@ export default async function RolePage() {
       description="维护角色、启停状态、权限集合和用户绑定，抽屉式分配适合批量勾选。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="green">{roles.length} 个角色</Badge>
+          <Badge colorScheme="brand">{roles.length} 个角色</Badge>
           <Badge colorScheme="cyan">{permissions.length} 个权限</Badge>
           <Badge colorScheme="gray">{users.length} 个用户</Badge>
         </HStack>
@@ -30,7 +39,7 @@ export default async function RolePage() {
       sideSlot={
         <GlassPanel variant="soft" p={5}>
           <VStack align="stretch" spacing={3}>
-            <ShieldCheck size={28} color="#168654" />
+            <ShieldCheck size={28} color="#0f5ed7" />
             <Text color="surface.900" fontWeight="900">
               授权关系一屏维护
             </Text>

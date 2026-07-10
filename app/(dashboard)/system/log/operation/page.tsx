@@ -77,14 +77,14 @@ export default async function OperationLogPage({
       description={t('log.description')}
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="green">{logs.length} 条最近记录</Badge>
+          <Badge colorScheme="brand">{logs.length} 条最近记录</Badge>
           <Badge colorScheme="gray">最多展示 50 条</Badge>
         </HStack>
       }
       sideSlot={
         <GlassPanel variant="soft" p={5}>
           <VStack align="stretch" spacing={3}>
-            <ScrollText size={28} color="#168654" />
+            <ScrollText size={28} color="#0f5ed7" />
             <Text color="surface.900" fontWeight="900">
               审计筛选保持可扫读
             </Text>

@@ -57,7 +57,8 @@ export function PermissionFormModal({
       name: String(formData.get('name') || ''),
       description: String(formData.get('description') || '') || null,
     };
-    if (!editing || !permission?.isSystem) payload.code = String(formData.get('code') || '');
+    if (!editing || !permission?.isSystem)
+      payload.code = String(formData.get('code') || '');
     if (!editing) payload.type = String(formData.get('type') || 'BUTTON');
 
     const ok = await onSubmit(payload);
@@ -66,7 +67,10 @@ export function PermissionFormModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
-      <ModalOverlay bg="rgba(23, 33, 29, 0.24)" backdropFilter="blur(16px)" />
+      <ModalOverlay
+        bg="rgba(248, 251, 255, 0.62)"
+        backdropFilter="blur(16px)"
+      />
       <ModalContent
         rounded="3xl"
         bg="rgba(255,255,255,0.86)"
@@ -109,7 +113,11 @@ export function PermissionFormModal({
               </SimpleGrid>
               <FormControl>
                 <FormLabel>描述</FormLabel>
-                <Textarea name="description" defaultValue={permission?.description ?? ''} rows={4} />
+                <Textarea
+                  name="description"
+                  defaultValue={permission?.description ?? ''}
+                  rows={4}
+                />
               </FormControl>
             </Stack>
           </ModalBody>
@@ -128,4 +136,3 @@ export function PermissionFormModal({
     </Modal>
   );
 }
-
