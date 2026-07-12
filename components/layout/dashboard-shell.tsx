@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { MenuNode } from '@/lib/menu';
 import { Header } from './header';
 import { MenuStoreInitializer } from './menu-store-initializer';
-import { DESKTOP_SIDEBAR_WIDTH, Sidebar } from './sidebar';
+import { OrbitalMenu } from './orbital-menu';
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -39,12 +39,11 @@ export function DashboardShell({
         user={user}
       />
 
-      <Sidebar initialMenus={menus} />
-
-      <Box minH="100dvh" ms={{ base: 0, lg: DESKTOP_SIDEBAR_WIDTH }} minW={0}>
+      <Box minH="100dvh" minW={0}>
         <Header user={user} initialMenus={menus} />
 
         <Box
+          id="dashboard-main"
           as="main"
           position="relative"
           w="full"
@@ -53,13 +52,15 @@ export function DashboardShell({
           px={{ base: 3, md: 5, xl: 8 }}
           pt={{ base: 5, md: 7 }}
           pb={{
-            base: 'calc(116px + env(safe-area-inset-bottom))',
-            lg: 12,
+            base: 'calc(84px + env(safe-area-inset-bottom))',
+            lg: 14,
           }}
         >
           {children}
         </Box>
       </Box>
+
+      <OrbitalMenu initialMenus={menus} targetId="dashboard-main" />
     </Box>
   );
 }

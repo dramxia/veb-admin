@@ -1,7 +1,7 @@
 import { Box, type BoxProps } from '@chakra-ui/react';
 
 type GlassPanelProps = BoxProps & {
-  variant?: 'soft' | 'solid' | 'floating';
+  variant?: 'soft' | 'solid' | 'floating' | 'navigation';
 };
 
 const variantLayerStyles: Record<
@@ -11,6 +11,7 @@ const variantLayerStyles: Record<
   soft: 'glassSoft',
   solid: 'glassSolid',
   floating: 'glassFloating',
+  navigation: 'navigationGlass',
 };
 
 export function GlassPanel({ variant = 'soft', ...props }: GlassPanelProps) {

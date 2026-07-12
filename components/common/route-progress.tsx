@@ -6,6 +6,14 @@ import { useEffect } from 'react';
 
 NProgress.configure({ showSpinner: false, trickleSpeed: 120 });
 
+export function startRouteProgress() {
+  NProgress.start();
+}
+
+export function finishRouteProgress() {
+  NProgress.done();
+}
+
 export function RouteProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -40,7 +48,7 @@ export function RouteProgress() {
       )
         return;
 
-      NProgress.start();
+      startRouteProgress();
     };
 
     window.addEventListener('click', handleStart, true);
@@ -48,7 +56,7 @@ export function RouteProgress() {
   }, []);
 
   useEffect(() => {
-    NProgress.done();
+    finishRouteProgress();
   }, [pathname, searchParams]);
 
   return null;

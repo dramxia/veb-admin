@@ -251,6 +251,16 @@ const glassFloatingLayerStyle = {
   WebkitBackdropFilter: floatingGlassBlur,
 };
 
+const navigationGlassLayerStyle = {
+  ...glassBaseLayerStyle,
+  bg: 'rgba(255, 255, 255, 0.46)',
+  borderColor: 'rgba(255, 255, 255, 0.72)',
+  boxShadow:
+    '0 16px 42px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82)',
+  backdropFilter: 'blur(28px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+};
+
 const iconLayerStyleBase = {
   alignItems: 'center',
   display: 'inline-flex',
@@ -441,6 +451,7 @@ export const theme = extendTheme({
     glassSoft: glassSoftLayerStyle,
     glassSolid: glassSolidLayerStyle,
     glassFloating: glassFloatingLayerStyle,
+    navigationGlass: navigationGlassLayerStyle,
     toolbarSurface: {
       bg: 'toolbarBg',
       borderColor: 'glassBorder',

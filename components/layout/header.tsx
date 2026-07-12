@@ -87,7 +87,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
   return (
     <GlassPanel
       as="header"
-      variant="floating"
+      variant="navigation"
       position="sticky"
       top={{ base: 3, md: 4 }}
       zIndex="banner"
