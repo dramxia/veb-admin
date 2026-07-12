@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const publicPaths = ['/login', '/403', '/404'];
+const publicPaths = ['/login', '/403', '/404', '/articles'];
 const builtinProtectedPaths = ['/', '/profile'];
 
 function normalizePath(pathname: string) {
@@ -11,7 +11,7 @@ function normalizePath(pathname: string) {
 
 function isPublicPath(pathname: string) {
   return (
-    publicPaths.includes(pathname) ||
+    publicPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
