@@ -133,7 +133,7 @@ export function MenuTree({
           <AuthButton
             code="system:menu:create"
             isLoading={loading}
-            icon={<Icon as={Plus} boxSize={4} />}
+            icon={<Icon as={Plus} boxSize={4.5} />}
             onClick={() => {
               clearError();
               setEditingMenu(null);
@@ -184,7 +184,7 @@ export function MenuTree({
                         ) : null}
                         <Icon
                           as={typeMeta.icon}
-                          boxSize={4.5}
+                          boxSize={5}
                           color={typeMeta.iconColor}
                           flexShrink={0}
                         />
@@ -272,7 +272,7 @@ export function MenuTree({
                           variant="ghost"
                           tooltip="编辑菜单"
                           aria-label={`编辑菜单 ${menu.name}`}
-                          icon={<Icon as={Pencil} boxSize={4} />}
+                          icon={<Icon as={Pencil} boxSize={4.5} />}
                           isDisabled={loading}
                           onClick={() => {
                             clearError();
@@ -289,7 +289,7 @@ export function MenuTree({
                             menu.isSystem ? '系统菜单不可删除' : '删除菜单'
                           }
                           aria-label={`删除菜单 ${menu.name}`}
-                          icon={<Icon as={Trash2} boxSize={4} />}
+                          icon={<Icon as={Trash2} boxSize={4.5} />}
                           isDisabled={loading || menu.isSystem}
                           onClick={() => {
                             clearError();
