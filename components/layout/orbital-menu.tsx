@@ -2,25 +2,7 @@
 
 import { Icon, IconButton, Portal, Text, Tooltip } from '@chakra-ui/react';
 import { animate, useReducedMotion } from 'framer-motion';
-import {
-  ChevronDown,
-  ChevronUp,
-  Circle,
-  Compass,
-  ExternalLink,
-  FileBox,
-  Folder,
-  Home,
-  LayoutDashboard,
-  ListTree,
-  type LucideIcon,
-  Orbit,
-  ScrollText,
-  Shield,
-  User,
-  Users,
-  X,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Orbit, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   type CSSProperties,
@@ -70,37 +52,6 @@ type OrbCssProperties = CSSProperties & {
   '--orb-end': string;
   '--orb-shadow': string;
 };
-
-const iconMap: Record<string, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  home: Home,
-  system: Compass,
-  users: Users,
-  user: User,
-  role: Shield,
-  shield: Shield,
-  permission: Shield,
-  menu: ListTree,
-  file: FileBox,
-  folder: Folder,
-  log: ScrollText,
-  profile: User,
-};
-
-function getMenuIcon(menu: MenuNode): LucideIcon {
-  const configured = menu.icon?.toLowerCase();
-  if (configured && iconMap[configured]) return iconMap[configured];
-  if (menu.path === '/') return LayoutDashboard;
-  if (menu.path.startsWith('/profile')) return User;
-  if (menu.path.includes('user')) return Users;
-  if (menu.path.includes('role')) return Shield;
-  if (menu.path.includes('permission')) return Shield;
-  if (menu.path.includes('menu')) return ListTree;
-  if (menu.path.includes('file')) return FileBox;
-  if (menu.path.includes('log')) return ScrollText;
-  if (menu.path.startsWith('/system')) return Compass;
-  return Circle;
-}
 
 function getOrbStyle(tone: OrbitalTone): OrbCssProperties {
   return {
@@ -314,7 +265,6 @@ export function OrbitalMenu({
 
   const safePageIndex = Math.min(pageIndex, Math.max(0, pages.length - 1));
   const visibleEntries = pages[safePageIndex] ?? [];
-  const FlightIcon = flight ? getMenuIcon(flight.entry.menu) : null;
 
   return (
     <div
@@ -327,7 +277,6 @@ export function OrbitalMenu({
         <div className={styles.surface} aria-hidden />
         <nav className={styles.nav} aria-label="页面导航">
           {visibleEntries.map((entry) => {
-            const MenuIcon = getMenuIcon(entry.menu);
             const active = currentMenu?.id === entry.menu.id;
             const hidden = flight?.entry.menu.id === entry.menu.id;
 
@@ -367,12 +316,6 @@ export function OrbitalMenu({
                     }}
                     onClick={(event) => handleOrbClick(event, entry)}
                   >
-                    <Icon
-                      as={MenuIcon}
-                      className={styles.orbIcon}
-                      boxSize={5.5}
-                      aria-hidden
-                    />
                     {entry.external ? (
                       <Icon
                         as={ExternalLink}
@@ -428,7 +371,7 @@ export function OrbitalMenu({
         onClick={() => setMobileExpanded((value) => !value)}
       />
 
-      {flight && FlightIcon ? (
+      {flight ? (
         <Portal>
           <div
             className={[
@@ -450,14 +393,7 @@ export function OrbitalMenu({
             }}
             data-flight-phase={flight.phase}
             aria-hidden
-          >
-            <Icon
-              as={FlightIcon}
-              className={styles.orbIcon}
-              boxSize={5.5}
-              aria-hidden
-            />
-          </div>
+          />
         </Portal>
       ) : null}
     </div>
