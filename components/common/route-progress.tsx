@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 
 NProgress.configure({ showSpinner: false, trickleSpeed: 120 });
 
+export const ROUTE_LOADING_COMPLETE_EVENT = 'veb:route-loading-complete';
+
 export function startRouteProgress() {
   NProgress.start();
 }

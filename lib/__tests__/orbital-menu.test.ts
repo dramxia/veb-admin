@@ -4,9 +4,13 @@ import {
   buildOrbitalMenuEntries,
   getCubicBezierPoint,
   getFlightControlPoints,
-  getOrbitalPageIndex,
-  ORBITAL_SLOTS,
-  paginateOrbitalEntries,
+  getViewportCoverScale,
+  getWheelItemAngle,
+  getWheelPlacement,
+  getWheelRotationForItem,
+  normalizeWheelAngle,
+  ORBITAL_STYLES,
+  WHEEL_FADE_ANGLE,
 } from '@/components/layout/orbital-menu-utils';
 
 function createMenu(
@@ -69,40 +73,119 @@ describe('orbital menu helpers', () => {
     });
   });
 
-  it('paginates at eight entries and resets slots on each page', () => {
+  it('distributes wheel items evenly around the circle', () => {
+    expect(getWheelItemAngle(0, 8)).toBe(0);
+    expect(getWheelItemAngle(2, 8)).toBe(90);
+    expect(getWheelItemAngle(4, 8)).toBe(180);
+    expect(getWheelItemAngle(0, 0)).toBe(0);
+  });
+
+  it('normalizes angles into the [-180, 180) range', () => {
+    expect(normalizeWheelAngle(0)).toBe(0);
+    expect(normalizeWheelAngle(190)).toBe(-170);
+    expect(normalizeWheelAngle(-270)).toBe(90);
+    expect(normalizeWheelAngle(540)).toBe(-180);
+  });
+
+  it('shows items on the screen-facing half and hides the rest', () => {
+    const count = 8;
+    const radius = 80;
+    // rotation 180° 把第 0 项转到屏幕正内侧
+    const front = getWheelPlacement(0, count, 180, radius);
+    // 第 0 项初始角度 0° 指向屏幕外，不可见
+    const back = getWheelPlacement(0, count, 0, radius);
+
+    expect(Math.abs(front.angle)).toBe(180);
+    expect(front.visible).toBe(true);
+    expect(front.opacity).toBe(1);
+    expect(front.x).toBeCloseTo(-radius);
+    expect(front.y).toBe(0);
+    expect(back.visible).toBe(false);
+    expect(back.opacity).toBe(0);
+  });
+
+  it('keeps invalid or empty wheel geometry hidden', () => {
+    expect(getWheelPlacement(0, 0, 180, 80)).toMatchObject({
+      x: 0,
+      y: 0,
+      opacity: 0,
+      visible: false,
+    });
+    expect(getWheelPlacement(0, 1, 180, 0).visible).toBe(false);
+    expect(getWheelRotationForItem(0, 0, 42)).toBe(42);
+    expect(normalizeWheelAngle(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it('fades items gradually while crossing the screen edge', () => {
+    const count = 8;
+    const radius = 80;
+    // 第 0 项转到 90° + 淡出区间的一半
+    const halfway = getWheelPlacement(
+      0,
+      count,
+      90 + WHEEL_FADE_ANGLE / 2,
+      radius,
+    );
+
+    expect(halfway.visible).toBe(true);
+    expect(halfway.opacity).toBeGreaterThan(0.4);
+    expect(halfway.opacity).toBeLessThan(0.6);
+    expect(halfway.scale).toBeLessThan(1);
+  });
+
+  it('loops infinitely: rotation + 360° lands on the same spot', () => {
+    const first = getWheelPlacement(3, 7, 45, 80);
+    const second = getWheelPlacement(3, 7, 45 + 360, 80);
+
+    expect(second.x).toBeCloseTo(first.x);
+    expect(second.y).toBeCloseTo(first.y);
+    expect(second.angle).toBeCloseTo(first.angle);
+  });
+
+  it('rotates the requested item to the front via the shortest path', () => {
+    const count = 8;
+    // 目标角度 = 180 - index * step
+    expect(getWheelRotationForItem(0, count, 0)).toBe(180);
+    expect(getWheelRotationForItem(2, count, 0)).toBe(90);
+    // 与当前旋转角取最短等价路径:当前 350° 时目标 180° 应取 540° 而非 180°
+    const resolved = getWheelRotationForItem(0, count, 350);
+    expect(Math.abs(resolved - 350)).toBeLessThanOrEqual(180);
+    expect(Math.abs(getWheelPlacement(0, count, resolved, 80).angle)).toBe(180);
+  });
+
+  it('assigns a distinct flat style while the style set has capacity', () => {
     const entries = buildOrbitalMenuEntries(
-      Array.from({ length: 10 }, (_, index) =>
+      Array.from({ length: ORBITAL_STYLES.length }, (_, index) =>
         createMenu(`menu-${index}`, `/menu-${index}`),
       ),
     );
-
-    const pages = paginateOrbitalEntries(entries);
-
-    expect(pages.map((page) => page.length)).toEqual([8, 2]);
-    expect(pages[0]?.[0]?.slot).toEqual(ORBITAL_SLOTS[0]);
-    expect(pages[1]?.[0]?.slot).toEqual(ORBITAL_SLOTS[0]);
-  });
-
-  it('opens the page that contains the most specific current route', () => {
-    const entries = buildOrbitalMenuEntries(
-      Array.from({ length: 10 }, (_, index) =>
-        createMenu(`menu-${index}`, `/menu-${index}`),
-      ),
+    const styles = entries.map((entry) => entry.style);
+    const styleSignatures = styles.map(
+      (style) => `${style.color}|${style.surface}|${style.marker}`,
     );
 
-    expect(getOrbitalPageIndex(entries, '/menu-8/detail')).toBe(1);
-    expect(getOrbitalPageIndex(entries, '/unknown')).toBe(0);
+    expect(new Set(styleSignatures).size).toBe(entries.length);
+    expect(styles.every((style) => ORBITAL_STYLES.includes(style))).toBe(true);
+    expect(styles.every((style) => !style.surface.includes('gradient'))).toBe(
+      true,
+    );
   });
 
-  it('keeps a menu color stable when its position changes', () => {
+  it('keeps a menu style stable when the same menus are reordered', () => {
     const target = createMenu('stable-menu', '/stable');
-    const original = buildOrbitalMenuEntries([target])[0];
+    const before = createMenu('before', '/before');
+    const after = createMenu('after', '/after');
+    const original = buildOrbitalMenuEntries([before, target, after]).find(
+      (entry) => entry.menu.id === target.id,
+    );
     const reordered = buildOrbitalMenuEntries([
-      createMenu('before', '/before'),
+      after,
       target,
-    ])[1];
+      createMenu('before', '/before'),
+    ]).find((entry) => entry.menu.id === target.id);
 
-    expect(reordered?.tone).toEqual(original?.tone);
+    expect(original?.style).toBeDefined();
+    expect(reordered?.style).toEqual(original?.style);
   });
 
   it('creates a curved flight path with exact endpoints', () => {
@@ -115,5 +198,21 @@ describe('orbital menu helpers', () => {
     expect(getCubicBezierPoint(start, first, second, end, 1)).toEqual(end);
     expect(midpoint.x).not.toBe((start.x + end.x) / 2);
     expect(midpoint.y).toBeLessThan((start.y + end.y) / 2);
+  });
+
+  it('scales the centered orb far enough to cover every viewport corner', () => {
+    const center = { x: 320, y: 240 };
+    const orbSize = 48;
+    const scale = getViewportCoverScale(center, orbSize, {
+      width: 1280,
+      height: 800,
+    });
+    const scaledRadius = (orbSize * scale) / 2;
+    const farthestCorner = Math.hypot(1280 - center.x, 800 - center.y);
+
+    expect(scaledRadius).toBeGreaterThan(farthestCorner);
+    expect(getViewportCoverScale(center, 0, { width: 1280, height: 800 })).toBe(
+      1,
+    );
   });
 });

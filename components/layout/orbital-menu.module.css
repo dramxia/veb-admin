@@ -1,91 +1,67 @@
 .root {
-  --menu-height: 520px;
-  --menu-width: 260px;
+  --hub-size: 34px;
+  --wheel-edge-gap: 8px;
+  --wheel-radius: 118px;
   position: fixed;
-  right: -10px;
-  bottom: 24px;
+  right: calc(
+    var(--hub-size) / 2 + var(--wheel-edge-gap) - var(--wheel-radius)
+  );
+  bottom: 96px;
   z-index: 1100;
-  width: var(--menu-width);
-  height: var(--menu-height);
-  perspective: 1000px;
+  width: calc(var(--wheel-radius) * 2);
+  height: calc(var(--wheel-radius) * 2);
   pointer-events: none;
 }
 
-.menuBody {
-  position: absolute;
-  inset: 0;
-  transform: rotateY(-7deg) rotateX(1.5deg);
-  transform-origin: right center;
-  transform-style: preserve-3d;
-  transition:
-    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 220ms;
-}
-
-.surface {
+/* 转盘背景:仅保留圆心左侧的半圆 */
+.disc {
   position: absolute;
   z-index: 0;
   inset: 0;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-right-color: rgba(255, 255, 255, 0.34);
-  border-radius: 100% 0 0 100% / 50% 0 0 50%;
-  background:
-    radial-gradient(
-      circle at 16% 48%,
-      rgba(255, 255, 255, 0.58),
-      transparent 38%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(167, 219, 255, 0.6) 0%,
-      rgba(195, 194, 255, 0.34) 52%,
-      rgba(255, 255, 255, 0.12) 100%
-    );
-  box-shadow:
-    -22px 28px 58px rgba(53, 81, 135, 0.16),
-    inset 18px 0 34px rgba(255, 255, 255, 0.34),
-    inset -7px 0 18px rgba(90, 117, 176, 0.12);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
-  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-right: none;
+  border-radius: 50%;
+  background: rgba(239, 245, 250, 0.66);
+  clip-path: inset(0 50% 0 0);
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(20px) saturate(115%);
+  -webkit-backdrop-filter: blur(20px) saturate(115%);
+  will-change: opacity;
+}
+
+/* 直径贴合屏幕边缘的描边线 */
+.disc::before {
+  position: absolute;
+  top: 0;
+  right: 50%;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.44);
+  content: '';
+}
+
+/* 轨道刻度环，同样只显示一半 */
+.track {
+  position: absolute;
+  z-index: 1;
+  inset: 14%;
+  border: 1px dashed rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+  clip-path: inset(0 50% 0 0);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.root[data-expanded='false'] .disc {
+  opacity: 0;
   pointer-events: none;
 }
 
-.surface::before {
-  position: absolute;
-  z-index: -1;
-  inset: 8px -12px -8px 13px;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    rgba(69, 111, 183, 0.2),
-    rgba(116, 102, 185, 0.08)
-  );
-  box-shadow: 12px 18px 30px rgba(42, 61, 103, 0.14);
-  content: '';
-  transform: translate3d(8px, 6px, -28px);
-}
-
-.surface::after {
-  position: absolute;
-  top: 5%;
-  right: -8px;
-  width: 18px;
-  height: 90%;
-  border: 1px solid rgba(255, 255, 255, 0.46);
-  border-radius: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.52),
-    rgba(123, 149, 209, 0.12) 48%,
-    rgba(255, 255, 255, 0.3)
-  );
-  box-shadow:
-    inset 5px 0 9px rgba(255, 255, 255, 0.44),
-    8px 0 18px rgba(43, 60, 101, 0.12);
-  content: '';
-  transform: rotateY(-18deg);
+.root[data-expanded='false'] .track {
+  opacity: 0;
 }
 
 .nav {
@@ -93,289 +69,344 @@
   z-index: 2;
   inset: 0;
   pointer-events: none;
-  transform: translateZ(24px);
 }
 
-.orbSlot {
+/* 常规转盘:环形分区整体，随滚轮绕圆心旋转，收起时向圆心缩拢淡出 */
+.segments {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
   pointer-events: none;
-  transform: translate(-50%, -50%);
+  transition:
+    opacity 220ms ease,
+    transform 300ms cubic-bezier(0.22, 0.9, 0.24, 1);
+  will-change: opacity, transform;
 }
 
-.orbButton {
-  --orb-end: #2453d4;
-  --orb-middle: #2798ff;
-  --orb-shadow: rgba(22, 119, 255, 0.42);
-  --orb-size: 46px;
-  --orb-start: #8ed8ff;
-  position: relative;
-  display: grid;
-  width: var(--orb-size);
-  min-width: var(--orb-size);
-  height: var(--orb-size);
+.root[data-expanded='false'] .segments {
+  opacity: 0;
+  transform: scale(0.55);
+}
+
+/*
+ * 单个扇区:铺满整个圆盘后用 clip-path 裁出朝向正右方的环形扇形，
+ * 再由行内 transform 旋转到各自角度。内圈镂空 23% 半径，避让中心按钮。
+ * 半角由 --wedge-half 传入(CSS 三角函数在浏览器端求值，无水合差异)。
+ */
+.segment {
+  position: absolute;
+  inset: 0;
+  display: block;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.62);
+  border: none;
   border-radius: 50%;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--orb-start) 58%, transparent) 0%,
-    color-mix(in srgb, var(--orb-middle) 52%, transparent) 52%,
-    color-mix(in srgb, var(--orb-end) 60%, transparent) 100%
+  appearance: none;
+  background: var(--orb-surface);
+  clip-path: polygon(
+    calc(50% + 11.5% * cos(var(--wedge-half)))
+      calc(50% - 11.5% * sin(var(--wedge-half))),
+    100% calc(50% - min(50% * tan(var(--wedge-half)), 400%)),
+    100% calc(50% + min(50% * tan(var(--wedge-half)), 400%)),
+    calc(50% + 11.5% * cos(var(--wedge-half)))
+      calc(50% + 11.5% * sin(var(--wedge-half)))
   );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.46),
-    0 8px 20px color-mix(in srgb, var(--orb-shadow) 42%, transparent);
-  color: rgba(255, 255, 255, 0.94);
+  color: #273349;
   cursor: pointer;
-  place-items: center;
-  pointer-events: auto;
-  transform: translate(-50%, -50%) translateZ(28px);
-  transform-style: preserve-3d;
   transition:
-    filter 180ms ease,
     opacity 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 180ms;
-  backdrop-filter: blur(10px) saturate(125%);
-  -webkit-backdrop-filter: blur(10px) saturate(125%);
+    transform 240ms cubic-bezier(0.22, 0.9, 0.24, 1),
+    background-color 160ms ease;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   -webkit-tap-highlight-color: transparent;
 }
 
-.orbButton:hover,
-.orbButton:focus-visible {
-  border-color: rgba(255, 255, 255, 0.82);
-  filter: brightness(1.06) saturate(1.04);
-  outline: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    0 10px 24px color-mix(in srgb, var(--orb-shadow) 48%, transparent),
-    0 0 0 3px rgba(255, 255, 255, 0.48);
-  transform: translate(-50%, -56%) translateZ(34px) scale(1.06);
-}
-
-.orbButton:active {
-  transform: translate(-50%, -48%) translateZ(22px) scale(0.96);
-}
-
-.activeOrb {
-  border-color: rgba(255, 255, 255, 0.88);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    0 10px 24px color-mix(in srgb, var(--orb-shadow) 48%, transparent),
-    0 0 0 2px rgba(255, 255, 255, 0.72),
-    0 0 0 4px color-mix(in srgb, var(--orb-middle) 22%, transparent);
-}
-
-.hiddenOrb {
-  visibility: hidden;
+/* 悬浮时只增加一层均匀的浅色，不改变扇区色相。 */
+.segment::before {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.28);
+  content: '';
   opacity: 0;
-  transform: translate(-50%, -50%) translateZ(10px) scale(0.6);
+  transition: opacity 160ms ease;
 }
 
-.pulseOrb {
+.segment:focus-visible {
+  outline: none;
+}
+
+.segment:hover::before {
+  opacity: 1;
+}
+
+.segment:disabled {
+  cursor: default;
+}
+
+/* 当前页面对应的扇区:用标签底和外缘圆点定位，不再整块提亮。 */
+.activeSegment {
+  background: color-mix(
+    in srgb,
+    var(--orb-color) 16%,
+    rgba(255, 255, 255, 0.72)
+  );
+}
+
+.activeSegment::after {
+  position: absolute;
+  top: calc(50% - 4px);
+  right: 2.5%;
+  width: 8px;
+  height: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: var(--orb-color);
+  content: '';
+}
+
+.pulseSegment .segmentLabel {
   animation: orb-pulse 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.externalMark {
+/* 扇区文字:沿半径方向排布，位于环形带中部；局部旋转 180°，
+ * 使文字在屏幕内侧半区(可见半区)保持正向可读，自外缘向圆心阅读 */
+.segmentLabel {
   position: absolute;
-  z-index: 3;
-  right: 6px;
-  bottom: 7px;
-  filter: drop-shadow(0 1px 2px rgba(14, 31, 64, 0.35));
-  pointer-events: none;
-}
-
-.orbLabel {
-  position: absolute;
-  top: 27px;
-  left: 0;
-  display: block;
-  max-width: 112px;
-  padding: 4px 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-  color: #1e293b;
-  font-size: 11px;
-  font-weight: 800;
+  z-index: 1;
+  top: 50%;
+  left: 79%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 34%;
+  min-height: 22px;
+  padding: 3px 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #273349;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
   line-height: 1.2;
   pointer-events: none;
-  text-overflow: ellipsis;
-  transform: translateX(-50%) translateZ(34px);
-  white-space: nowrap;
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  transform: translate(-50%, -50%) rotate(180deg);
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    color 150ms ease;
 }
 
-.pageControls {
+.segmentLabel::before {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--orb-color);
+  content: '';
+}
+
+.segment[data-orb-marker='dot'] .segmentLabel::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.segment[data-orb-marker='square'] .segmentLabel::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+}
+
+.segment[data-orb-marker='ring'] .segmentLabel::before {
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--orb-color);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.segment[data-orb-marker='diamond'] .segmentLabel::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.segment[data-orb-marker='double'] .segmentLabel::before {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  box-shadow: 5px 0 0 var(--orb-color);
+  margin-right: 5px;
+}
+
+.segment:hover .segmentLabel {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.activeSegment .segmentLabel {
+  border-color: color-mix(in srgb, var(--orb-color) 34%, transparent);
+  background: rgba(255, 255, 255, 0.86);
+  color: #1d2938;
+  box-shadow: 0 2px 5px rgba(30, 48, 68, 0.1);
+}
+
+.segment:focus-visible .segmentLabel {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.94),
+    0 0 0 4px var(--orb-color);
+}
+
+.segmentText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 中心展开/收起按钮:按钮中心与转盘圆心完全重合。 */
+.hubButton {
+  position: absolute !important;
+  top: calc(50% - var(--hub-size) / 2);
+  right: calc(50% - var(--hub-size) / 2);
+  left: auto;
+  z-index: 20;
+  box-sizing: border-box;
+  display: grid !important;
+  place-items: center !important;
+  width: var(--hub-size) !important;
+  min-width: var(--hub-size) !important;
+  height: var(--hub-size) !important;
+  min-height: var(--hub-size) !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.66) !important;
+  border-radius: 50% !important;
+  background: rgba(244, 248, 252, 0.9) !important;
+  color: #2b5cb8 !important;
+  line-height: 0 !important;
+  pointer-events: auto;
+  transform: none !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+  backdrop-filter: blur(14px) saturate(115%);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+}
+
+.hubButton:hover,
+.hubButton:focus-visible {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(103, 151, 225, 0.2) !important;
+  transform: none !important;
+}
+
+.hubButton:active {
+  box-shadow: inset 0 1px 3px rgba(43, 92, 184, 0.18) !important;
+  transform: none !important;
+}
+
+.hubIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  line-height: 0;
+  pointer-events: none;
+  transform: translateX(-0.5px);
+}
+
+.hubIcon svg {
   position: absolute;
   top: 50%;
-  right: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: center;
-  padding: 5px 3px;
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  pointer-events: auto;
-  transform: translateY(-50%) translateZ(36px);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.pageButton {
-  width: 28px !important;
-  min-width: 28px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  border-radius: 10px !important;
-}
-
-.pageIndicator {
-  color: #475569;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.mobileHandle {
-  position: absolute !important;
-  top: 50%;
-  right: 12px;
-  z-index: 5;
-  display: none !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  height: 58px !important;
-  min-height: 58px !important;
-  border: 1px solid rgba(255, 255, 255, 0.78) !important;
-  border-radius: 22px 0 0 22px !important;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.88),
-    rgba(151, 197, 255, 0.66)
-  ) !important;
-  box-shadow: -10px 14px 28px rgba(35, 64, 116, 0.18) !important;
-  color: #104cad !important;
-  pointer-events: auto;
-  transform: translateY(-50%);
-  backdrop-filter: blur(18px) saturate(170%);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
-}
-
-.root[data-busy='true'] .orbButton:not(.hiddenOrb) {
-  opacity: 0.34;
-  filter: saturate(0.72);
-}
-
-.flightOrb {
-  position: fixed;
-  z-index: 1350;
-  pointer-events: none;
+  left: 50%;
   transition:
-    opacity 180ms ease,
-    filter 180ms ease,
-    box-shadow 180ms ease;
-  will-change: top, left, transform;
+    opacity 140ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.flightOrbExiting {
-  opacity: 0 !important;
-  filter: brightness(1.18) saturate(1.12);
-  transition:
-    opacity 180ms ease,
-    filter 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms cubic-bezier(0.4, 0, 1, 1);
+.hubIconCollapsed {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-45deg) scale(0.72);
+}
+
+.hubIconExpanded {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0) scale(1);
+}
+
+.root[data-expanded='false'] .hubIconCollapsed {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0) scale(1);
+}
+
+.root[data-expanded='false'] .hubIconExpanded {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.72);
+}
+
+.root[data-busy='true'] .segmentLabel {
+  opacity: 0.58;
 }
 
 @keyframes orb-pulse {
   0%,
   100% {
-    filter: brightness(1);
+    transform: translate(-50%, -50%) rotate(180deg) scale(1);
   }
 
   45% {
-    filter: brightness(1.2) saturate(1.15);
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.06);
   }
 }
 
 @media (max-width: 61.99em) {
   .root {
-    --menu-height: 380px;
-    --menu-width: 190px;
-    right: -8px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    --hub-size: 30px;
+    --wheel-radius: 92px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
   }
 
-  .menuBody {
-    visibility: hidden;
-    opacity: 0;
-    transform: translateX(calc(100% - 38px)) rotateY(-9deg) scale(0.84);
+  .segmentLabel {
+    left: 77%;
+    max-width: 34%;
+    min-height: 20px;
+    padding: 2px 4px;
+    font-size: 9px;
   }
 
-  .root[data-expanded='true'] .menuBody {
-    visibility: visible;
+  .root[data-ready='false'] .disc,
+  .root[data-ready='false'] .track,
+  .root[data-ready='false'] .segments {
+    opacity: 0 !important;
+    transition: none !important;
+  }
+
+  .root[data-ready='false'] .hubIconCollapsed {
     opacity: 1;
-    transform: translateX(0) rotateY(-7deg) rotateX(1.5deg) scale(1);
+    transform: translate(-50%, -50%) rotate(0) scale(1);
   }
 
-  .orbButton {
-    --orb-size: 38px;
-  }
-
-  .externalMark {
-    right: 4px;
-    bottom: 5px;
-    width: 10px;
-    height: 10px;
-  }
-
-  .orbLabel {
-    top: 25px;
-    max-width: 88px;
-    padding: 3px 6px;
-    font-size: 10px;
-  }
-
-  .pageControls {
-    right: 1px;
-  }
-
-  .pageButton {
-    width: 26px !important;
-    min-width: 26px !important;
-    height: 26px !important;
-    min-height: 26px !important;
-  }
-
-  .mobileHandle {
-    display: inline-flex !important;
-  }
-
-  .root[data-expanded='true'] .mobileHandle {
-    right: auto;
-    left: -16px;
-    width: 36px !important;
-    min-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 50% !important;
+  .root[data-ready='false'] .hubIconExpanded {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.72);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menuBody,
-  .orbButton,
-  .flightOrb {
+  .disc,
+  .track,
+  .segments,
+  .segment,
+  .segment::before,
+  .segmentLabel,
+  .hubButton,
+  .hubIcon svg {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }

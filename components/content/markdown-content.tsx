@@ -29,8 +29,10 @@ export function MarkdownContent({ children }: { children: string }) {
         },
         h3: { fontSize: 'lg' },
         'p, ul, ol, blockquote, pre, table': { mb: 5 },
+        p: { whiteSpace: 'pre-wrap' },
         'ul, ol': { ps: 6 },
-        li: { mb: 1 },
+        li: { mb: 1, ps: 1 },
+        'li > p': { mb: 2 },
         a: {
           color: 'brand.700',
           fontWeight: 600,
@@ -41,10 +43,13 @@ export function MarkdownContent({ children }: { children: string }) {
           bg: 'brand.50',
           borderLeft: '4px solid',
           borderColor: 'brand.300',
+          borderRadius: '0 8px 8px 0',
           color: 'ink.700',
           px: 4,
           py: 3,
         },
+        'blockquote > *:first-of-type': { mt: 0 },
+        'blockquote > *:last-child': { mb: 0 },
         code: {
           bg: 'ink.100',
           borderRadius: '6px',
@@ -55,7 +60,7 @@ export function MarkdownContent({ children }: { children: string }) {
         },
         pre: {
           bg: 'ink.900',
-          borderRadius: '12px',
+          borderRadius: '8px',
           color: 'white',
           overflowX: 'auto',
           p: 4,
@@ -75,7 +80,7 @@ export function MarkdownContent({ children }: { children: string }) {
           textAlign: 'left',
         },
         th: { bg: 'ink.50' },
-        img: { borderRadius: '12px', maxW: 'full' },
+        img: { borderRadius: '8px', h: 'auto', maxW: 'full' },
         hr: { borderColor: 'ink.200', my: 8 },
       }}
     >

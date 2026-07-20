@@ -1,12 +1,11 @@
 'use client';
 
-import { Icon, IconButton, Portal, Text, Tooltip } from '@chakra-ui/react';
-import { animate, useReducedMotion } from 'framer-motion';
-import { ChevronDown, ChevronUp, ExternalLink, Orbit, X } from 'lucide-react';
+import { Icon, IconButton } from '@chakra-ui/react';
+import { useReducedMotion } from 'framer-motion';
+import { ExternalLink, Orbit, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   type CSSProperties,
-  type MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -15,6 +14,7 @@ import {
 } from 'react';
 import {
   finishRouteProgress,
+  ROUTE_LOADING_COMPLETE_EVENT,
   startRouteProgress,
 } from '@/components/common/route-progress';
 import type { MenuNode } from '@/lib/menu';
@@ -23,13 +23,12 @@ import { getCurrentMenu } from './navigation-utils';
 import styles from './orbital-menu.module.css';
 import {
   buildOrbitalMenuEntries,
-  getCubicBezierPoint,
-  getFlightControlPoints,
-  getOrbitalPageIndex,
+  getWheelItemAngle,
+  getWheelPlacement,
+  getWheelRotationForItem,
   type OrbitalMenuEntry,
-  type OrbitalTone,
-  paginateOrbitalEntries,
-  type Point,
+  type OrbitalMenuStyle,
+  WHEEL_ORBIT_RATIO,
 } from './orbital-menu-utils';
 
 type OrbitalMenuProps = {
@@ -37,47 +36,24 @@ type OrbitalMenuProps = {
   targetId?: string;
 };
 
-type FlightState = {
-  entry: OrbitalMenuEntry;
-  point: Point;
-  size: number;
-  scale: number;
-  opacity: number;
-  phase: 'flying' | 'waiting' | 'exiting';
-};
-
 type OrbCssProperties = CSSProperties & {
-  '--orb-start': string;
-  '--orb-middle': string;
-  '--orb-end': string;
-  '--orb-shadow': string;
+  '--orb-color': string;
+  '--orb-surface': string;
 };
 
-function getOrbStyle(tone: OrbitalTone): OrbCssProperties {
+type SegmentsCssProperties = CSSProperties & {
+  '--wedge-half': string;
+};
+
+const MOBILE_WHEEL_MEDIA_QUERY = '(max-width: 61.99em)';
+const WHEEL_SCROLL_FACTOR = 0.22;
+const FALLBACK_RADIUS = 118;
+
+function getOrbStyle(style: OrbitalMenuStyle): OrbCssProperties {
   return {
-    '--orb-start': tone.start,
-    '--orb-middle': tone.middle,
-    '--orb-end': tone.end,
-    '--orb-shadow': tone.shadow,
+    '--orb-color': style.color,
+    '--orb-surface': style.surface,
   };
-}
-
-function getVisibleCenter(element: HTMLElement | null): Point {
-  if (!element) {
-    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  }
-
-  const rect = element.getBoundingClientRect();
-  const left = Math.max(0, rect.left);
-  const right = Math.min(window.innerWidth, rect.right);
-  const top = Math.max(0, rect.top);
-  const bottom = Math.min(window.innerHeight, rect.bottom);
-
-  if (right <= left || bottom <= top) {
-    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  }
-
-  return { x: (left + right) / 2, y: (top + bottom) / 2 };
 }
 
 export function OrbitalMenu({
@@ -90,24 +66,35 @@ export function OrbitalMenu({
   const storedMenus = useMenuStore((state) => state.menus);
   const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const entries = useMemo(() => buildOrbitalMenuEntries(menus), [menus]);
-  const pages = useMemo(() => paginateOrbitalEntries(entries), [entries]);
   const currentMenu = useMemo(
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
-  const [pageIndex, setPageIndex] = useState(() =>
-    getOrbitalPageIndex(entries, pathname),
+  const activeIndex = useMemo(
+    () =>
+      entries.findIndex(
+        (entry) => !entry.external && currentMenu?.id === entry.menu.id,
+      ),
+    [currentMenu, entries],
   );
-  const [mobileExpanded, setMobileExpanded] = useState(false);
-  const [flight, setFlight] = useState<FlightState | null>(null);
+  const [expanded, setExpanded] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [rotation, setRotation] = useState(() =>
+    activeIndex >= 0
+      ? getWheelRotationForItem(activeIndex, entries.length, 0)
+      : 180,
+  );
+  const [radius, setRadius] = useState(FALLBACK_RADIUS);
   const [busy, setBusy] = useState(false);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const sourcePathRef = useRef<string | null>(null);
   const pendingPathRef = useRef<string | null>(null);
-  const animationRef = useRef<{ stop: () => void } | null>(null);
+  const routeReadyRef = useRef(false);
+  const revealStartedRef = useRef(false);
+  const contentAnimationRef = useRef<Animation | null>(null);
   const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = (timer: typeof navigationTimerRef) => {
@@ -115,67 +102,74 @@ export function OrbitalMenu({
     timer.current = null;
   };
 
-  const resetNavigation = useCallback((finishProgress = false) => {
-    animationRef.current?.stop();
-    animationRef.current = null;
-    clearTimer(navigationTimerRef);
-    clearTimer(exitTimerRef);
-    pendingPathRef.current = null;
-    sourcePathRef.current = null;
-    setFlight(null);
-    setBusy(false);
-    if (finishProgress) finishRouteProgress();
-  }, []);
-
-  useEffect(() => {
-    const nextPageIndex = getOrbitalPageIndex(entries, pathname);
-    setPageIndex(Math.min(nextPageIndex, Math.max(0, pages.length - 1)));
-
-    if (
-      pendingPathRef.current &&
-      sourcePathRef.current &&
-      pathname !== sourcePathRef.current
-    ) {
+  const resetNavigation = useCallback(
+    (finishProgress = false) => {
+      contentAnimationRef.current?.cancel();
+      contentAnimationRef.current = null;
       clearTimer(navigationTimerRef);
-      setMobileExpanded(false);
-      setFlight((current) =>
-        current
-          ? { ...current, phase: 'exiting', opacity: 0, scale: 0.72 }
-          : current,
-      );
-      exitTimerRef.current = setTimeout(() => resetNavigation(), 180);
-    }
-  }, [entries, pages.length, pathname, resetNavigation]);
+      clearTimer(revealTimerRef);
+      pendingPathRef.current = null;
+      sourcePathRef.current = null;
+      routeReadyRef.current = false;
+      revealStartedRef.current = false;
 
-  useEffect(() => {
-    if (!mobileExpanded) return;
+      const target = document.getElementById(targetId);
+      target?.style.removeProperty('opacity');
+      target?.style.removeProperty('pointer-events');
+      target?.removeAttribute('aria-hidden');
 
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setMobileExpanded(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileExpanded(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [mobileExpanded]);
-
-  useEffect(
-    () => () => {
-      animationRef.current?.stop();
-      clearTimer(navigationTimerRef);
-      clearTimer(exitTimerRef);
-      clearTimer(pulseTimerRef);
+      setBusy(false);
+      if (finishProgress) finishRouteProgress();
     },
-    [],
+    [targetId],
   );
+
+  // 路由就绪后把新页面内容以模糊渐显的方式呈现出来
+  const revealPage = useCallback(() => {
+    if (!routeReadyRef.current || revealStartedRef.current) return;
+    if (document.querySelector('[data-route-loading="true"]')) return;
+
+    revealStartedRef.current = true;
+    clearTimer(navigationTimerRef);
+    finishRouteProgress();
+
+    const target = document.getElementById(targetId);
+    const previousAnimation = contentAnimationRef.current;
+    const revealAnimation =
+      target?.animate(
+        [
+          {
+            opacity: 0,
+            filter: 'blur(14px)',
+            transform: 'translate3d(0, 8px, 0) scale(0.995)',
+          },
+          {
+            opacity: 1,
+            filter: 'blur(0px)',
+            transform: 'translate3d(0, 0, 0) scale(1)',
+          },
+        ],
+        {
+          duration: 420,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          fill: 'both',
+        },
+      ) ?? null;
+    target?.style.removeProperty('opacity');
+    target?.style.removeProperty('pointer-events');
+    target?.removeAttribute('aria-hidden');
+    previousAnimation?.cancel();
+    contentAnimationRef.current = revealAnimation;
+
+    clearTimer(revealTimerRef);
+    revealTimerRef.current = setTimeout(() => resetNavigation(), 700);
+  }, [resetNavigation, targetId]);
+
+  useEffect(() => {
+    window.addEventListener(ROUTE_LOADING_COMPLETE_EVENT, revealPage);
+    return () =>
+      window.removeEventListener(ROUTE_LOADING_COMPLETE_EVENT, revealPage);
+  }, [revealPage]);
 
   const startNavigation = useCallback(
     (entry: OrbitalMenuEntry) => {
@@ -192,10 +186,152 @@ export function OrbitalMenu({
     [pathname, resetNavigation, router],
   );
 
-  const handleOrbClick = (
-    event: ReactMouseEvent<HTMLButtonElement>,
-    entry: OrbitalMenuEntry,
-  ) => {
+  // 路由变化时把当前菜单项旋转到屏幕正内侧(最短路径)
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    setRotation((current) =>
+      getWheelRotationForItem(activeIndex, entries.length, current),
+    );
+  }, [activeIndex, entries.length]);
+
+  useEffect(() => {
+    if (
+      pendingPathRef.current &&
+      sourcePathRef.current &&
+      !routeReadyRef.current &&
+      pathname !== sourcePathRef.current
+    ) {
+      routeReadyRef.current = true;
+      if (reduceMotion) {
+        clearTimer(navigationTimerRef);
+        finishRouteProgress();
+        resetNavigation();
+      } else {
+        revealPage();
+      }
+      setExpanded(false);
+    }
+  }, [pathname, reduceMotion, resetNavigation, revealPage]);
+
+  useEffect(() => {
+    const hrefs = Array.from(
+      new Set(
+        entries.filter((entry) => !entry.external).map((entry) => entry.href),
+      ),
+    );
+    let index = 0;
+    let cancelled = false;
+    let idleId: number | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const prefetchBatch = () => {
+      if (cancelled) return;
+      hrefs.slice(index, index + 3).forEach((href) => router.prefetch(href));
+      index += 3;
+      if (index >= hrefs.length) return;
+
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(prefetchBatch, { timeout: 1200 });
+      } else {
+        fallbackTimer = setTimeout(prefetchBatch, 180);
+      }
+    };
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(prefetchBatch, { timeout: 800 });
+    } else {
+      fallbackTimer = setTimeout(prefetchBatch, 180);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null) window.cancelIdleCallback(idleId);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [entries, router]);
+
+  // 窄屏默认收起；ready 配合 CSS 避免水合前先闪出展开态
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_WHEEL_MEDIA_QUERY);
+    const handleBreakpointChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setExpanded(false);
+    };
+
+    if (mediaQuery.matches) setExpanded(false);
+    setReady(true);
+    mediaQuery.addEventListener('change', handleBreakpointChange);
+    return () =>
+      mediaQuery.removeEventListener('change', handleBreakpointChange);
+  }, []);
+
+  // 实测转盘半径，与 CSS 媒体查询保持一致
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element) return;
+
+    const updateRadius = () => setRadius(element.offsetWidth / 2);
+    updateRadius();
+    const observer = new ResizeObserver(updateRadius);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // 滚轮驱动转盘无限旋转(React 合成 wheel 为 passive，需原生监听)。
+  // 直接累加保持角度连续:归一化会在 ±180° 处跳变 360°，导致扇区过渡动画反向回转。
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element || !expanded) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return;
+      event.preventDefault();
+      const delta =
+        event.deltaY *
+        (event.deltaMode === 1
+          ? 24
+          : event.deltaMode === 2
+            ? element.clientHeight
+            : 1);
+      if (!Number.isFinite(delta) || delta === 0) return;
+
+      setRotation((current) => current + delta * WHEEL_SCROLL_FACTOR);
+    };
+
+    element.addEventListener('wheel', handleWheel, { passive: false });
+    return () => element.removeEventListener('wheel', handleWheel);
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExpanded(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [expanded]);
+
+  useEffect(
+    () => () => {
+      clearTimer(navigationTimerRef);
+      clearTimer(revealTimerRef);
+      clearTimer(pulseTimerRef);
+      contentAnimationRef.current?.cancel();
+    },
+    [],
+  );
+
+  const handleOrbClick = (entry: OrbitalMenuEntry) => {
     if (busy) return;
 
     if (entry.external) {
@@ -213,189 +349,100 @@ export function OrbitalMenu({
       return;
     }
 
-    if (reduceMotion) {
-      startNavigation(entry);
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const start = {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    };
-    const end = getVisibleCenter(document.getElementById(targetId));
-    const { first, second } = getFlightControlPoints(start, end);
-    const initialFlight: FlightState = {
-      entry,
-      point: start,
-      size: rect.width,
-      scale: 1,
-      opacity: 1,
-      phase: 'flying',
-    };
-
-    setBusy(true);
-    setFlight(initialFlight);
-    animationRef.current = animate(0, 1, {
-      duration: 0.56,
-      ease: [0.4, 0, 0.2, 1],
-      onUpdate: (progress) => {
-        const point = getCubicBezierPoint(start, first, second, end, progress);
-        setFlight((current) =>
-          current
-            ? {
-                ...current,
-                point,
-                scale: 1 + progress * 0.34,
-              }
-            : current,
-        );
-      },
-      onComplete: () => {
-        animationRef.current = null;
-        setFlight((current) =>
-          current ? { ...current, point: end, phase: 'waiting' } : current,
-        );
-        startNavigation(entry);
-      },
-    });
+    startNavigation(entry);
   };
 
   if (entries.length === 0) return null;
 
-  const safePageIndex = Math.min(pageIndex, Math.max(0, pages.length - 1));
-  const visibleEntries = pages[safePageIndex] ?? [];
+  const orbitRadius = radius * WHEEL_ORBIT_RATIO;
+  const wedgeHalfAngle = Math.max(1.5, 180 / entries.length - 0.65);
 
   return (
     <div
       ref={rootRef}
       className={styles.root}
-      data-expanded={mobileExpanded}
+      data-expanded={expanded}
+      data-ready={ready}
       data-busy={busy}
     >
-      <div className={styles.menuBody}>
-        <div className={styles.surface} aria-hidden />
-        <nav className={styles.nav} aria-label="页面导航">
-          {visibleEntries.map((entry) => {
+      <div className={styles.disc} aria-hidden />
+      <div className={styles.track} aria-hidden />
+
+      <nav className={styles.nav} aria-label="页面导航">
+        <div
+          className={styles.segments}
+          style={
+            { '--wedge-half': `${wedgeHalfAngle}deg` } as SegmentsCssProperties
+          }
+        >
+          {entries.map((entry, index) => {
+            const placement = getWheelPlacement(
+              index,
+              entries.length,
+              rotation,
+              orbitRadius,
+            );
+            // 未归一化的连续角度，保证旋转过渡沿同一方向平滑进行
+            const angle = getWheelItemAngle(index, entries.length) + rotation;
             const active = currentMenu?.id === entry.menu.id;
-            const hidden = flight?.entry.menu.id === entry.menu.id;
+            const shown = expanded && placement.visible;
 
             return (
-              <div
+              <button
                 key={entry.menu.id}
-                className={styles.orbSlot}
-                style={{ left: `${entry.slot.x}%`, top: `${entry.slot.y}%` }}
+                type="button"
+                className={[
+                  styles.segment,
+                  active ? styles.activeSegment : '',
+                  pulseId === entry.menu.id ? styles.pulseSegment : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                style={{
+                  ...getOrbStyle(entry.style),
+                  opacity: shown ? placement.opacity : 0,
+                  pointerEvents: shown && !busy ? 'auto' : 'none',
+                  transform: `rotate(${angle}deg)`,
+                }}
+                data-orb-marker={entry.style.marker}
+                aria-label={entry.menu.name}
+                aria-current={active ? 'page' : undefined}
+                disabled={busy || !shown}
+                tabIndex={shown ? 0 : -1}
+                data-orb-id={entry.menu.id}
+                onPointerEnter={() => {
+                  if (!entry.external) router.prefetch(entry.href);
+                }}
+                onFocus={() => {
+                  if (!entry.external) router.prefetch(entry.href);
+                }}
+                onClick={() => handleOrbClick(entry)}
               >
-                <Tooltip
-                  label={entry.menu.name}
-                  placement="left"
-                  openDelay={160}
-                  hasArrow
-                  isDisabled={active}
-                >
-                  <button
-                    type="button"
-                    className={[
-                      styles.orbButton,
-                      active ? styles.activeOrb : '',
-                      hidden ? styles.hiddenOrb : '',
-                      pulseId === entry.menu.id ? styles.pulseOrb : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    style={getOrbStyle(entry.tone)}
-                    aria-label={entry.menu.name}
-                    aria-current={active ? 'page' : undefined}
-                    disabled={busy}
-                    data-orb-id={entry.menu.id}
-                    onPointerEnter={() => {
-                      if (!entry.external) router.prefetch(entry.href);
-                    }}
-                    onFocus={() => {
-                      if (!entry.external) router.prefetch(entry.href);
-                    }}
-                    onClick={(event) => handleOrbClick(event, entry)}
-                  >
-                    {entry.external ? (
-                      <Icon
-                        as={ExternalLink}
-                        className={styles.externalMark}
-                        boxSize={3}
-                        aria-hidden
-                      />
-                    ) : null}
-                  </button>
-                </Tooltip>
-                {active ? (
-                  <span className={styles.orbLabel}>{entry.menu.name}</span>
-                ) : null}
-              </div>
+                <span className={styles.segmentLabel}>
+                  <span className={styles.segmentText}>{entry.menu.name}</span>
+                  {entry.external ? (
+                    <Icon as={ExternalLink} boxSize={2.5} aria-hidden />
+                  ) : null}
+                </span>
+              </button>
             );
           })}
-
-          {pages.length > 1 ? (
-            <div className={styles.pageControls} aria-label="菜单分页">
-              <IconButton
-                className={styles.pageButton}
-                aria-label="上一组菜单"
-                icon={<ChevronUp size={15} aria-hidden />}
-                size="xs"
-                variant="ghost"
-                isDisabled={busy || safePageIndex === 0}
-                onClick={() => setPageIndex((value) => Math.max(0, value - 1))}
-              />
-              <Text className={styles.pageIndicator} aria-live="polite">
-                {safePageIndex + 1}/{pages.length}
-              </Text>
-              <IconButton
-                className={styles.pageButton}
-                aria-label="下一组菜单"
-                icon={<ChevronDown size={15} aria-hidden />}
-                size="xs"
-                variant="ghost"
-                isDisabled={busy || safePageIndex === pages.length - 1}
-                onClick={() =>
-                  setPageIndex((value) => Math.min(pages.length - 1, value + 1))
-                }
-              />
-            </div>
-          ) : null}
-        </nav>
-      </div>
+        </div>
+      </nav>
 
       <IconButton
-        className={styles.mobileHandle}
-        aria-label={mobileExpanded ? '收起页面导航' : '展开页面导航'}
-        aria-expanded={mobileExpanded}
-        icon={mobileExpanded ? <X size={19} /> : <Orbit size={21} />}
-        onClick={() => setMobileExpanded((value) => !value)}
+        className={styles.hubButton}
+        aria-label={expanded ? '收起页面导航' : '展开页面导航'}
+        aria-expanded={expanded}
+        variant="unstyled"
+        icon={
+          <span className={styles.hubIcon} aria-hidden>
+            <Orbit className={styles.hubIconCollapsed} size={15} />
+            <X className={styles.hubIconExpanded} size={14} />
+          </span>
+        }
+        onClick={() => setExpanded((value) => !value)}
       />
-
-      {flight ? (
-        <Portal>
-          <div
-            className={[
-              styles.orbButton,
-              styles.flightOrb,
-              flight.phase === 'exiting' ? styles.flightOrbExiting : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            style={{
-              ...getOrbStyle(flight.entry.tone),
-              left: flight.point.x,
-              top: flight.point.y,
-              width: flight.size,
-              minWidth: flight.size,
-              height: flight.size,
-              opacity: flight.opacity,
-              transform: `translate(-50%, -50%) scale(${flight.scale})`,
-            }}
-            data-flight-phase={flight.phase}
-            aria-hidden
-          />
-        </Portal>
-      ) : null}
     </div>
   );
 }

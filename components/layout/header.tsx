@@ -98,7 +98,6 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
       }}
       maxW="1280px"
       mx="auto"
-      mt={{ base: 3, md: 4 }}
       px={{ base: 2.5, md: 4 }}
       py={2.5}
       rounded={{ base: '2xl', md: 'full' }}
