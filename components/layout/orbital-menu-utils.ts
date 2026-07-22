@@ -1,9 +1,5 @@
 import type { MenuNode } from '@/lib/menu';
-import {
-  flattenNavigableMenus,
-  getHref,
-  isExternalHref,
-} from './navigation-utils';
+import { getHref, isExternalHref } from './navigation-utils';
 
 export type Point = { x: number; y: number };
 
@@ -16,8 +12,10 @@ export type OrbitalMenuMarker =
   | 'double';
 
 export type OrbitalMenuStyle = {
+  /** 强调色：标签文字、激活描边、聚焦环 */
   color: string;
-  surface: string;
+  /** 液态玻璃基底：淡亮多段渐变（半透明，配合背景模糊） */
+  gradient: string;
   marker: OrbitalMenuMarker;
 };
 
@@ -57,20 +55,83 @@ function roundWheelValue(value: number) {
   return Object.is(rounded, -0) ? 0 : rounded;
 }
 
-/** 扁平、低饱和的扇区样式；颜色与几何标记共同区分菜单项。 */
+/**
+ * 每项独立的液态玻璃样式：淡亮双色渐变（均为高明度浅色，不含暗色）
+ * 搭配中明度强调色，用于标签文字、激活描边与聚焦环。
+ */
 export const ORBITAL_STYLES: readonly OrbitalMenuStyle[] = [
-  { color: '#54718f', surface: 'rgba(225, 234, 242, 0.76)', marker: 'dash' },
-  { color: '#4e7a70', surface: 'rgba(224, 237, 233, 0.76)', marker: 'dot' },
-  { color: '#8b7047', surface: 'rgba(241, 234, 219, 0.76)', marker: 'square' },
-  { color: '#8c626d', surface: 'rgba(241, 228, 232, 0.76)', marker: 'ring' },
-  { color: '#6f7a4e', surface: 'rgba(234, 237, 221, 0.76)', marker: 'diamond' },
-  { color: '#6e6a8c', surface: 'rgba(234, 232, 241, 0.76)', marker: 'double' },
-  { color: '#527783', surface: 'rgba(226, 236, 239, 0.76)', marker: 'dash' },
-  { color: '#8a6855', surface: 'rgba(241, 231, 225, 0.76)', marker: 'dot' },
-  { color: '#5d6685', surface: 'rgba(230, 232, 240, 0.76)', marker: 'square' },
-  { color: '#57775f', surface: 'rgba(226, 236, 228, 0.76)', marker: 'ring' },
-  { color: '#87636f', surface: 'rgba(239, 229, 233, 0.76)', marker: 'diamond' },
-  { color: '#837442', surface: 'rgba(240, 235, 219, 0.76)', marker: 'double' },
+  {
+    color: '#3f6f9e',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.48) 0%, rgba(207,232,255,0.38) 42%, rgba(202,244,249,0.3) 100%)',
+    marker: 'dash',
+  },
+  {
+    color: '#3f8a6c',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.48) 0%, rgba(203,248,226,0.38) 44%, rgba(218,247,240,0.3) 100%)',
+    marker: 'dot',
+  },
+  {
+    color: '#a06a3c',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(255,231,207,0.4) 45%, rgba(255,242,215,0.3) 100%)',
+    marker: 'square',
+  },
+  {
+    color: '#a44c64',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.48) 0%, rgba(255,220,230,0.38) 43%, rgba(255,232,237,0.3) 100%)',
+    marker: 'ring',
+  },
+  {
+    color: '#6a589e',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(229,220,255,0.38) 46%, rgba(222,234,255,0.3) 100%)',
+    marker: 'diamond',
+  },
+  {
+    color: '#8f7030',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(255,239,194,0.4) 44%, rgba(255,248,220,0.3) 100%)',
+    marker: 'double',
+  },
+  {
+    color: '#3f7f8c',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.48) 0%, rgba(202,242,248,0.38) 43%, rgba(213,250,235,0.3) 100%)',
+    marker: 'dash',
+  },
+  {
+    color: '#568348',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(228,248,202,0.4) 45%, rgba(211,246,224,0.3) 100%)',
+    marker: 'dot',
+  },
+  {
+    color: '#4c5da0',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.49) 0%, rgba(218,226,255,0.38) 42%, rgba(226,240,255,0.3) 100%)',
+    marker: 'square',
+  },
+  {
+    color: '#478457',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(218,246,222,0.38) 44%, rgba(235,250,217,0.3) 100%)',
+    marker: 'ring',
+  },
+  {
+    color: '#93507f',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.49) 0%, rgba(249,220,244,0.38) 43%, rgba(255,231,240,0.3) 100%)',
+    marker: 'diamond',
+  },
+  {
+    color: '#8f6f2c',
+    gradient:
+      'linear-gradient(138deg, rgba(255,255,255,0.5) 0%, rgba(255,236,190,0.4) 45%, rgba(255,243,215,0.3) 100%)',
+    marker: 'double',
+  },
 ];
 
 function stableHash(value: string) {
@@ -82,12 +143,11 @@ function stableHash(value: string) {
 }
 
 export function buildOrbitalMenuEntries(menus: MenuNode[]): OrbitalMenuEntry[] {
-  const navigableMenus = flattenNavigableMenus(menus);
   const assignedStyles = new Map<string, OrbitalMenuStyle>();
   const claimedStyleIndexes = new Set<number>();
 
   // 排序后再做开放寻址，既不受菜单展示顺序影响，也避免同一转盘内样式碰撞。
-  [...new Set(navigableMenus.map((menu) => menu.id))]
+  [...new Set(menus.map((menu) => menu.id))]
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
     .forEach((menuId) => {
       const preferredIndex = stableHash(menuId) % ORBITAL_STYLES.length;
@@ -108,7 +168,7 @@ export function buildOrbitalMenuEntries(menus: MenuNode[]): OrbitalMenuEntry[] {
       assignedStyles.set(menuId, ORBITAL_STYLES[styleIndex]!);
     });
 
-  return navigableMenus.map((menu) => {
+  return menus.map((menu) => {
     const href = getHref(menu);
     return {
       menu,
@@ -117,6 +177,21 @@ export function buildOrbitalMenuEntries(menus: MenuNode[]): OrbitalMenuEntry[] {
       style: assignedStyles.get(menu.id)!,
     };
   });
+}
+
+/** 返回从一级菜单到目标菜单的完整层级路径。 */
+export function getOrbitalMenuTrail(
+  menus: MenuNode[],
+  targetId: string,
+): MenuNode[] {
+  for (const menu of menus) {
+    if (menu.id === targetId) return [menu];
+
+    const childTrail = getOrbitalMenuTrail(menu.children, targetId);
+    if (childTrail.length > 0) return [menu, ...childTrail];
+  }
+
+  return [];
 }
 
 /** 将角度归一化到 [-180, 180) 区间 */

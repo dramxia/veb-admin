@@ -4,6 +4,7 @@ import {
   buildOrbitalMenuEntries,
   getCubicBezierPoint,
   getFlightControlPoints,
+  getOrbitalMenuTrail,
   getViewportCoverScale,
   getWheelItemAngle,
   getWheelPlacement,
@@ -40,7 +41,7 @@ function createMenu(
 }
 
 describe('orbital menu helpers', () => {
-  it('flattens navigable pages while preserving tree order', () => {
+  it('builds one wheel level without flattening child menus', () => {
     const menus = [
       createMenu('dashboard', '/'),
       createMenu('system', '/system', {
@@ -63,14 +64,34 @@ describe('orbital menu helpers', () => {
 
     expect(entries.map((entry) => entry.menu.id)).toEqual([
       'dashboard',
-      'user',
-      'operation',
+      'system',
       'docs',
+    ]);
+    expect(entries[1]?.menu.children.map((menu) => menu.id)).toEqual([
+      'user',
+      'logs',
     ]);
     expect(entries.at(-1)).toMatchObject({
       href: 'https://example.com/docs',
       external: true,
     });
+  });
+
+  it('finds the complete menu trail for restoring nested wheels', () => {
+    const operation = createMenu('operation', '/system/log/operation');
+    const logs = createMenu('logs', '/system/log', {
+      type: 'DIR',
+      children: [operation],
+    });
+    const system = createMenu('system', '/system', {
+      type: 'DIR',
+      children: [createMenu('user', '/system/user'), logs],
+    });
+
+    expect(
+      getOrbitalMenuTrail([system], operation.id).map((menu) => menu.id),
+    ).toEqual(['system', 'logs', 'operation']);
+    expect(getOrbitalMenuTrail([system], 'missing')).toEqual([]);
   });
 
   it('distributes wheel items evenly around the circle', () => {
@@ -153,7 +174,7 @@ describe('orbital menu helpers', () => {
     expect(Math.abs(getWheelPlacement(0, count, resolved, 80).angle)).toBe(180);
   });
 
-  it('assigns a distinct flat style while the style set has capacity', () => {
+  it('assigns a distinct glass style while the style set has capacity', () => {
     const entries = buildOrbitalMenuEntries(
       Array.from({ length: ORBITAL_STYLES.length }, (_, index) =>
         createMenu(`menu-${index}`, `/menu-${index}`),
@@ -161,14 +182,14 @@ describe('orbital menu helpers', () => {
     );
     const styles = entries.map((entry) => entry.style);
     const styleSignatures = styles.map(
-      (style) => `${style.color}|${style.surface}|${style.marker}`,
+      (style) => `${style.color}|${style.gradient}|${style.marker}`,
     );
 
     expect(new Set(styleSignatures).size).toBe(entries.length);
     expect(styles.every((style) => ORBITAL_STYLES.includes(style))).toBe(true);
-    expect(styles.every((style) => !style.surface.includes('gradient'))).toBe(
-      true,
-    );
+    expect(
+      styles.every((style) => style.gradient.includes('linear-gradient')),
+    ).toBe(true);
   });
 
   it('keeps a menu style stable when the same menus are reordered', () => {

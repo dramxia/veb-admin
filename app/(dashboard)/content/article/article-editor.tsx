@@ -279,11 +279,13 @@ export function ArticleEditor({
       bg="white"
       overflowX="auto"
       px={{ base: 4, md: 6 }}
-      py={{ base: 5, md: 8 }}
+      py={{ base: 4, md: 6 }}
     >
-      <Box maxW="740px" mx="auto">
+      <Box maxW="780px" mx="auto">
         {state.contentMarkdown ? (
-          <MarkdownContent>{state.contentMarkdown}</MarkdownContent>
+          <MarkdownContent variant="compact">
+            {state.contentMarkdown}
+          </MarkdownContent>
         ) : (
           <Flex
             minH={{ base: '420px', lg: '560px' }}
