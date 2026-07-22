@@ -1,6 +1,9 @@
 .git
 .next
 node_modules
+apps/*/.next
+apps/*/generated
+apps/*/src/generated
 uploads
 .env
 .env.*

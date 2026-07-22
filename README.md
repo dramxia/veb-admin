@@ -1,185 +1,112 @@
-# 通用后台管理系统（VEB）
+# VEB Monorepo
 
-一个基于 **Next.js App Router + Prisma + PostgreSQL + NextAuth + Chakra UI** 的通用后台管理系统模板。
+VEB 是一个基于 pnpm workspace 的后台与博客双后端项目。Web、系统后台 API 和博客 API 可以独立构建、部署和扩容，并分别拥有自己的数据边界。
 
-当前已实现：登录认证、RBAC 权限、动态菜单、用户/角色/权限/菜单管理、操作日志、文件上传、本地存储适配与 Docker Compose 启动。
+## 架构
 
-## ✨ 功能概览
+```text
+Browser
+  -> Web gateway -> apps/web (1066)
+       -> apps/veb-api (1067) -> VEB PostgreSQL
+       -> apps/blog-api (1068) -> Blog PostgreSQL
 
-- **认证登录**：NextAuth Credentials，JWT Session。
-- **RBAC 权限**：用户、角色、权限码、菜单的多对多授权链路。
-- **三层权限校验**：前端按钮隐藏、middleware 路由拦截、API 服务端守卫。
-- **动态菜单**：数据库菜单树驱动侧边栏与页面访问。
-- **系统管理**：用户、角色、权限、菜单 CRUD。
-- **操作日志**：写操作审计、分页筛选、CSV 导出。
-- **文件上传**：20MB 限制、MIME 白名单、本地存储、预览/下载/删除。
-- **容器化**：单应用镜像 + PostgreSQL 的 `docker-compose.yml`。
+External blog
+  -> Blog public gateway -> apps/blog-api (1068)
 
-## 🧱 技术栈
+apps/veb-api
+  -> signed internal request -> apps/blog-api
+```
 
-- Next.js 14 App Router
-- React 18 + TypeScript
-- Prisma 5 + PostgreSQL
-- NextAuth.js v5 beta
-- Chakra UI v2 + TailwindCSS
-- Zustand
-- pnpm
+- `apps/web`：后台 UI 与兼容 `/articles` 页面，只通过 HTTP 获取数据。
+- `apps/veb-api`：Auth.js、用户、RBAC、菜单、文件、操作日志，以及博客管理 BFF。
+- `apps/blog-api`：文章、标签、点赞、公开博客 API 和私网管理 API。
+- `packages/api-contracts`：Zod 请求、响应、分页和错误码契约。
+- `packages/service-auth`：请求绑定的 RS256 服务令牌与 JWKS。
+- `tools/migrate-blog-data`：从旧单库拆分博客数据的迁移工具。
 
-## 🚀 本地开发
-
-### 1. 环境要求
+## 环境要求
 
 - Node.js >= 20.10
-- pnpm >= 9
-- PostgreSQL >= 15
+- pnpm 9.15.9
+- PostgreSQL 15+
 
-### 2. 安装依赖
+## 安装与检查
 
 ```bash
 pnpm install
+pnpm db:generate
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-### 3. 配置环境变量
+## 本地开发
+
+复制各应用的环境变量示例并填写数据库和密钥：
 
 ```bash
-cp .env.example .env
+cp apps/web/.env.example apps/web/.env
+cp apps/veb-api/.env.example apps/veb-api/.env
+cp apps/blog-api/.env.example apps/blog-api/.env
 ```
 
-本地默认配置示例：
-
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/veb?schema=public"
-NEXTAUTH_SECRET="replace-with-openssl-rand-base64-32"
-NEXTAUTH_URL="http://localhost:1066"
-UPLOAD_DIR="./uploads"
-STORAGE_KIND="local"
-```
-
-建议生成新的 `NEXTAUTH_SECRET`：
+数据库准备完成后执行：
 
 ```bash
-openssl rand -base64 32
-```
-
-### 4. 初始化数据库
-
-当前仓库已包含初始 Prisma migration，首次开发环境推荐使用：
-
-```bash
-pnpm db:migrate
+pnpm db:migrate:deploy
 pnpm db:seed
-```
-
-如只做快速原型验证，也可使用 `pnpm prisma db push`。
-
-种子账号：
-
-```text
-用户名：admin
-密码：Admin@123
-```
-
-### 5. 启动开发服务
-
-```bash
 pnpm dev
 ```
 
-访问：
+集成测试使用同一个显式种子密码：`E2E_ADMIN_PASSWORD=<SEED_ADMIN_PASSWORD> pnpm test:e2e`。
 
-```text
-http://localhost:1066
-```
+访问地址：
 
-## 🐳 Docker Compose 启动
+- Web：`http://localhost:1066`
+- VEB API：`http://localhost:1067`
+- Blog API：`http://localhost:1068`
+
+种子用户名为 `admin`，初始密码必须通过 VEB API 的 `SEED_ADMIN_PASSWORD` 提供。重复执行 seed 不会覆盖已有管理员密码。
+
+## Docker Compose
+
+根 `.env.example` 包含 Compose 所需变量。`VEB_DATABASE_URL` 与 `BLOG_DATABASE_URL` 必须显式填写，URL 中的密码保留字符需要 percent-encode；PostgreSQL 的两个 `*_DB_PASSWORD` 则填写原始密码。RSA 私钥只配置给 VEB API，Blog API 通过 VEB 内部 JWKS 验签。
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-Compose 会启动：
+Compose 会依次执行 VEB 与 Blog 的 `prisma migrate deploy`，两套迁移成功后才启动 API；不会在应用启动时执行 `db push` 或 seed。对外只发布可信 Web 网关和经过路径白名单限制的 Blog public 网关；原始 Web、VEB API 与 Blog API 仅在 Compose 私网可达，两套数据库只提供 `127.0.0.1` 回环端口供本地开发进程使用。
 
-- `postgres`：PostgreSQL 15
-- `app`：Next.js 应用容器
+## API
 
-应用启动前会执行：
+- VEB canonical API：`/api/v1/system/**`、`/api/v1/me/**`、`/api/v1/files/**`、`/api/v1/navigation`。
+- VEB Blog management BFF：`/api/v1/blog/**`。
+- Blog public API：`/api/v1/public/**`。
+- Blog internal API：`/api/internal/v1/**`，仅接受 VEB API 签发的请求绑定令牌。
+- 原 `/api/system`、`/api/profile`、`/api/files`、`/api/menu`、`/api/admin`、`/api/public` 在兼容期继续可用。公开兼容路径只保证路径与 HTTP method，响应改用安全公开 DTO，不再暴露数据库 ID、作者账号或草稿状态。
 
-```bash
-pnpm prisma db push
-pnpm db:seed
-```
+所有业务响应使用 `{ code, data, message }`，链路请求 ID 位于 `X-Request-Id`。
 
-然后运行：
+## 数据拆分
 
-```bash
-pnpm start
-```
-
-访问：
-
-```text
-http://localhost:1066
-```
-
-## 📁 目录索引
-
-```text
-app/              Next.js App Router 页面与 API Routes
-components/       通用组件、布局组件、权限组件
-lib/              服务端工具、认证、权限、菜单、存储、日志
-prisma/           Prisma schema 与 seed
-stores/           Zustand 客户端状态
-types/            类型扩展
-docs/             架构、权限、部署与 UI 风格文档
-```
-
-## 🧪 常用命令
+旧单库迁移前必须停止内容写入并完成备份：
 
 ```bash
-pnpm dev          # 开发启动
-pnpm build        # 生产构建
-pnpm start        # 生产启动
-pnpm lint         # ESLint 检查
-pnpm db:seed      # 写入内置账号、角色、权限、菜单
-pnpm prisma       # Prisma CLI 入口
+SOURCE_DATABASE_URL=postgresql://... \
+BLOG_DATABASE_URL=postgresql://... \
+pnpm db:migrate:blog-data
+
+SOURCE_DATABASE_URL=postgresql://... \
+BLOG_DATABASE_URL=postgresql://... \
+pnpm db:migrate:blog-data:apply
+
+SOURCE_DATABASE_URL=postgresql://... \
+BLOG_DATABASE_URL=postgresql://... \
+pnpm db:verify:blog-data
 ```
 
-## 📚 扩展阅读
+首次切换时，`BLOG_VISITOR_HASH_SECRET` 必须使用旧 `NEXTAUTH_SECRET` 的值以维持点赞识别；VEB 的 `AUTH_SECRET` 应同时轮换。
 
-- `docs/architecture.md`：系统架构、请求链路、数据流。
-- `docs/permission.md`：权限码规范与新增权限步骤。
-- `docs/deployment.md`：Docker、环境变量、HTTPS 和上线注意事项。
-- [docs/ui-style-guide.md](docs/ui-style-guide.md)：后台 UI 主题、毛玻璃样式、组件与外部依赖对齐规范。
-- `PRD.md`：产品需求。
-- `IMPLEMENTATION.md`：里程碑实施记录。
-
-## ❓ 常见问题
-
-### 登录后看不到新菜单？
-
-确认已执行：
-
-```bash
-pnpm db:seed
-```
-
-如果是运行中的用户，重新登录以刷新 JWT 内的菜单路径与权限码。
-
-### `docker compose up` 后数据库为空？
-
-`app` 容器启动命令会自动执行 `prisma db push` 和 `db:seed`。
-如果数据库卷中已有旧数据，请确认 seed 中的菜单和权限是否被正确 upsert。
-
-### 上传文件保存在哪里？
-
-默认保存到 `UPLOAD_DIR`。Docker Compose 中映射到容器内：
-
-```text
-/app/uploads
-```
-
-宿主机数据卷为：
-
-```text
-app-uploads
-```
+更多细节见 `docs/architecture.md` 和 `docs/deployment.md`。

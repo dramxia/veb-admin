@@ -1,0 +1,16 @@
+export {
+  assignPermissionsInputSchema as assignPermissionsSchema,
+  assignRolesInputSchema as assignRolesSchema,
+  assignUsersInputSchema as assignUsersSchema,
+  changePasswordInputSchema as changePasswordSchema,
+  menuCreateInputSchema as menuSchema,
+  menuUpdateInputSchema as menuUpdateSchema,
+  permissionCreateInputSchema as permissionSchema,
+  permissionUpdateInputSchema as permissionUpdateSchema,
+  profileUpdateInputSchema as profileSchema,
+  resetPasswordInputSchema as resetPasswordSchema,
+  roleCreateInputSchema as roleSchema,
+  roleUpdateInputSchema as roleUpdateSchema,
+  userCreateInputSchema as userCreateSchema,
+  userUpdateInputSchema as userUpdateSchema,
+} from '@veb/api-contracts';

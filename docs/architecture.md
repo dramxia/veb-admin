@@ -1,159 +1,74 @@
 # 架构说明
 
-本文描述 VEB 通用后台管理系统的当前架构、核心数据流与模块边界。
+## 1. Monorepo
 
-## 1. 总体架构
-
-```text
-[Browser]
-   │
-   │  React / Chakra UI / Zustand
-   ▼
-[Next.js App Router]
-   ├── Server Components：页面首屏、权限页面守卫
-   ├── Client Components：表格、弹窗、上传、按钮权限
-   ├── API Routes：系统 CRUD、日志、文件
-   └── middleware：登录态与菜单路径拦截
-   │
-   ▼
-[Service Layer in lib/]
-   ├── auth.ts              NextAuth 配置
-   ├── permission.ts        权限校验
-   ├── menu.ts              菜单与权限聚合
-   ├── api.ts               API 响应壳与操作日志包装
-   ├── operation-log.ts     审计写入
-   └── storage/             文件存储适配
-   │
-   ▼
-[Prisma ORM]
-   │
-   ▼
-[PostgreSQL]
-```
-
-## 2. 核心模块边界
-
-### 认证模块
-
-- 使用 NextAuth Credentials Provider。
-- 登录成功后 JWT 中写入：
-  - `userId`
-  - `username`
-  - `roles`
-  - `permissionCodes`
-  - `menuPaths`
-- 用户被禁用时，JWT callback 会标记 `disabled`，middleware 将其导回登录页。
-
-### 菜单与权限模块
-
-- `Menu` 表保存路由路径、组件映射、排序、显隐、状态和菜单权限码。
-- `Permission` 表区分 `MENU` 与 `BUTTON`。
-- `getUserMenuAndPermissions(userId)` 聚合当前用户菜单树与权限码集合。
-- 超级管理员角色 `superadmin` 短路拥有全部权限。
-
-### API 模块
-
-API 统一返回：
-
-```json
-{
-  "code": 0,
-  "data": {},
-  "message": "ok"
-}
-```
-
-错误由 `withApi` 捕获并映射为标准错误码。
-写操作可通过 `withApi(handler, { action })` 自动写入操作日志。
-
-### 文件模块
-
-当前实现本地存储适配：
+仓库使用原生 pnpm workspace，不依赖 Turbo 或 Nx。应用不得跨边界导入其他应用的源码或 Prisma Client，共享内容仅允许放入 `packages/`。
 
 ```text
-lib/storage/types.ts  定义 StorageAdapter
-lib/storage/local.ts  local 实现
-lib/storage/index.ts  根据 STORAGE_KIND 创建适配器
+apps/web             页面、组件、同源代理
+apps/veb-api         身份、RBAC、系统、文件、审计
+apps/blog-api        内容、标签、点赞、公开 API
+packages/*           无数据库依赖的契约与服务认证
+tools/*              离线运维工具
 ```
 
-上传限制集中在 `upload.ts`：
+## 2. 请求链路
 
-- 单文件不超过 20MB。
-- 允许图片、PDF、文本与 Office 常见类型。
-- 拒绝危险可执行后缀。
-
-## 3. 请求链路
-
-### 页面访问链路
+### 系统管理
 
 ```text
-用户访问页面
-  → middleware 读取 JWT
-  → 未登录跳 /login
-  → 页面路径命中 menuPaths 或 superadmin 放行
-  → Dashboard Layout 聚合菜单与权限
-  → 页面级 requirePermission('*:view') 再校验
-  → 渲染页面
+Browser -> trusted Web gateway -> Web runtime proxy -> VEB API -> VEB database
 ```
 
-说明：middleware 是轻量 UX 与路由拦截层，最终安全边界仍在页面级守卫与 API 守卫。
+VEB API 根据 Auth.js session 查询当前用户和权限。Web 中的菜单过滤和按钮隐藏只承担 UX，最终权限检查始终在 API。
 
-### API 写操作链路
+### 博客管理
 
 ```text
-Client Action / fetch
-  → API Route
-  → withApi 包装
-  → requirePermission('module:object:action')
-  → Prisma 执行业务写入
-  → withApi 写 OperationLog
-  → 返回标准响应
+Browser -> trusted Web gateway -> Web runtime proxy -> VEB API RBAC
+        -> request-bound service JWT -> Blog internal API -> Blog database
 ```
 
-### 文件上传链路
+Web 使用版本化的 `/api/v1/blog/**` 管理入口；旧 `/api/admin/**` 仅在一个发布周期内作为兼容别名。
+
+服务令牌有效期 60 秒，固定 issuer、audience、权限码、HTTP method、目标 path、body hash 和 request ID。Blog API 不读取 VEB 数据库，也不接受浏览器 session Cookie。
+
+### 公开博客
 
 ```text
-浏览器 FormData
-  → POST /api/files
-  → requirePermission('system:file:upload')
-  → prepareUploadFile 校验大小、MIME、后缀
-  → StorageAdapter.save 写入磁盘
-  → File 表记录元数据
-  → 返回文件 id 与 url
+Blog frontend -> public gateway -> Blog public API -> Blog database
+Web          -> private network -> Blog public API -> Blog database
 ```
 
-## 4. 数据模型关系
+公开列表和详情仅返回已经发布且发布时间不晚于当前时间的文章。公开 DTO 不包含数据库 ID、作者账号和草稿字段。
 
-```text
-User ──< UserRole >── Role ──< RolePermission >── Permission
- │                                                    ▲
- │                                                    │
- ├── File                                       Menu.permissionCode
- └── OperationLog
-```
+生产 Compose 的 public gateway 仅允许公开 API 与 Blog 健康检查路径，不转发 `/api/internal/v1/**`。旧 `/api/public/**` 兼容适配器只保证路径和 HTTP method 可继续调用，响应统一使用新的安全公开 DTO，不保证旧响应中的数据库 ID、作者账号、状态等敏感字段。
 
-关键规则：
+## 3. 数据所有权
 
-- `User` 与 `Role` 多对多。
-- `Role` 与 `Permission` 多对多。
-- `Menu.permissionCode` 绑定一个 `MENU` 类型权限码。
-- `BUTTON` 类型权限码只用于页面内按钮与 API 动作守卫。
+VEB 数据库拥有 User、Role、Permission、Menu、File、OperationLog 和 Auth.js 表。内容权限码仍属于 VEB，因为它们控制后台人员的操作授权。
 
-## 5. 运行时状态
+Blog 数据库拥有 Article、Tag、ArticleTag 和 ArticleLike。Article 使用作者 ID、用户名和昵称快照，不与 User 建立外键。作者改名或删除不会修改历史文章。
 
-客户端 Zustand store：
+文件与本地上传卷归 VEB API。本阶段 Markdown 文章不引入跨服务文件 ID。
 
-- `menu-store`：菜单树、权限码集合。
-- `auth-store`：当前登录用户快照。
-- `ui-store`：侧边栏折叠等 UI 状态。
+## 4. 契约
 
-服务端缓存：
+`@veb/api-contracts` 是跨应用 DTO 的唯一来源：
 
-- `permission-cache`：缓存用户权限快照。
-- 用户角色、角色权限、菜单、用户启停变更时需要失效缓存。
+- HTTP 日期为带时区的 ISO 8601 字符串。
+- 分页为 `{ items, total, page, pageSize }`。
+- 响应壳为 `{ code, data, message }`。
+- `50301` 表示依赖服务不可用。
+- Prisma 类型不得进入 Web 或共享包。
 
-## 6. 当前约束
+## 5. 故障边界
 
-- 生产级数据库迁移目录尚未纳入仓库，当前容器启动使用 `prisma db push`。
-- 文件存储仅实现 `local`，S3/OSS 是后续扩展点。
-- middleware 使用 JWT 中的 `menuPaths` 做轻量拦截，权限实时性由重新登录和服务端守卫兜底。
+- Blog API 或 Blog 数据库不可用时，VEB 系统管理继续工作，博客管理返回 `50301`。
+- VEB API 不可用时，公开博客读取与点赞继续工作。
+- 每个 API 的 ready health 只检查自己的数据库与必要运行时配置，不探测另一个业务服务。
+- 写请求不自动重试；只读请求遇到网络错误、502 或 503 最多重试一次。
+
+## 6. 迁移原则
+
+数据拆分使用短暂写冻结，不进行双写。迁移工具保留原 ID，按标签、文章、关联、点赞顺序幂等复制，并验证计数、外键语义、slug 和点赞唯一键。旧内容表在观察期只读保留，稳定后再删除。

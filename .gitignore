@@ -6,5 +6,10 @@ uploads
 dist
 coverage
 *.tsbuildinfo
+apps/*/generated
+apps/*/src/generated
+apps/web/playwright-report
+apps/web/test-results
+.artifacts
 .DS_Store
 *.log

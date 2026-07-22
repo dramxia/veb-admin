@@ -1,44 +1,178 @@
 services:
-  postgres:
+  veb-postgres:
     image: postgres:15-alpine
-    container_name: veb-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: veb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: MmPovGhEzV3dTptUsctP86oZ9LUksjOe
+      POSTGRES_DB: ${VEB_DB_NAME:-veb}
+      POSTGRES_USER: ${VEB_DB_USER:-veb}
+      POSTGRES_PASSWORD: ${VEB_DB_PASSWORD:?VEB_DB_PASSWORD is required}
     ports:
-      - '5432:5432'
+      - '127.0.0.1:${VEB_DB_PORT:-5432}:5432'
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - veb-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d veb']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${VEB_DB_USER:-veb} -d ${VEB_DB_NAME:-veb}',
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  app:
+  blog-postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${BLOG_DB_NAME:-veb_blog}
+      POSTGRES_USER: ${BLOG_DB_USER:-veb_blog}
+      POSTGRES_PASSWORD: ${BLOG_DB_PASSWORD:?BLOG_DB_PASSWORD is required}
+    ports:
+      - '127.0.0.1:${BLOG_DB_PORT:-5433}:5432'
+    volumes:
+      - blog-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${BLOG_DB_USER:-veb_blog} -d ${BLOG_DB_NAME:-veb_blog}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  veb-migrate:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: veb-app
-    restart: unless-stopped
+      dockerfile: apps/veb-api/Dockerfile
+      target: migrate
     depends_on:
-      postgres:
+      veb-postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:MmPovGhEzV3dTptUsctP86oZ9LUksjOe@postgres:5432/veb?schema=public
-      NEXTAUTH_SECRET: 46ZMvIfAALa+k84KOzQkIRoWdnPB4Vsq3y8UE2DuGiU=
-      NEXTAUTH_URL: http://localhost:1066
+      DATABASE_URL: ${VEB_DATABASE_URL:?VEB_DATABASE_URL is required}
+    restart: 'no'
+
+  blog-migrate:
+    build:
+      context: .
+      dockerfile: apps/blog-api/Dockerfile
+      target: migration
+    depends_on:
+      blog-postgres:
+        condition: service_healthy
+      veb-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${BLOG_DATABASE_URL:?BLOG_DATABASE_URL is required}
+    restart: 'no'
+
+  veb-api:
+    build:
+      context: .
+      dockerfile: apps/veb-api/Dockerfile
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      veb-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${VEB_DATABASE_URL:?VEB_DATABASE_URL is required}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
+      AUTH_URL: ${AUTH_URL:-http://localhost:1066}
+      AUTH_TRUST_HOST: 'true'
+      BLOG_API_INTERNAL_URL: http://blog-api:1068
+      SERVICE_AUTH_PRIVATE_KEY: ${SERVICE_AUTH_PRIVATE_KEY:?SERVICE_AUTH_PRIVATE_KEY is required}
+      SERVICE_AUTH_PUBLIC_KEY: ${SERVICE_AUTH_PUBLIC_KEY:?SERVICE_AUTH_PUBLIC_KEY is required}
+      SERVICE_AUTH_KEY_ID: ${SERVICE_AUTH_KEY_ID:-veb-local-1}
+      SERVICE_AUTH_ISSUER: veb-api
       UPLOAD_DIR: /app/uploads
       STORAGE_KIND: local
-      AUTH_TRUST_HOST: "true"
-    ports:
-      - '1066:1066'
+    expose:
+      - '1067'
     volumes:
-      - app-uploads:/app/uploads
-    command: sh -c "pnpm prisma db push && pnpm db:seed && pnpm start"
+      - veb-uploads:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:1067/api/health/ready >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  blog-api:
+    build:
+      context: .
+      dockerfile: apps/blog-api/Dockerfile
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      blog-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${BLOG_DATABASE_URL:?BLOG_DATABASE_URL is required}
+      BLOG_VISITOR_HASH_SECRET: ${BLOG_VISITOR_HASH_SECRET:?BLOG_VISITOR_HASH_SECRET is required}
+      SERVICE_AUTH_JWKS_URL: http://veb-api:1067/api/internal/.well-known/jwks.json
+      SERVICE_AUTH_ISSUER: veb-api
+    expose:
+      - '1068'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:1068/api/health/ready >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  blog-public:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      blog-api:
+        condition: service_healthy
+    ports:
+      - '${BLOG_API_PORT:-1068}:1068'
+    volumes:
+      - ./deploy/nginx/blog-public.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:1068/api/health/live >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runner
+    restart: unless-stopped
+    environment:
+      VEB_API_INTERNAL_URL: ${VEB_API_INTERNAL_URL:-http://veb-api:1067}
+      BLOG_API_INTERNAL_URL: ${BLOG_API_INTERNAL_URL:-http://blog-api:1068}
+      WEB_TRUST_PROXY_HEADERS: 'true'
+    expose:
+      - '1066'
+
+  web-public:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+    ports:
+      - '${WEB_PORT:-1066}:1066'
+    volumes:
+      - ./deploy/nginx/web-public.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
-  postgres-data:
-  app-uploads:
+  veb-postgres-data:
+  blog-postgres-data:
+  veb-uploads:

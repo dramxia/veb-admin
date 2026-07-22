@@ -263,7 +263,7 @@ Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
 
 ## 🧩 Chakra UI 组件规范
 
-Chakra UI v2 是项目主组件系统。主题入口应集中在 `app/providers.tsx` 的 `extendTheme`，业务组件优先使用 Chakra props 和主题 token。
+Chakra UI v2 是项目主组件系统。主题入口应集中在 `apps/web/app/providers.tsx` 的 `extendTheme`，业务组件优先使用 Chakra props 和主题 token。
 
 当前主题已覆盖常用输入、按钮、浮层、表格和反馈组件。新增或扩展 `Popover`、`Toast`、`AlertDialog`、`Avatar`、`Radio`、`NumberInput`、`IconButton`、`CloseButton` 时，必须优先补充统一 theme 覆盖，不能在业务页面分散实现视觉样式。
 
@@ -427,7 +427,7 @@ Chakra UI v2 是项目主组件系统。主题入口应集中在 `app/providers.
 - `Radio`、`Checkbox`、`Switch`：选中态使用 `brand.500`，未选中态保持中性色边框，均需可见 focus ring。
 - `NumberInput`：与 `Input` 共用背景、边框、错误态和 focus ring；步进按钮不得挤压数值内容。
 
-新增上述组件的主题覆盖时，应集中维护在 `app/providers.tsx` 的 `extendTheme`；在覆盖前，业务组件也必须遵循本节规则。
+新增上述组件的主题覆盖时，应集中维护在 `apps/web/app/providers.tsx` 的 `extendTheme`；在覆盖前，业务组件也必须遵循本节规则。
 
 ---
 
@@ -635,7 +635,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 所有具有可见输出的依赖都必须服从同一套淡蓝玻璃主题，不能带入独立的默认视觉语言。
 
-- `@chakra-ui/react`：主组件系统。颜色、圆角、阴影、焦点态和浮层样式以 `app/providers.tsx` 的主题为唯一来源。
+- `@chakra-ui/react`：主组件系统。颜色、圆角、阴影、焦点态和浮层样式以 `apps/web/app/providers.tsx` 的主题为唯一来源。
 - `tailwindcss`：只承担布局、响应式和少量工具类；不使用颜色、阴影、圆角类覆盖 Chakra 语义 token，且保持 `preflight` 关闭。
 - `lucide-react`：作为唯一图标库；图标随按钮或文本的语义色变化，线宽和尺寸在同一操作区域内保持一致。
 - `echarts`：遵循本规范的图表色板、坐标轴、玻璃 Tooltip 和稳定容器尺寸；不使用库默认色板。
@@ -788,7 +788,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ## ✅ 实现入口建议
 
-### `app/providers.tsx`
+### `apps/web/app/providers.tsx`
 
 集中维护 Chakra 主题：
 
@@ -816,7 +816,7 @@ corePlugins: {
 
 如需扩展 token，必须与 Chakra theme 同名同义。
 
-### `app/globals.css`
+### `apps/web/app/globals.css`
 
 只维护真正全局的样式：
 
