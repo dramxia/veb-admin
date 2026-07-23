@@ -1,6 +1,7 @@
 import { Box, Button, Flex, Heading, HStack, Text } from '@chakra-ui/react';
 import { LayoutDashboard } from 'lucide-react';
 import NextLink from 'next/link';
+import { BrandMark } from '@/components/common/brand-mark';
 
 export function PublicArticleHeader() {
   return (
@@ -25,9 +26,7 @@ export function PublicArticleHeader() {
       >
         <NextLink href="/articles">
           <HStack spacing={3} minW={0}>
-            <Box layerStyle="iconBrand" w={9} h={9}>
-              <Text fontWeight="900">V</Text>
-            </Box>
+            <BrandMark />
             <Box minW={0}>
               <Heading fontSize="lg" lineHeight="1.2">
                 VEB 文章

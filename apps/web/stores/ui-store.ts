@@ -17,6 +17,6 @@ export const useUiStore = create<UiState>()(
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
     }),
-    { name: 'veb-ui' },
+    { name: 'veb-ui', skipHydration: true },
   ),
 );

@@ -21,6 +21,7 @@ import {
   Portal,
   Stack,
   Text,
+  Tooltip,
   useDisclosure,
   VStack,
 } from '@chakra-ui/react';
@@ -28,26 +29,28 @@ import {
   ExternalLink,
   Home,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
-  Sparkles,
   UserCircle,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
-import { GlassPanel } from '@/components/common/glass-panel';
 import type { MenuNode } from '@veb/api-contracts';
 import { useMenuStore } from '@/stores/menu-store';
+import { useUiStore } from '@/stores/ui-store';
 import type { AuthUser } from '@/stores/auth-store';
+import { BrandMark } from '@/components/common/brand-mark';
 import {
   flattenMenus,
   getCurrentMenu,
   getHref,
-  getRouteLabel,
   isActive,
   isExternalHref,
 } from './navigation-utils';
+import { DASHBOARD_HEADER_HEIGHT } from './layout-constants';
 
 type HeaderProps = {
   user: Pick<AuthUser, 'username' | 'nickname' | 'avatar'>;
@@ -60,12 +63,16 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchPopover = useDisclosure();
   const [query, setQuery] = useState('');
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const storedMenus = useMenuStore((state) => state.menus);
   const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const flatMenus = useMemo(
     () =>
       flattenMenus(menus).filter(
-        (menu) => menu.type !== 'DIR' || menu.path === '/',
+        (menu) =>
+          (menu.type !== 'DIR' || menu.path === '/') &&
+          menu.path !== '/profile',
       ),
     [menus],
   );
@@ -83,60 +90,55 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
-  const routeLabel = getRouteLabel(pathname, menus);
 
   return (
-    <GlassPanel
+    <Box
       as="header"
-      variant="navigation"
       position="sticky"
-      top={{ base: 3, md: 4 }}
+      top={0}
       zIndex="banner"
-      w={{
-        base: 'calc(100% - 24px)',
-        md: 'calc(100% - 40px)',
-        xl: 'calc(100% - 64px)',
-      }}
-      maxW="1280px"
-      mx="auto"
-      px={{ base: 2.5, md: 4 }}
-      py={2.5}
-      rounded={{ base: '2xl', md: 'full' }}
+      w="full"
+      h={DASHBOARD_HEADER_HEIGHT}
+      bg="transparent"
+      boxShadow="none"
+      px={{ base: 3, lg: sidebarCollapsed ? 2 : 3 }}
     >
-      <Flex align="center" justify="space-between" gap={3} minW={0}>
+      <Flex h="full" align="center" justify="space-between" gap={3} minW={0}>
         <HStack spacing={{ base: 2, md: 3 }} minW={0}>
-          <Flex
-            layerStyle="iconBrand"
-            w={{ base: 9, md: 10 }}
-            h={{ base: 9, md: 10 }}
-            rounded="2xl"
-            align="center"
-            justify="center"
-            flexShrink={0}
+          <Tooltip
+            label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+            placement="bottom"
           >
-            <Icon as={Sparkles} boxSize={5} aria-hidden />
-          </Flex>
+            <IconButton
+              aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+              icon={
+                <Icon
+                  as={sidebarCollapsed ? PanelLeftOpen : PanelLeftClose}
+                  boxSize={5}
+                  aria-hidden
+                />
+              }
+              onClick={toggleSidebar}
+              variant="ghost"
+              w={{ base: 8, md: 9 }}
+              h={{ base: 8, md: 9 }}
+              rounded="md"
+              flexShrink={0}
+            />
+          </Tooltip>
 
-          <Box minW={0}>
+          <HStack spacing={2.5} minW={0}>
+            <BrandMark />
             <Text
               color="ink.900"
               fontSize={{ base: 'sm', md: 'md' }}
               fontWeight="900"
-              lineHeight="1.15"
+              lineHeight="1.2"
               noOfLines={1}
             >
               VEB 管理后台
             </Text>
-            <Text
-              display={{ base: 'none', md: 'block' }}
-              color="ink.500"
-              fontSize="sm"
-              fontWeight="700"
-              isTruncated
-            >
-              {routeLabel}
-            </Text>
-          </Box>
+          </HStack>
         </HStack>
 
         <HStack spacing={{ base: 1, sm: 2 }} flexShrink={0}>
@@ -314,6 +316,6 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
           </Menu>
         </HStack>
       </Flex>
-    </GlassPanel>
+    </Box>
   );
 }
