@@ -30,7 +30,12 @@ export async function assertPermission(
 }
 
 export async function canAccess(userId: string, pathname: string) {
-  if (pathname === '/' || pathname === '/profile') return true;
+  if (
+    pathname === '/' ||
+    pathname === '/admin' ||
+    pathname === '/admin/profile'
+  )
+    return true;
 
   const snapshot = await getUserPermissionSnapshot(userId);
   if (snapshot.roleCodes.includes('superadmin')) return true;

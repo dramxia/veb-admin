@@ -69,7 +69,7 @@ export function OperationLogFilter() {
     }
     params.delete('page');
     const query = params.toString();
-    router.push(`/system/log/operation${query ? `?${query}` : ''}`);
+    router.push(`/admin/system/log/operation${query ? `?${query}` : ''}`);
   }
 
   function resetFilter() {
@@ -79,7 +79,7 @@ export function OperationLogFilter() {
     setStatus('');
     setStartAt('');
     setEndAt('');
-    router.push('/system/log/operation');
+    router.push('/admin/system/log/operation');
   }
 
   return (

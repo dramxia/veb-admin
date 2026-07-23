@@ -5,8 +5,11 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'VEB 管理后台',
-  description: '通用后台管理系统模板',
+  title: {
+    default: 'VEB 工作台',
+    template: '%s | VEB 工作台',
+  },
+  description: 'VEB 模块化工作台',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -20,6 +20,7 @@ import type {
 import { GlassPanel } from '@/components/common/glass-panel';
 import { MetricIsland } from '@/components/common/metric-island';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
+import { normalizeAdminMenuPath } from '@/components/layout/navigation-utils';
 import { requestVebPage } from '@/lib/server-api';
 
 const statMeta = [
@@ -40,10 +41,10 @@ const statMeta = [
 ];
 
 const quickLinkMeta = [
-  { path: '/system/user', icon: Users },
-  { path: '/system/role', icon: Shield },
-  { path: '/system/permission', icon: KeyRound },
-  { path: '/system/menu', icon: ListTree },
+  { path: '/admin/system/user', icon: Users },
+  { path: '/admin/system/role', icon: Shield },
+  { path: '/admin/system/permission', icon: KeyRound },
+  { path: '/admin/system/menu', icon: ListTree },
 ];
 
 function flattenMenus(menus: MenuNode[]): MenuNode[] {
@@ -64,13 +65,13 @@ export default async function DashboardPage() {
   const total = values.reduce((sum, value) => sum + value, 0);
   const menuByPath = new Map(
     flattenMenus(menuSnapshot.menus as MenuNode[]).map((menu) => [
-      menu.path,
+      normalizeAdminMenuPath(menu.path),
       menu,
     ]),
   );
   const quickLinks = quickLinkMeta.flatMap(({ path, icon }) => {
     const menu = menuByPath.get(path);
-    return menu ? [{ href: menu.path, label: menu.name, icon }] : [];
+    return menu ? [{ href: path, label: menu.name, icon }] : [];
   });
 
   return (

@@ -76,6 +76,21 @@ function pruneEmptyDirs(nodes: MenuNode[]): MenuNode[] {
     .filter((node) => node.type !== 'DIR' || node.children.length > 0);
 }
 
+function normalizeStoredAdminMenuPath(path: string) {
+  if (/^https?:\/\//i.test(path)) return null;
+
+  const withoutTrailingSlash =
+    path.length > 1 ? path.replace(/\/+$/, '') : path;
+  if (!withoutTrailingSlash || withoutTrailingSlash === '/') return '/admin';
+
+  const namespaced =
+    withoutTrailingSlash === '/admin' ||
+    withoutTrailingSlash.startsWith('/admin/')
+      ? withoutTrailingSlash
+      : `/admin${withoutTrailingSlash.startsWith('/') ? '' : '/'}${withoutTrailingSlash}`;
+  return namespaced.replace(/\/{2,}/g, '/');
+}
+
 export async function getUserPermissionSnapshot(userId: string) {
   const cached = getCachedPermissions(userId);
   if (cached) return cached;
@@ -149,16 +164,20 @@ export async function getUserMenuAndPermissions(
 
 export async function getMenuByPath(pathname: string) {
   const normalized =
-    pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+    pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   const menus = await prisma.menu.findMany({
     where: { status: CommonStatus.ENABLED },
   });
   return (
     menus
+      .map((menu) => ({ menu, path: normalizeStoredAdminMenuPath(menu.path) }))
       .filter(
-        (menu) =>
-          normalized === menu.path || normalized.startsWith(`${menu.path}/`),
+        (entry): entry is { menu: Menu; path: string } =>
+          entry.path !== null &&
+          (normalized === entry.path ||
+            (entry.path !== '/admin' &&
+              normalized.startsWith(`${entry.path}/`))),
       )
-      .sort((a, b) => b.path.length - a.path.length)[0] ?? null
+      .sort((a, b) => b.path.length - a.path.length)[0]?.menu ?? null
   );
 }

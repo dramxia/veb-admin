@@ -3,6 +3,7 @@
 import {
   Avatar,
   Box,
+  Button,
   Flex,
   HStack,
   Icon,
@@ -26,6 +27,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import {
+  ChevronDown,
   ExternalLink,
   Home,
   LogOut,
@@ -37,12 +39,17 @@ import {
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MenuNode } from '@veb/api-contracts';
+import { BrandMark } from '@/components/common/brand-mark';
+import type { AuthUser } from '@/stores/auth-store';
 import { useMenuStore } from '@/stores/menu-store';
 import { useUiStore } from '@/stores/ui-store';
-import type { AuthUser } from '@/stores/auth-store';
-import { BrandMark } from '@/components/common/brand-mark';
+import {
+  appModules,
+  DEFAULT_AUTHENTICATED_PATH,
+  resolveAppModule,
+} from './app-modules';
 import {
   flattenMenus,
   getCurrentMenu,
@@ -50,30 +57,119 @@ import {
   isActive,
   isExternalHref,
 } from './navigation-utils';
-import { DASHBOARD_HEADER_HEIGHT } from './layout-constants';
+import {
+  ADMIN_SIDEBAR_ID,
+  ADMIN_SIDEBAR_TOGGLE_ID,
+  DASHBOARD_HEADER_HEIGHT,
+} from './layout-constants';
 
 type HeaderProps = {
   user: Pick<AuthUser, 'username' | 'nickname' | 'avatar'>;
   initialMenus?: MenuNode[];
 };
 
+function ModuleSwitcher({ pathname }: { pathname: string }) {
+  const activeModule = resolveAppModule(pathname);
+  const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
+
+  return (
+    <>
+      <HStack
+        as="nav"
+        aria-label="应用模块"
+        display={{ base: 'none', xl: 'flex' }}
+        spacing={1}
+      >
+        {appModules.map((module) => {
+          const current = module.id === activeModule?.id;
+          return (
+            <Button
+              key={module.id}
+              as={Link}
+              href={module.homePath}
+              aria-current={current ? 'page' : undefined}
+              variant="ghost"
+              size="sm"
+              h="34px"
+              minW="auto"
+              px={3}
+              bg={current ? 'brand.50' : 'transparent'}
+              color={current ? 'brand.700' : 'ink.600'}
+              onClick={closeMobileSidebar}
+              _hover={{ bg: 'brand.50', color: 'ink.900' }}
+            >
+              {module.label}
+            </Button>
+          );
+        })}
+      </HStack>
+
+      <Menu placement="bottom-end" strategy="fixed" isLazy>
+        <MenuButton
+          as={Button}
+          display={{ base: 'inline-flex', xl: 'none' }}
+          variant="ghost"
+          size="sm"
+          h="34px"
+          maxW={{ base: '92px', sm: '128px' }}
+          px={{ base: 2, sm: 3 }}
+          rightIcon={<Icon as={ChevronDown} boxSize={4} aria-hidden />}
+          aria-label="切换应用模块"
+        >
+          <Text as="span" noOfLines={1}>
+            {activeModule?.label ?? '模块'}
+          </Text>
+        </MenuButton>
+        <Portal>
+          <MenuList minW="180px" zIndex="popover">
+            {appModules.map((module) => (
+              <MenuItem
+                key={module.id}
+                as={Link}
+                href={module.homePath}
+                aria-current={
+                  module.id === activeModule?.id ? 'page' : undefined
+                }
+                onClick={closeMobileSidebar}
+              >
+                {module.label}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Portal>
+      </Menu>
+    </>
+  );
+}
+
 export function Header({ user, initialMenus = [] }: HeaderProps) {
   const displayName = user.nickname ?? user.username;
   const pathname = usePathname();
+  const activeModule = useMemo(() => resolveAppModule(pathname), [pathname]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const searchPopover = useDisclosure();
   const [query, setQuery] = useState('');
-  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
-  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const desktopSidebarCollapsed = useUiStore(
+    (state) => state.desktopSidebarCollapsed,
+  );
+  const toggleDesktopSidebar = useUiStore(
+    (state) => state.toggleDesktopSidebar,
+  );
+  const mobileSidebarOpen = useUiStore((state) => state.mobileSidebarOpen);
+  const openMobileSidebar = useUiStore((state) => state.openMobileSidebar);
+  const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
   const storedMenus = useMenuStore((state) => state.menus);
   const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const flatMenus = useMemo(
     () =>
-      flattenMenus(menus).filter(
-        (menu) =>
-          (menu.type !== 'DIR' || menu.path === '/') &&
-          menu.path !== '/profile',
-      ),
+      flattenMenus(menus).filter((menu) => {
+        const href = getHref(menu);
+        return (
+          (menu.type !== 'DIR' || href === '/admin') &&
+          href !== '/admin/profile'
+        );
+      }),
     [menus],
   );
   const filteredMenus = useMemo(() => {
@@ -82,7 +178,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
 
     return flatMenus
       .filter((menu) =>
-        `${menu.name} ${menu.path}`.toLowerCase().includes(keyword),
+        `${menu.name} ${getHref(menu)}`.toLowerCase().includes(keyword),
       )
       .slice(0, 8);
   }, [flatMenus, query]);
@@ -90,6 +186,39 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
+  const canToggleSidebar = Boolean(activeModule?.capabilities.sidebarToggle);
+  const canSearchMenus = Boolean(activeModule?.capabilities.menuSearch);
+  const moduleHomePath = activeModule?.homePath ?? DEFAULT_AUTHENTICATED_PATH;
+  const restoreMobileSidebarToggleFocus = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      mobileSidebarToggleRef.current?.focus({ preventScroll: true });
+    });
+  }, []);
+  const closeMobileSidebarAndRestoreFocus = useCallback(() => {
+    closeMobileSidebar();
+    restoreMobileSidebarToggleFocus();
+  }, [closeMobileSidebar, restoreMobileSidebarToggleFocus]);
+  const handleMobileSidebarToggle = useCallback(() => {
+    if (mobileSidebarOpen) {
+      closeMobileSidebarAndRestoreFocus();
+      return;
+    }
+
+    openMobileSidebar();
+  }, [closeMobileSidebarAndRestoreFocus, mobileSidebarOpen, openMobileSidebar]);
+
+  useEffect(() => {
+    if (!canToggleSidebar || !mobileSidebarOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeMobileSidebarAndRestoreFocus();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canToggleSidebar, closeMobileSidebarAndRestoreFocus, mobileSidebarOpen]);
 
   return (
     <Box
@@ -101,157 +230,192 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
       h={DASHBOARD_HEADER_HEIGHT}
       bg="transparent"
       boxShadow="none"
-      px={{ base: 3, lg: sidebarCollapsed ? 2 : 3 }}
+      px={{ base: 3, lg: desktopSidebarCollapsed ? 2 : 3 }}
     >
-      <Flex h="full" align="center" justify="space-between" gap={3} minW={0}>
-        <HStack spacing={{ base: 2, md: 3 }} minW={0}>
-          <Tooltip
-            label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
-            placement="bottom"
-          >
-            <IconButton
-              aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
-              icon={
-                <Icon
-                  as={sidebarCollapsed ? PanelLeftOpen : PanelLeftClose}
-                  boxSize={5}
-                  aria-hidden
+      <Flex h="full" align="center" justify="space-between" gap={2} minW={0}>
+        <HStack spacing={{ base: 1, md: 3 }} minW={0} flexShrink={1}>
+          {canToggleSidebar ? (
+            <>
+              <IconButton
+                ref={mobileSidebarToggleRef}
+                id={ADMIN_SIDEBAR_TOGGLE_ID}
+                display={{ base: 'inline-flex', lg: 'none' }}
+                aria-label={mobileSidebarOpen ? '关闭侧边栏' : '打开侧边栏'}
+                aria-controls={ADMIN_SIDEBAR_ID}
+                aria-expanded={mobileSidebarOpen}
+                icon={
+                  <Icon
+                    as={mobileSidebarOpen ? PanelLeftClose : PanelLeftOpen}
+                    boxSize={5}
+                    aria-hidden
+                  />
+                }
+                onClick={handleMobileSidebarToggle}
+                variant="ghost"
+                size="sm"
+                flexShrink={0}
+              />
+              <Tooltip
+                label={desktopSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+                placement="bottom"
+              >
+                <IconButton
+                  display={{ base: 'none', lg: 'inline-flex' }}
+                  aria-label={
+                    desktopSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'
+                  }
+                  icon={
+                    <Icon
+                      as={
+                        desktopSidebarCollapsed ? PanelLeftOpen : PanelLeftClose
+                      }
+                      boxSize={5}
+                      aria-hidden
+                    />
+                  }
+                  onClick={toggleDesktopSidebar}
+                  variant="ghost"
+                  size="sm"
+                  flexShrink={0}
                 />
-              }
-              onClick={toggleSidebar}
-              variant="ghost"
-              w={{ base: 8, md: 9 }}
-              h={{ base: 8, md: 9 }}
-              rounded="md"
-              flexShrink={0}
-            />
-          </Tooltip>
+              </Tooltip>
+            </>
+          ) : null}
 
           <HStack spacing={2.5} minW={0}>
             <BrandMark />
             <Text
+              display={{ base: 'none', sm: 'block' }}
               color="ink.900"
               fontSize={{ base: 'sm', md: 'md' }}
               fontWeight="900"
               lineHeight="1.2"
               noOfLines={1}
             >
-              VEB 管理后台
+              VEB 工作台
             </Text>
           </HStack>
         </HStack>
 
-        <HStack spacing={{ base: 1, sm: 2 }} flexShrink={0}>
+        <HStack spacing={{ base: 0, sm: 1, md: 2 }} flexShrink={0} minW={0}>
+          <ModuleSwitcher pathname={pathname} />
+
           <IconButton
             as={Link}
-            href="/"
-            aria-label="返回仪表盘"
-            aria-current={pathname === '/' ? 'page' : undefined}
+            href={moduleHomePath}
+            aria-label={`返回${activeModule?.label ?? ''}首页`}
+            aria-current={pathname === moduleHomePath ? 'page' : undefined}
             icon={<Icon as={Home} boxSize={5} aria-hidden />}
             variant="ghost"
             size="sm"
           />
 
-          <Popover
-            isOpen={searchPopover.isOpen}
-            onOpen={searchPopover.onOpen}
-            onClose={searchPopover.onClose}
-            placement="bottom-end"
-            strategy="fixed"
-            initialFocusRef={searchInputRef}
-            isLazy
-          >
-            <PopoverTrigger>
-              <IconButton
-                aria-label="查找模块"
-                icon={<Icon as={Search} boxSize={5} aria-hidden />}
-                variant="ghost"
-                size="sm"
-              />
-            </PopoverTrigger>
-            <Portal>
-              <PopoverContent
-                layerStyle="glassFloating"
-                w={{ base: 'calc(100vw - 24px)', sm: '320px' }}
-                maxW="calc(100vw - 24px)"
-                rounded="2xl"
-                zIndex="popover"
-              >
-                <PopoverBody p={2} role="search">
-                  <Input
-                    ref={searchInputRef}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="输入模块名称或路径"
-                    aria-label="搜索模块"
-                    size="sm"
-                  />
+          {canSearchMenus ? (
+            <Popover
+              isOpen={searchPopover.isOpen}
+              onOpen={searchPopover.onOpen}
+              onClose={searchPopover.onClose}
+              placement="bottom-end"
+              strategy="fixed"
+              initialFocusRef={searchInputRef}
+              isLazy
+            >
+              <PopoverTrigger>
+                <IconButton
+                  aria-label="搜索后台菜单"
+                  icon={<Icon as={Search} boxSize={5} aria-hidden />}
+                  variant="ghost"
+                  size="sm"
+                />
+              </PopoverTrigger>
+              <Portal>
+                <PopoverContent
+                  layerStyle="glassFloating"
+                  w={{ base: 'calc(100vw - 24px)', sm: '320px' }}
+                  maxW="calc(100vw - 24px)"
+                  rounded="2xl"
+                  zIndex="popover"
+                >
+                  <PopoverBody p={2} role="search">
+                    <Input
+                      ref={searchInputRef}
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="输入后台菜单名称或路径"
+                      aria-label="搜索后台菜单"
+                      size="sm"
+                    />
 
-                  <Stack spacing={1} mt={2} maxH="320px" overflowY="auto">
-                    {filteredMenus.length > 0 ? (
-                      filteredMenus.map((menu) => {
-                        const href = getHref(menu);
-                        const external = isExternalHref(href);
-                        const isCurrent = currentMenu?.id === menu.id;
+                    <Stack spacing={1} mt={2} maxH="320px" overflowY="auto">
+                      {filteredMenus.length > 0 ? (
+                        filteredMenus.map((menu) => {
+                          const href = getHref(menu);
+                          const external = isExternalHref(href);
+                          const isCurrent = currentMenu?.id === menu.id;
 
-                        return (
-                          <ChakraLink
-                            key={menu.id}
-                            as={Link}
-                            href={href}
-                            target={external ? '_blank' : undefined}
-                            rel={external ? 'noreferrer' : undefined}
-                            aria-current={isCurrent ? 'page' : undefined}
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="space-between"
-                            gap={3}
-                            px={3}
-                            py={2.5}
-                            bg={isCurrent ? 'brand.50' : undefined}
-                            color={isCurrent ? 'brand.700' : 'ink.700'}
-                            rounded="xl"
-                            onClick={searchPopover.onClose}
-                            _hover={{
-                              bg: 'brand.50',
-                              color: 'ink.900',
-                              textDecoration: 'none',
-                            }}
-                            _focusVisible={{
-                              boxShadow: 'focusRing',
-                              outline: 'none',
-                            }}
-                          >
-                            <VStack align="stretch" spacing={0} minW={0}>
-                              <Text fontWeight="800" noOfLines={1}>
-                                {menu.name}
-                              </Text>
-                              <Text color="ink.500" fontSize="xs" noOfLines={1}>
-                                {menu.path}
-                              </Text>
-                            </VStack>
-                            {external && (
-                              <Icon
-                                as={ExternalLink}
-                                boxSize={4}
-                                color="ink.400"
-                                flexShrink={0}
-                                aria-hidden
-                              />
-                            )}
-                          </ChakraLink>
-                        );
-                      })
-                    ) : (
-                      <Text px={3} py={4} color="ink.500" fontSize="sm">
-                        没有匹配的模块
-                      </Text>
-                    )}
-                  </Stack>
-                </PopoverBody>
-              </PopoverContent>
-            </Portal>
-          </Popover>
+                          return (
+                            <ChakraLink
+                              key={menu.id}
+                              as={Link}
+                              href={href}
+                              target={external ? '_blank' : undefined}
+                              rel={external ? 'noreferrer' : undefined}
+                              aria-current={isCurrent ? 'page' : undefined}
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="space-between"
+                              gap={3}
+                              px={3}
+                              py={2.5}
+                              bg={isCurrent ? 'brand.50' : undefined}
+                              color={isCurrent ? 'brand.700' : 'ink.700'}
+                              rounded="xl"
+                              onClick={searchPopover.onClose}
+                              _hover={{
+                                bg: 'brand.50',
+                                color: 'ink.900',
+                                textDecoration: 'none',
+                              }}
+                              _focusVisible={{
+                                boxShadow: 'focusRing',
+                                outline: 'none',
+                              }}
+                            >
+                              <VStack align="stretch" spacing={0} minW={0}>
+                                <Text fontWeight="800" noOfLines={1}>
+                                  {menu.name}
+                                </Text>
+                                <Text
+                                  color="ink.500"
+                                  fontSize="xs"
+                                  noOfLines={1}
+                                >
+                                  {href}
+                                </Text>
+                              </VStack>
+                              {external ? (
+                                <Icon
+                                  as={ExternalLink}
+                                  boxSize={4}
+                                  color="ink.400"
+                                  flexShrink={0}
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </ChakraLink>
+                          );
+                        })
+                      ) : (
+                        <Text px={3} py={4} color="ink.500" fontSize="sm">
+                          没有匹配的后台菜单
+                        </Text>
+                      )}
+                    </Stack>
+                  </PopoverBody>
+                </PopoverContent>
+              </Portal>
+            </Popover>
+          ) : null}
 
           <Menu placement="bottom-end" strategy="fixed" isLazy>
             <MenuButton
@@ -270,13 +434,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
               isRound
             />
             <Portal>
-              <MenuList
-                layerStyle="glassFloating"
-                minW="240px"
-                p={2}
-                rounded="2xl"
-                zIndex="popover"
-              >
+              <MenuList minW="240px" p={2} zIndex="popover">
                 <HStack px={2} py={2} spacing={3}>
                   <Avatar
                     size="sm"
@@ -295,10 +453,10 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                 <MenuDivider borderColor="ink.100" />
                 <MenuItem
                   as={Link}
-                  href="/profile"
+                  href="/admin/profile"
                   icon={<Icon as={UserCircle} boxSize={4.5} aria-hidden />}
                   aria-current={
-                    isActive(pathname, '/profile') ? 'page' : undefined
+                    isActive(pathname, '/admin/profile') ? 'page' : undefined
                   }
                   rounded="xl"
                 >

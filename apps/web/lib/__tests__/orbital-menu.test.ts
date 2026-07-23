@@ -43,14 +43,14 @@ function createMenu(
 describe('orbital menu helpers', () => {
   it('builds one wheel level without flattening child menus', () => {
     const menus = [
-      createMenu('dashboard', '/'),
-      createMenu('system', '/system', {
+      createMenu('dashboard', '/admin'),
+      createMenu('system', '/admin/system', {
         type: 'DIR',
         children: [
-          createMenu('user', '/system/user'),
-          createMenu('logs', '/system/log', {
+          createMenu('user', '/admin/system/user'),
+          createMenu('logs', '/admin/system/log', {
             type: 'DIR',
-            children: [createMenu('operation', '/system/log/operation')],
+            children: [createMenu('operation', '/admin/system/log/operation')],
           }),
         ],
       }),
@@ -78,14 +78,14 @@ describe('orbital menu helpers', () => {
   });
 
   it('finds the complete menu trail for restoring nested wheels', () => {
-    const operation = createMenu('operation', '/system/log/operation');
-    const logs = createMenu('logs', '/system/log', {
+    const operation = createMenu('operation', '/admin/system/log/operation');
+    const logs = createMenu('logs', '/admin/system/log', {
       type: 'DIR',
       children: [operation],
     });
-    const system = createMenu('system', '/system', {
+    const system = createMenu('system', '/admin/system', {
       type: 'DIR',
-      children: [createMenu('user', '/system/user'), logs],
+      children: [createMenu('user', '/admin/system/user'), logs],
     });
 
     expect(

@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   Tooltip,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import type { MenuNode } from '@veb/api-contracts';
 import {
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useMenuStore } from '@/stores/menu-store';
 import { useUiStore } from '@/stores/ui-store';
 import {
@@ -38,8 +39,10 @@ import {
   getCurrentMenu,
   getHref,
   isExternalHref,
+  normalizeAdminMenuPath,
 } from './navigation-utils';
-import { DASHBOARD_HEADER_HEIGHT } from './layout-constants';
+import { ADMIN_SIDEBAR_ID, ADMIN_SIDEBAR_TOGGLE_ID } from './layout-constants';
+import { useWorkspaceMenus } from './workspace-data-context';
 
 export const DESKTOP_SIDEBAR_EXPANDED_WIDTH = '184px';
 export const DESKTOP_SIDEBAR_COLLAPSED_WIDTH = '76px';
@@ -71,20 +74,21 @@ const iconMap: Record<string, LucideIcon> = {
 
 function getMenuIcon(menu: MenuNode): LucideIcon {
   const configured = menu.icon?.toLowerCase();
+  const path = normalizeAdminMenuPath(menu.path);
   if (configured && iconMap[configured]) return iconMap[configured];
-  if (menu.path === '/') return LayoutDashboard;
-  if (menu.path.startsWith('/profile')) return User;
-  if (menu.path.includes('/article')) return FileText;
-  if (menu.path.includes('/tag')) return Tags;
-  if (menu.path.includes('/like')) return Heart;
-  if (menu.path.includes('user')) return Users;
-  if (menu.path.includes('role')) return Shield;
-  if (menu.path.includes('permission')) return KeyRound;
-  if (menu.path.includes('menu')) return ListTree;
-  if (menu.path.includes('file')) return FileBox;
-  if (menu.path.includes('log')) return ScrollText;
-  if (menu.path.startsWith('/content')) return FileText;
-  if (menu.path.startsWith('/system')) return Compass;
+  if (path === '/admin') return LayoutDashboard;
+  if (path.startsWith('/admin/profile')) return User;
+  if (path.includes('/article')) return FileText;
+  if (path.includes('/tag')) return Tags;
+  if (path.includes('/like')) return Heart;
+  if (path.includes('user')) return Users;
+  if (path.includes('role')) return Shield;
+  if (path.includes('permission')) return KeyRound;
+  if (path.includes('menu')) return ListTree;
+  if (path.includes('file')) return FileBox;
+  if (path.includes('log')) return ScrollText;
+  if (path.startsWith('/admin/content')) return FileText;
+  if (path.startsWith('/admin/system')) return Compass;
   return Circle;
 }
 
@@ -92,9 +96,15 @@ type FlatMenuItemProps = {
   menu: MenuNode;
   currentMenuId?: string;
   collapsed: boolean;
+  tabIndex?: number;
 };
 
-function FlatMenuItem({ menu, currentMenuId, collapsed }: FlatMenuItemProps) {
+function FlatMenuItem({
+  menu,
+  currentMenuId,
+  collapsed,
+  tabIndex,
+}: FlatMenuItemProps) {
   const current = currentMenuId === menu.id;
   const MenuItemIcon = getMenuIcon(menu);
   const href = getHref(menu);
@@ -110,6 +120,7 @@ function FlatMenuItem({ menu, currentMenuId, collapsed }: FlatMenuItemProps) {
       href={href}
       target={external ? '_blank' : undefined}
       rel={external ? 'noreferrer' : undefined}
+      tabIndex={tabIndex}
       aria-current={current ? 'page' : undefined}
       aria-label={external ? `${menu.name}（新窗口打开）` : menu.name}
       position="relative"
@@ -229,15 +240,22 @@ type MenuGroupProps = {
   menu: MenuNode;
   currentMenuId?: string;
   collapsed: boolean;
+  tabIndex?: number;
 };
 
 type MenuItemsProps = {
   items: MenuNode[];
   currentMenuId?: string;
   collapsed: boolean;
+  tabIndex?: number;
 };
 
-function MenuItems({ items, currentMenuId, collapsed }: MenuItemsProps) {
+function MenuItems({
+  items,
+  currentMenuId,
+  collapsed,
+  tabIndex,
+}: MenuItemsProps) {
   return (
     <Stack spacing={1}>
       {items.map((item) => (
@@ -246,13 +264,19 @@ function MenuItems({ items, currentMenuId, collapsed }: MenuItemsProps) {
           menu={item}
           currentMenuId={currentMenuId}
           collapsed={collapsed}
+          tabIndex={tabIndex}
         />
       ))}
     </Stack>
   );
 }
 
-function MenuGroup({ menu, currentMenuId, collapsed }: MenuGroupProps) {
+function MenuGroup({
+  menu,
+  currentMenuId,
+  collapsed,
+  tabIndex,
+}: MenuGroupProps) {
   const items = flattenNavigableMenus(menu.children);
   if (items.length === 0) return null;
 
@@ -275,38 +299,62 @@ function MenuGroup({ menu, currentMenuId, collapsed }: MenuGroupProps) {
         items={items}
         currentMenuId={currentMenuId}
         collapsed={collapsed}
+        tabIndex={tabIndex}
       />
     </Box>
   );
 }
 
-export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
+export function Sidebar() {
   const pathname = usePathname();
+  const initialMenus = useWorkspaceMenus();
   const storedMenus = useMenuStore((state) => state.menus);
-  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
-  const setSidebarCollapsed = useUiStore((state) => state.setSidebarCollapsed);
+  const desktopSidebarCollapsed = useUiStore(
+    (state) => state.desktopSidebarCollapsed,
+  );
+  const mobileSidebarOpen = useUiStore((state) => state.mobileSidebarOpen);
+  const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
   const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const sidebarMenus = useMemo(
-    () => menus.filter((menu) => menu.path !== '/profile'),
+    () =>
+      menus.filter(
+        (menu) => normalizeAdminMenuPath(menu.path) !== '/admin/profile',
+      ),
     [menus],
   );
   const currentMenu = useMemo(
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
+  const restoreMobileSidebarToggleFocus = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(ADMIN_SIDEBAR_TOGGLE_ID)
+        ?.focus({ preventScroll: true });
+    });
+  }, []);
+  const closeMobileSidebarAndRestoreFocus = useCallback(() => {
+    closeMobileSidebar();
+    restoreMobileSidebarToggleFocus();
+  }, [closeMobileSidebar, restoreMobileSidebarToggleFocus]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 61.99em)');
-    const closeOnMobile = () => {
-      if (mediaQuery.matches) setSidebarCollapsed(true);
-    };
+    const shouldRestoreFocus = useUiStore.getState().mobileSidebarOpen;
+    closeMobileSidebar();
+    if (shouldRestoreFocus) restoreMobileSidebarToggleFocus();
+  }, [closeMobileSidebar, pathname, restoreMobileSidebarToggleFocus]);
 
-    void Promise.resolve(useUiStore.persist.rehydrate()).then(closeOnMobile);
-    mediaQuery.addEventListener('change', closeOnMobile);
-    return () => mediaQuery.removeEventListener('change', closeOnMobile);
-  }, [setSidebarCollapsed]);
-
-  const collapsed = sidebarCollapsed;
+  const collapsed =
+    useBreakpointValue({ base: false, lg: desktopSidebarCollapsed }) ?? false;
+  const isMobileViewport =
+    useBreakpointValue({ base: true, lg: false }) ?? true;
+  const mobileSidebarInactive = isMobileViewport && !mobileSidebarOpen;
+  const syncSidebarInert = useCallback(
+    (element: HTMLElement | null) => {
+      element?.toggleAttribute('inert', mobileSidebarInactive);
+    },
+    [mobileSidebarInactive],
+  );
   const sidebarWidth = collapsed
     ? DESKTOP_SIDEBAR_COLLAPSED_WIDTH
     : DESKTOP_SIDEBAR_EXPANDED_WIDTH;
@@ -314,21 +362,26 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
   return (
     <>
       <Box
-        display={{ base: collapsed ? 'none' : 'block', lg: 'none' }}
-        position="fixed"
+        display={{ base: mobileSidebarOpen ? 'block' : 'none', lg: 'none' }}
+        position="absolute"
         insetInlineStart={MOBILE_SIDEBAR_WIDTH}
         insetInlineEnd={0}
-        insetBlockStart={DASHBOARD_HEADER_HEIGHT}
+        insetBlockStart={0}
         insetBlockEnd={0}
         bg="blackAlpha.300"
         zIndex="overlay"
-        onClick={() => setSidebarCollapsed(true)}
+        data-testid="admin-sidebar-overlay"
+        onClick={closeMobileSidebarAndRestoreFocus}
+        aria-hidden
       />
 
       <Box
+        ref={syncSidebarInert}
+        id={ADMIN_SIDEBAR_ID}
         as="aside"
-        position="fixed"
-        insetBlockStart={DASHBOARD_HEADER_HEIGHT}
+        aria-hidden={mobileSidebarInactive ? true : undefined}
+        position="absolute"
+        insetBlockStart={0}
         insetBlockEnd={0}
         insetInlineStart={0}
         w={{ base: MOBILE_SIDEBAR_WIDTH, lg: sidebarWidth }}
@@ -337,7 +390,7 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
         backdropFilter="none"
         zIndex="modal"
         transform={{
-          base: collapsed ? 'translateX(-100%)' : 'translateX(0)',
+          base: mobileSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
           lg: 'none',
         }}
         transition="width 180ms ease, transform 180ms ease"
@@ -366,6 +419,7 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
                       menu={menu}
                       currentMenuId={currentMenu?.id}
                       collapsed={collapsed}
+                      tabIndex={mobileSidebarInactive ? -1 : undefined}
                     />
                   ) : menu.type !== 'DIR' ? (
                     <MenuItems
@@ -373,6 +427,7 @@ export function Sidebar({ initialMenus = [] }: { initialMenus?: MenuNode[] }) {
                       items={[menu, ...flattenNavigableMenus(menu.children)]}
                       currentMenuId={currentMenu?.id}
                       collapsed={collapsed}
+                      tabIndex={mobileSidebarInactive ? -1 : undefined}
                     />
                   ) : null,
                 )}

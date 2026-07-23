@@ -50,7 +50,7 @@ const permissions = [
 const menus = [
   {
     id: 'menu-dashboard',
-    path: '/',
+    path: '/admin',
     name: '仪表盘',
     type: 'PAGE',
     permissionCode: null,
@@ -60,7 +60,7 @@ const menus = [
   },
   {
     id: 'content-root',
-    path: '/content',
+    path: '/admin/content',
     name: '内容管理',
     type: 'DIR',
     permissionCode: 'content:view',
@@ -70,7 +70,7 @@ const menus = [
   },
   {
     id: 'menu-content-article',
-    path: '/content/article',
+    path: '/admin/content/article',
     name: '文章管理',
     type: 'PAGE',
     permissionCode: 'content:article:view',
@@ -80,7 +80,7 @@ const menus = [
   },
   {
     id: 'menu-content-tag',
-    path: '/content/tag',
+    path: '/admin/content/tag',
     name: '标签管理',
     type: 'PAGE',
     permissionCode: 'content:tag:view',
@@ -90,7 +90,7 @@ const menus = [
   },
   {
     id: 'menu-content-like',
-    path: '/content/like',
+    path: '/admin/content/like',
     name: '喜欢记录',
     type: 'PAGE',
     permissionCode: 'content:like:view',
@@ -100,7 +100,7 @@ const menus = [
   },
   {
     id: 'system-root',
-    path: '/system',
+    path: '/admin/system',
     name: '系统管理',
     type: 'DIR',
     permissionCode: 'system:view',
@@ -110,7 +110,7 @@ const menus = [
   },
   {
     id: 'menu-system-user',
-    path: '/system/user',
+    path: '/admin/system/user',
     name: '用户管理',
     type: 'PAGE',
     permissionCode: 'system:user:view',
@@ -120,7 +120,7 @@ const menus = [
   },
   {
     id: 'menu-system-role',
-    path: '/system/role',
+    path: '/admin/system/role',
     name: '角色管理',
     type: 'PAGE',
     permissionCode: 'system:role:view',
@@ -130,7 +130,7 @@ const menus = [
   },
   {
     id: 'menu-system-permission',
-    path: '/system/permission',
+    path: '/admin/system/permission',
     name: '权限管理',
     type: 'PAGE',
     permissionCode: 'system:permission:view',
@@ -140,7 +140,7 @@ const menus = [
   },
   {
     id: 'menu-system-menu',
-    path: '/system/menu',
+    path: '/admin/system/menu',
     name: '菜单管理',
     type: 'PAGE',
     permissionCode: 'system:menu:view',
@@ -150,7 +150,7 @@ const menus = [
   },
   {
     id: 'menu-system-file',
-    path: '/system/file',
+    path: '/admin/system/file',
     name: '文件管理',
     type: 'PAGE',
     permissionCode: 'system:file:view',
@@ -160,7 +160,7 @@ const menus = [
   },
   {
     id: 'menu-system-log',
-    path: '/system/log',
+    path: '/admin/system/log',
     name: '日志管理',
     type: 'DIR',
     permissionCode: 'log:operation:view',
@@ -170,7 +170,7 @@ const menus = [
   },
   {
     id: 'menu-system-log-operation',
-    path: '/system/log/operation',
+    path: '/admin/system/log/operation',
     name: '操作日志',
     type: 'PAGE',
     permissionCode: 'log:operation:view',
@@ -180,7 +180,7 @@ const menus = [
   },
   {
     id: 'menu-profile',
-    path: '/profile',
+    path: '/admin/profile',
     name: '个人中心',
     type: 'PAGE',
     permissionCode: null,

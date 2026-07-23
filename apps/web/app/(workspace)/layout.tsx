@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import type { ReactNode } from 'react';
 import type { MenuNode, ProfileDto, UserNavigation } from '@veb/api-contracts';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
+import { WorkspaceShell } from '@/components/layout/workspace-shell';
 import { requestVebPage } from '@/lib/server-api';
 
-export default async function DashboardLayout({
+export default async function WorkspaceLayout({
   children,
 }: {
   children: ReactNode;
@@ -18,12 +18,12 @@ export default async function DashboardLayout({
   const user = { ...profile, roles: navigation.roleCodes };
 
   return (
-    <DashboardShell
+    <WorkspaceShell
       user={user}
       menus={menus}
       permissionCodes={navigation.permissionCodes}
     >
       {children}
-    </DashboardShell>
+    </WorkspaceShell>
   );
 }

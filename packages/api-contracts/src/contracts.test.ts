@@ -10,6 +10,8 @@ import {
   paginationQuerySchema,
   publicArticleDetailSchema,
   likeListQuerySchema,
+  menuCreateInputSchema,
+  menuUpdateInputSchema,
   roleDetailDtoSchema,
   roleDtoSchema,
   roleListQuerySchema,
@@ -191,6 +193,61 @@ describe('service DTO boundaries', () => {
     expect(
       userCreateInputSchema.safeParse({ username: 'admin', password: 'short' })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe('menu inputs', () => {
+  const pageMenu = {
+    name: '用户管理',
+    path: '/admin/system/user',
+    type: 'PAGE' as const,
+    permissionCode: 'system:user:view',
+  };
+
+  it('accepts admin paths and rejects legacy paths for create and update', () => {
+    expect(menuCreateInputSchema.safeParse(pageMenu).success).toBe(true);
+    expect(
+      menuCreateInputSchema.safeParse({ ...pageMenu, path: '/system/user' })
+        .success,
+    ).toBe(false);
+    expect(
+      menuUpdateInputSchema.safeParse({ path: '/content/article' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects admin-looking paths that browsers normalize elsewhere', () => {
+    for (const path of [
+      '/admin/../articles',
+      '/admin/%2e%2e/articles',
+      '/admin//system/user',
+      '/admin/system/user/',
+      '/admin/system/user?tab=roles',
+      '/admin/system/user#roles',
+    ]) {
+      expect(
+        menuCreateInputSchema.safeParse({ ...pageMenu, path }).success,
+        path,
+      ).toBe(false);
+    }
+  });
+
+  it('keeps a LINK destination separate from its admin menu path', () => {
+    expect(
+      menuCreateInputSchema.safeParse({
+        name: '项目文档',
+        path: '/admin/docs',
+        type: 'LINK',
+        externalUrl: 'https://example.com/docs',
+      }).success,
+    ).toBe(true);
+    expect(
+      menuCreateInputSchema.safeParse({
+        name: '项目文档',
+        path: 'https://example.com/docs',
+        type: 'LINK',
+        externalUrl: 'https://example.com/docs',
+      }).success,
     ).toBe(false);
   });
 });

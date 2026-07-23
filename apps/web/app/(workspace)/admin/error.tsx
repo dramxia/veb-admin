@@ -23,7 +23,7 @@ export default function DashboardError({
       digest={error.digest}
       actions={[
         { label: '重新加载模块', onClick: reset },
-        { label: '返回仪表盘', href: '/', variant: 'outline' },
+        { label: '返回仪表盘', href: '/admin', variant: 'outline' },
       ]}
     />
   );

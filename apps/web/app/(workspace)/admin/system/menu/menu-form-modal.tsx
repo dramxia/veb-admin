@@ -267,7 +267,7 @@ export function MenuFormModal({
                     name="path"
                     defaultValue={menu?.path ?? ''}
                     isDisabled={busy || locked}
-                    placeholder="/system/demo"
+                    placeholder="/admin/system/demo"
                   />
                 </FormControl>
               </Stack>

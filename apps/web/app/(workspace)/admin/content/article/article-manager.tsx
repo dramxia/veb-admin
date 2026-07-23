@@ -112,7 +112,7 @@ export function ArticleManager({
           <Auth code="content:article:create">
             <Button
               as={NextLink}
-              href="/content/article/new"
+              href="/admin/content/article/new"
               leftIcon={<Icon as={Plus} boxSize={4} />}
             >
               新增文章
@@ -259,7 +259,7 @@ export function ArticleManager({
                       <Auth code="content:article:update">
                         <Button
                           as={NextLink}
-                          href={`/content/article/${article.id}/edit`}
+                          href={`/admin/content/article/${article.id}/edit`}
                           size="xs"
                           variant="ghost"
                           aria-label="编辑文章"

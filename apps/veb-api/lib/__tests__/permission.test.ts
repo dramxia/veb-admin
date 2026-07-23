@@ -11,9 +11,9 @@ vi.mock('../menu', () => ({
     return { roleCodes: ['user'], permissionCodes: ['system:user:view'] };
   }),
   getMenuByPath: vi.fn(async (pathname: string) => {
-    if (pathname === '/system/user')
+    if (pathname === '/admin/system/user')
       return { permissionCode: 'system:user:view' };
-    if (pathname === '/system/role')
+    if (pathname === '/admin/system/role')
       return { permissionCode: 'system:role:view' };
     return null;
   }),
@@ -40,10 +40,20 @@ describe('permission helpers', () => {
   });
 
   it('checks menu access by path', async () => {
-    await expect(permission.canAccess('u1', '/system/user')).resolves.toBe(
+    await expect(
+      permission.canAccess('u1', '/admin/system/user'),
+    ).resolves.toBe(true);
+    await expect(
+      permission.canAccess('u1', '/admin/system/role'),
+    ).resolves.toBe(false);
+  });
+
+  it('allows public admin entry points without a menu permission', async () => {
+    await expect(permission.canAccess('u1', '/admin')).resolves.toBe(true);
+    await expect(permission.canAccess('u1', '/admin/profile')).resolves.toBe(
       true,
     );
-    await expect(permission.canAccess('u1', '/system/role')).resolves.toBe(
+    await expect(permission.canAccess('u1', '/admin/unknown')).resolves.toBe(
       false,
     );
   });

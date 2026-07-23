@@ -5,7 +5,7 @@ const LOCAL_ORIGIN = 'https://veb.local';
  */
 export function getSafeInternalPath(
   value: string | null | undefined,
-  fallback = '/',
+  fallback = '/admin',
 ) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) {
     return fallback;

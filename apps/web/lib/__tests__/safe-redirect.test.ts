@@ -3,8 +3,8 @@ import { getSafeInternalPath } from '@/lib/safe-redirect';
 
 describe('getSafeInternalPath', () => {
   it('保留合法站内路径、查询参数和锚点', () => {
-    expect(getSafeInternalPath('/system/user?tab=enabled#list')).toBe(
-      '/system/user?tab=enabled#list',
+    expect(getSafeInternalPath('/admin/system/user?tab=enabled#list')).toBe(
+      '/admin/system/user?tab=enabled#list',
     );
   });
 
@@ -16,6 +16,6 @@ describe('getSafeInternalPath', () => {
     '/\\example.com/path',
     'javascript:alert(1)',
   ])('拒绝不安全回跳地址：%s', (value) => {
-    expect(getSafeInternalPath(value)).toBe('/');
+    expect(getSafeInternalPath(value)).toBe('/admin');
   });
 });

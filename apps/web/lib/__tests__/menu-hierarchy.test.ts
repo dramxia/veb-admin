@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildMenuHierarchy,
   collectDescendantIds,
-} from '@/app/(dashboard)/system/menu/menu-hierarchy';
+} from '@/app/(workspace)/admin/system/menu/menu-hierarchy';
 
 type Menu = {
   id: string;

@@ -241,7 +241,7 @@ export function ArticleEditor({
           body: JSON.stringify({ ...state, summary: state.summary || null }),
         },
       );
-      router.push('/content/article');
+      router.push('/admin/content/article');
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '文章保存失败');
@@ -520,7 +520,7 @@ export function ArticleEditor({
               type="button"
               variant="ghost"
               isDisabled={saving}
-              onClick={() => router.push('/content/article')}
+              onClick={() => router.push('/admin/content/article')}
             >
               取消
             </Button>

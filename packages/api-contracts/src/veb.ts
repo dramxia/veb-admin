@@ -6,6 +6,38 @@ export const permissionTypeSchema = z.enum(['MENU', 'BUTTON']);
 export const menuTypeSchema = z.enum(['DIR', 'PAGE', 'LINK']);
 export const logStatusSchema = z.enum(['SUCCESS', 'FAILURE']);
 
+export function isCanonicalAdminMenuPath(path: string) {
+  if (
+    (path !== '/admin' && !path.startsWith('/admin/')) ||
+    (path !== '/admin' && path.endsWith('/')) ||
+    path.includes('//') ||
+    path.includes('\\') ||
+    path.includes('?') ||
+    path.includes('#') ||
+    path.includes('%')
+  ) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(path, 'https://veb.invalid');
+    return (
+      parsed.origin === 'https://veb.invalid' &&
+      parsed.pathname === path &&
+      parsed.search === '' &&
+      parsed.hash === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+export const adminMenuPathSchema = z
+  .string()
+  .trim()
+  .min(1, '路径不能为空')
+  .refine(isCanonicalAdminMenuPath, '后台菜单路径必须是规范的 /admin 绝对路径');
+
 export const roleSummarySchema = z
   .object({
     id: idSchema,
@@ -213,7 +245,7 @@ export const menuCreateInputSchema = z
   .object({
     parentId: idSchema.optional().nullable(),
     name: z.string().trim().min(1, '菜单名称不能为空'),
-    path: z.string().trim().min(1, '路径不能为空'),
+    path: adminMenuPathSchema,
     component: z.string().trim().optional().nullable(),
     icon: z.string().trim().optional().nullable(),
     sort: z.number().int().default(0),

@@ -38,7 +38,10 @@ async function getMenuDepth(
 
 async function validateMenu(
   tx: Prisma.TransactionClient,
-  data: Pick<MenuCreateData, 'type' | 'permissionCode' | 'parentId'>,
+  data: Pick<
+    MenuCreateData,
+    'type' | 'permissionCode' | 'parentId' | 'externalUrl'
+  >,
   currentMenuId?: string,
 ) {
   if ((await getMenuDepth(tx, data.parentId, currentMenuId)) > 4) {
@@ -46,6 +49,9 @@ async function validateMenu(
   }
   if (data.type === 'PAGE' && !data.permissionCode) {
     throw new ParamError('PAGE 类型菜单必须绑定权限码');
+  }
+  if (data.type === 'LINK' && !data.externalUrl) {
+    throw new ParamError('LINK 类型菜单必须设置外链地址');
   }
   if (data.permissionCode) {
     const permission = await tx.permission.findUnique({
@@ -113,6 +119,10 @@ export async function updateMenu(id: string, data: MenuUpdateData) {
                 : old.permissionCode,
             parentId:
               data.parentId !== undefined ? data.parentId : old.parentId,
+            externalUrl:
+              data.externalUrl !== undefined
+                ? data.externalUrl
+                : old.externalUrl,
           },
           id,
         );
