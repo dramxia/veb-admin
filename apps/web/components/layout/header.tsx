@@ -471,7 +471,7 @@ export function Header({ user }: HeaderProps) {
                 <MenuItem
                   as={Link}
                   href="/profile"
-                  icon={<Icon as={UserCircle} boxSize={4.5} aria-hidden />}
+                  icon={<Icon as={UserCircle} boxSize="18px" aria-hidden />}
                   aria-current={
                     isActive(pathname, '/profile') ? 'page' : undefined
                   }
@@ -480,7 +480,7 @@ export function Header({ user }: HeaderProps) {
                   个人中心
                 </MenuItem>
                 <MenuItem
-                  icon={<Icon as={LogOut} boxSize={4.5} aria-hidden />}
+                  icon={<Icon as={LogOut} boxSize="18px" aria-hidden />}
                   onClick={() => void signOut({ callbackUrl: '/login' })}
                   rounded="xl"
                 >

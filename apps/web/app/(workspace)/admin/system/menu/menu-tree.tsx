@@ -157,7 +157,7 @@ export function MenuTree({
           <AuthButton
             code="system:menu:create"
             isLoading={loading}
-            icon={<Icon as={Plus} boxSize={4.5} />}
+            icon={<Icon as={Plus} boxSize="18px" />}
             onClick={() =>
               openCreate(
                 moduleFilter === 'ALL' ? undefined : { moduleId: moduleFilter },
@@ -324,7 +324,7 @@ export function MenuTree({
                             variant="ghost"
                             tooltip="新增按钮"
                             aria-label={`在页面 ${menu.name} 下新增按钮`}
-                            icon={<Icon as={SquarePlus} boxSize={4.5} />}
+                            icon={<Icon as={SquarePlus} boxSize="18px" />}
                             isDisabled={loading}
                             onClick={() =>
                               openCreate({
@@ -343,7 +343,7 @@ export function MenuTree({
                           variant="ghost"
                           tooltip={`编辑${typeMeta.label}`}
                           aria-label={`编辑${typeMeta.label} ${menu.name}`}
-                          icon={<Icon as={Pencil} boxSize={4.5} />}
+                          icon={<Icon as={Pencil} boxSize="18px" />}
                           isDisabled={loading}
                           onClick={() => {
                             clearError();
@@ -364,7 +364,7 @@ export function MenuTree({
                               : `删除${typeMeta.label}`
                           }
                           aria-label={`删除${typeMeta.label} ${menu.name}`}
-                          icon={<Icon as={Trash2} boxSize={4.5} />}
+                          icon={<Icon as={Trash2} boxSize="18px" />}
                           isDisabled={loading || menu.isSystem}
                           onClick={() => {
                             clearError();
