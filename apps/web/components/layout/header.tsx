@@ -163,6 +163,8 @@ export function Header({ user }: HeaderProps) {
   const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const searchPopover = useDisclosure();
   const [query, setQuery] = useState('');
+  const [desktopSidebarTooltipOpen, setDesktopSidebarTooltipOpen] =
+    useState(false);
   const desktopSidebarCollapsed = useUiStore(
     (state) => state.desktopSidebarCollapsed,
   );
@@ -267,6 +269,7 @@ export function Header({ user }: HeaderProps) {
               <Tooltip
                 label={desktopSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
                 placement="bottom"
+                isOpen={desktopSidebarTooltipOpen}
               >
                 <IconButton
                   display={{ base: 'none', lg: 'inline-flex' }}
@@ -282,7 +285,18 @@ export function Header({ user }: HeaderProps) {
                       aria-hidden
                     />
                   }
-                  onClick={toggleDesktopSidebar}
+                  onClick={() => {
+                    setDesktopSidebarTooltipOpen(false);
+                    toggleDesktopSidebar();
+                  }}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== 'touch') {
+                      setDesktopSidebarTooltipOpen(true);
+                    }
+                  }}
+                  onPointerLeave={() => setDesktopSidebarTooltipOpen(false)}
+                  onPointerDown={() => setDesktopSidebarTooltipOpen(false)}
+                  onPointerCancel={() => setDesktopSidebarTooltipOpen(false)}
                   variant="ghost"
                   size="sm"
                   flexShrink={0}

@@ -154,6 +154,35 @@ test('desktop sidebar preference is restored on refresh', async ({
   await page.getByRole('button', { name: '展开侧边栏' }).click();
 });
 
+test('desktop sidebar tooltip only opens from pointer hover', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium');
+
+  await login(page);
+  await page.goto('/admin/system/user');
+
+  const sidebarToggle = page.getByRole('button', { name: '收起侧边栏' });
+  const sidebarTooltip = page
+    .locator('[role="tooltip"]')
+    .filter({ hasText: '收起侧边栏' });
+
+  await sidebarToggle.focus();
+  await expect(sidebarTooltip).toHaveCount(0);
+
+  await page.getByRole('button', { name: '新增用户' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  await sidebarToggle.evaluate((button) => {
+    button.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  });
+  await expect(sidebarTooltip).toHaveCount(0);
+
+  await page.getByRole('button', { name: '关闭用户表单' }).click();
+  await sidebarToggle.hover();
+  await expect(sidebarTooltip).toBeVisible();
+});
+
 test('the 375px module header and mobile sidebar stay within the viewport', async ({
   page,
 }, testInfo) => {
