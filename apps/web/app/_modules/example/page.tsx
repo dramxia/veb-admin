@@ -8,7 +8,7 @@ export default function ExampleModulePage() {
           动态模块示例
         </Heading>
         <Text color="gray.500">
-          这是通过数据库菜单 component 字段加载的示例页面。
+          这是由代码注册并通过数据库授权启用的模块首页。
         </Text>
       </CardBody>
     </Card>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MenuNode } from '@veb/api-contracts';
+import type { MenuDto, MenuNode } from '@veb/api-contracts';
 import {
   buildOrbitalMenuEntries,
   getCubicBezierPoint,
@@ -16,17 +16,19 @@ import {
 
 function createMenu(
   id: string,
-  path: string,
+  path: string | null,
   options?: {
-    type?: MenuNode['type'];
+    type?: MenuDto['type'];
     children?: MenuNode[];
     externalUrl?: string | null;
   },
 ): MenuNode {
   return {
     id,
+    moduleId: 'module-admin',
     parentId: null,
     name: id,
+    description: null,
     path,
     component: null,
     icon: null,
@@ -37,7 +39,7 @@ function createMenu(
     status: 'ENABLED',
     externalUrl: options?.externalUrl ?? null,
     children: options?.children ?? [],
-  };
+  } as MenuNode;
 }
 
 describe('orbital menu helpers', () => {
@@ -75,6 +77,13 @@ describe('orbital menu helpers', () => {
       href: 'https://example.com/docs',
       external: true,
     });
+  });
+
+  it('excludes BUTTON nodes from wheel entries and trails', () => {
+    const button = createMenu('edit', null, { type: 'BUTTON' });
+
+    expect(buildOrbitalMenuEntries([button])).toEqual([]);
+    expect(getOrbitalMenuTrail([button], button.id)).toEqual([]);
   });
 
   it('finds the complete menu trail for restoring nested wheels', () => {

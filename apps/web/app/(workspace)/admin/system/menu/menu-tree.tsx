@@ -9,6 +9,7 @@ import {
   Flex,
   HStack,
   Icon,
+  Select,
   Stack,
   Table,
   Tbody,
@@ -20,13 +21,15 @@ import {
   VisuallyHidden,
   useDisclosure,
 } from '@chakra-ui/react';
-import type { MenuDto, PermissionDto } from '@veb/api-contracts';
+import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
 import {
   ExternalLink,
   FileText,
   FolderTree,
+  MousePointerClick,
   Pencil,
   Plus,
+  SquarePlus,
   Trash2,
   type LucideIcon,
 } from 'lucide-react';
@@ -40,7 +43,7 @@ import {
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
-import { MenuFormModal } from './menu-form-modal';
+import { MenuFormModal, type MenuCreateDefaults } from './menu-form-modal';
 import { buildMenuHierarchy } from './menu-hierarchy';
 
 type MenuTypeMeta = {
@@ -50,7 +53,7 @@ type MenuTypeMeta = {
   label: string;
 };
 
-const MENU_TYPE_META: Record<string, MenuTypeMeta> = {
+const MENU_TYPE_META: Record<MenuDto['type'], MenuTypeMeta> = {
   DIR: {
     colorScheme: 'gray',
     icon: FolderTree,
@@ -69,13 +72,12 @@ const MENU_TYPE_META: Record<string, MenuTypeMeta> = {
     iconColor: 'brand.600',
     label: '页面',
   },
-};
-
-const DEFAULT_TYPE_META: MenuTypeMeta = {
-  colorScheme: 'gray',
-  icon: FileText,
-  iconColor: 'ink.500',
-  label: '未知',
+  BUTTON: {
+    colorScheme: 'orange',
+    icon: MousePointerClick,
+    iconColor: 'orange.600',
+    label: '按钮',
+  },
 };
 
 function api<T = unknown>(path: string, init: RequestInit) {
@@ -84,10 +86,10 @@ function api<T = unknown>(path: string, init: RequestInit) {
 
 export function MenuTree({
   menus,
-  permissions,
+  modules,
 }: {
   menus: MenuDto[];
-  permissions: PermissionDto[];
+  modules: MenuModuleOption[];
 }) {
   const { clearError, error, loading, run } = useActionFeedback({
     refresh: true,
@@ -95,45 +97,84 @@ export function MenuTree({
   const formModal = useDisclosure();
   const deleteDialog = useDisclosure();
   const [editingMenu, setEditingMenu] = useState<MenuDto | null>(null);
+  const [createDefaults, setCreateDefaults] =
+    useState<MenuCreateDefaults | null>(null);
+  const [formSession, setFormSession] = useState(0);
   const [deletingMenu, setDeletingMenu] = useState<MenuDto | null>(null);
-  const rows = useMemo(() => buildMenuHierarchy(menus), [menus]);
+  const [moduleFilter, setModuleFilter] = useState(modules[0]?.id ?? 'ALL');
+  const visibleMenus = useMemo(
+    () =>
+      moduleFilter === 'ALL'
+        ? menus
+        : menus.filter((menu) => menu.moduleId === moduleFilter),
+    [menus, moduleFilter],
+  );
+  const rows = useMemo(() => buildMenuHierarchy(visibleMenus), [visibleMenus]);
+  const buttonCount = visibleMenus.filter(
+    (menu) => menu.type === 'BUTTON',
+  ).length;
+  const navigationCount = visibleMenus.length - buttonCount;
+
+  function openCreate(defaults?: MenuCreateDefaults) {
+    clearError();
+    setEditingMenu(null);
+    setCreateDefaults(defaults ?? null);
+    setFormSession((current) => current + 1);
+    formModal.onOpen();
+  }
 
   return (
     <>
       <DataTableCard
-        minW={{ base: '700px', lg: '980px' }}
-        title="菜单结构"
-        description="父节点后紧跟完整子树；层级、导航可见性和启停状态可直接扫描。"
-        meta={`${menus.length} 个菜单节点 · ${permissions.length} 个可绑定权限`}
+        minW={{ base: '760px', lg: '1080px' }}
+        title="菜单与权限结构"
+        description="页面、外链和按钮节点直接承载权限码；按钮固定放在所属页面下。"
+        meta={`${navigationCount} 个导航节点 · ${buttonCount} 个按钮`}
         toolbar={
-          error ? (
-            <Alert status="error" aria-live="polite">
-              <AlertIcon />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : undefined
+          <Stack spacing={3}>
+            {error ? (
+              <Alert status="error" aria-live="polite">
+                <AlertIcon />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+            <Select
+              value={moduleFilter}
+              onChange={(event) => setModuleFilter(event.target.value)}
+              maxW={{ base: 'full', md: '280px' }}
+              aria-label="按模块筛选菜单和权限"
+            >
+              <option value="ALL">全部模块</option>
+              {modules.map((module) => (
+                <option key={module.id} value={module.id}>
+                  {module.name}
+                </option>
+              ))}
+            </Select>
+          </Stack>
         }
         primaryAction={
           <AuthButton
             code="system:menu:create"
             isLoading={loading}
             icon={<Icon as={Plus} boxSize={4.5} />}
-            onClick={() => {
-              clearError();
-              setEditingMenu(null);
-              formModal.onOpen();
-            }}
+            onClick={() =>
+              openCreate(
+                moduleFilter === 'ALL' ? undefined : { moduleId: moduleFilter },
+              )
+            }
           >
-            新增菜单
+            新增节点
           </AuthButton>
         }
       >
-        <Table size="sm" aria-label="菜单层级结构">
+        <Table size="sm" aria-label="菜单与权限层级结构">
           <Thead>
             <Tr>
               <Th>名称与层级</Th>
-              <Th>路径</Th>
+              <Th>路由或说明</Th>
               <Th>类型</Th>
+              <Th>模块</Th>
               <Th display={{ base: 'none', lg: 'table-cell' }}>权限码</Th>
               <Th>状态</Th>
               <Th display={{ base: 'none', md: 'table-cell' }}>归属</Th>
@@ -143,7 +184,7 @@ export function MenuTree({
           {rows.length > 0 ? (
             <Tbody>
               {rows.map(({ childCount, depth, menu, structure }) => {
-                const typeMeta = MENU_TYPE_META[menu.type] ?? DEFAULT_TYPE_META;
+                const typeMeta = MENU_TYPE_META[menu.type];
                 const indentation = Math.min(depth, 10) * 4;
 
                 return (
@@ -187,33 +228,51 @@ export function MenuTree({
                             ) : null}
                           </HStack>
                           <HStack spacing={2} wrap="wrap">
-                            <Badge colorScheme="gray">第 {depth + 1} 层</Badge>
-                            {!menu.visible ? (
+                            <Badge colorScheme="gray">
+                              {menu.type === 'BUTTON'
+                                ? '页面操作'
+                                : `第 ${depth + 1} 层`}
+                            </Badge>
+                            {menu.type !== 'BUTTON' && !menu.visible ? (
                               <Badge colorScheme="gray">导航隐藏</Badge>
                             ) : null}
                           </HStack>
                         </Stack>
                         <VisuallyHidden>
-                          {menu.name}，第 {depth + 1} 层，
+                          {menu.name}，{typeMeta.label}，
                           {childCount > 0
-                            ? `${childCount} 个直接子菜单`
-                            : '无子菜单'}
+                            ? `${childCount} 个直接子项`
+                            : '无子项'}
                         </VisuallyHidden>
                       </Flex>
                     </Td>
                     <Td>
-                      <Stack spacing={1} minW="180px">
+                      <Stack spacing={1} minW="190px">
                         <Text color="ink.700" fontWeight="700">
-                          {menu.path || '-'}
+                          {menu.type === 'LINK'
+                            ? menu.externalUrl || '-'
+                            : menu.type === 'BUTTON'
+                              ? menu.description || '页面操作权限'
+                              : menu.path || '-'}
                         </Text>
                         {menu.type === 'PAGE' && menu.component ? (
                           <Text color="ink.500" fontSize="xs">
                             组件：{menu.component}
                           </Text>
                         ) : null}
-                        {menu.type === 'LINK' && menu.externalUrl ? (
+                        {menu.type !== 'BUTTON' && menu.description ? (
                           <Text color="ink.500" fontSize="xs" noOfLines={1}>
-                            外链：{menu.externalUrl}
+                            {menu.description}
+                          </Text>
+                        ) : null}
+                        {menu.type === 'BUTTON' && menu.permissionCode ? (
+                          <Text
+                            display={{ base: 'block', lg: 'none' }}
+                            color="ink.500"
+                            fontSize="xs"
+                            wordBreak="break-all"
+                          >
+                            {menu.permissionCode}
                           </Text>
                         ) : null}
                       </Stack>
@@ -222,6 +281,10 @@ export function MenuTree({
                       <Badge colorScheme={typeMeta.colorScheme}>
                         {typeMeta.label}
                       </Badge>
+                    </Td>
+                    <Td>
+                      {modules.find((module) => module.id === menu.moduleId)
+                        ?.name ?? '-'}
                     </Td>
                     <Td display={{ base: 'none', lg: 'table-cell' }}>
                       <Text color="ink.600" fontSize="xs" wordBreak="break-all">
@@ -237,9 +300,13 @@ export function MenuTree({
                         >
                           {menu.status === 'ENABLED' ? '启用' : '停用'}
                         </Badge>
-                        <Badge colorScheme={menu.visible ? 'cyan' : 'gray'}>
-                          {menu.visible ? '导航显示' : '导航隐藏'}
-                        </Badge>
+                        {menu.type !== 'BUTTON' ? (
+                          <Badge colorScheme={menu.visible ? 'cyan' : 'gray'}>
+                            {menu.visible ? '导航显示' : '导航隐藏'}
+                          </Badge>
+                        ) : (
+                          <Badge colorScheme="gray">排序 {menu.sort}</Badge>
+                        )}
                       </Stack>
                     </Td>
                     <Td display={{ base: 'none', md: 'table-cell' }}>
@@ -249,18 +316,40 @@ export function MenuTree({
                     </Td>
                     <Td>
                       <TableActions>
+                        {menu.type === 'PAGE' ? (
+                          <AuthButton
+                            code="system:menu:create"
+                            size="xs"
+                            intent="neutral"
+                            variant="ghost"
+                            tooltip="新增按钮"
+                            aria-label={`在页面 ${menu.name} 下新增按钮`}
+                            icon={<Icon as={SquarePlus} boxSize={4.5} />}
+                            isDisabled={loading}
+                            onClick={() =>
+                              openCreate({
+                                moduleId: menu.moduleId,
+                                parentId: menu.id,
+                                type: 'BUTTON',
+                                lockParent: true,
+                              })
+                            }
+                          />
+                        ) : null}
                         <AuthButton
                           code="system:menu:update"
                           size="xs"
                           intent="neutral"
                           variant="ghost"
-                          tooltip="编辑菜单"
-                          aria-label={`编辑菜单 ${menu.name}`}
+                          tooltip={`编辑${typeMeta.label}`}
+                          aria-label={`编辑${typeMeta.label} ${menu.name}`}
                           icon={<Icon as={Pencil} boxSize={4.5} />}
                           isDisabled={loading}
                           onClick={() => {
                             clearError();
+                            setCreateDefaults(null);
                             setEditingMenu(menu);
+                            setFormSession((current) => current + 1);
                             formModal.onOpen();
                           }}
                         />
@@ -270,9 +359,11 @@ export function MenuTree({
                           intent="danger"
                           variant="ghost"
                           tooltip={
-                            menu.isSystem ? '系统菜单不可删除' : '删除菜单'
+                            menu.isSystem
+                              ? `系统${typeMeta.label}不可删除`
+                              : `删除${typeMeta.label}`
                           }
-                          aria-label={`删除菜单 ${menu.name}`}
+                          aria-label={`删除${typeMeta.label} ${menu.name}`}
                           icon={<Icon as={Trash2} boxSize={4.5} />}
                           isDisabled={loading || menu.isSystem}
                           onClick={() => {
@@ -288,7 +379,7 @@ export function MenuTree({
               })}
             </Tbody>
           ) : (
-            <EmptyTableRow colSpan={7} text="暂无菜单数据" />
+            <EmptyTableRow colSpan={8} text="暂无菜单或按钮数据" />
           )}
         </Table>
       </DataTableCard>
@@ -296,9 +387,12 @@ export function MenuTree({
       <MenuFormModal
         isOpen={formModal.isOpen}
         isLoading={loading}
+        error={error}
         menu={editingMenu}
         menus={menus}
-        permissions={permissions}
+        modules={modules}
+        createDefaults={createDefaults}
+        formSession={formSession}
         onClose={() => {
           clearError();
           formModal.onClose();
@@ -322,8 +416,8 @@ export function MenuTree({
 
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
-        title="删除菜单"
-        description={`确认删除菜单 ${deletingMenu?.name ?? ''}？子菜单和权限绑定关系请先确认。`}
+        title={`删除${deletingMenu ? MENU_TYPE_META[deletingMenu.type].label : '节点'}`}
+        description={`确认删除 ${deletingMenu?.name ?? ''}？有子节点时后端会拒绝删除，已有角色授权会随叶子节点一并撤销。`}
         error={error}
         confirmLabel="删除"
         intent="danger"

@@ -40,18 +40,12 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MenuNode } from '@veb/api-contracts';
 import { BrandMark } from '@/components/common/brand-mark';
 import type { AuthUser } from '@/stores/auth-store';
-import { useMenuStore } from '@/stores/menu-store';
 import { useUiStore } from '@/stores/ui-store';
+import type { WorkspaceAppModule } from './app-modules';
 import {
-  appModules,
-  DEFAULT_AUTHENTICATED_PATH,
-  resolveAppModule,
-} from './app-modules';
-import {
-  flattenMenus,
+  flattenNavigableMenus,
   getCurrentMenu,
   getHref,
   isActive,
@@ -62,15 +56,22 @@ import {
   ADMIN_SIDEBAR_TOGGLE_ID,
   DASHBOARD_HEADER_HEIGHT,
 } from './layout-constants';
+import { useWorkspaceData } from './workspace-data-context';
 
 type HeaderProps = {
   user: Pick<AuthUser, 'username' | 'nickname' | 'avatar'>;
-  initialMenus?: MenuNode[];
 };
 
-function ModuleSwitcher({ pathname }: { pathname: string }) {
-  const activeModule = resolveAppModule(pathname);
+function ModuleSwitcher({
+  activeModule,
+  modules,
+}: {
+  activeModule?: WorkspaceAppModule;
+  modules: WorkspaceAppModule[];
+}) {
   const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
+
+  if (modules.length === 0) return null;
 
   return (
     <>
@@ -79,26 +80,30 @@ function ModuleSwitcher({ pathname }: { pathname: string }) {
         aria-label="应用模块"
         display={{ base: 'none', xl: 'flex' }}
         spacing={1}
+        maxW={{ xl: '46vw', '2xl': '640px' }}
+        overflowX="auto"
+        overscrollBehaviorX="contain"
       >
-        {appModules.map((module) => {
+        {modules.map((module) => {
           const current = module.id === activeModule?.id;
           return (
             <Button
               key={module.id}
               as={Link}
-              href={module.homePath}
+              href={module.landingPath}
               aria-current={current ? 'page' : undefined}
               variant="ghost"
               size="sm"
               h="34px"
               minW="auto"
               px={3}
+              flexShrink={0}
               bg={current ? 'brand.50' : 'transparent'}
               color={current ? 'brand.700' : 'ink.600'}
               onClick={closeMobileSidebar}
               _hover={{ bg: 'brand.50', color: 'ink.900' }}
             >
-              {module.label}
+              {module.name}
             </Button>
           );
         })}
@@ -117,22 +122,30 @@ function ModuleSwitcher({ pathname }: { pathname: string }) {
           aria-label="切换应用模块"
         >
           <Text as="span" noOfLines={1}>
-            {activeModule?.label ?? '模块'}
+            {activeModule?.name ?? '模块'}
           </Text>
         </MenuButton>
         <Portal>
-          <MenuList minW="180px" zIndex="popover">
-            {appModules.map((module) => (
+          <MenuList
+            minW="180px"
+            maxW="calc(100vw - 16px)"
+            maxH="calc(100vh - 80px)"
+            overflowY="auto"
+            zIndex="popover"
+          >
+            {modules.map((module) => (
               <MenuItem
                 key={module.id}
                 as={Link}
-                href={module.homePath}
+                href={module.landingPath}
                 aria-current={
                   module.id === activeModule?.id ? 'page' : undefined
                 }
                 onClick={closeMobileSidebar}
+                whiteSpace="normal"
+                overflowWrap="anywhere"
               >
-                {module.label}
+                {module.name}
               </MenuItem>
             ))}
           </MenuList>
@@ -142,10 +155,10 @@ function ModuleSwitcher({ pathname }: { pathname: string }) {
   );
 }
 
-export function Header({ user, initialMenus = [] }: HeaderProps) {
+export function Header({ user }: HeaderProps) {
   const displayName = user.nickname ?? user.username;
   const pathname = usePathname();
-  const activeModule = useMemo(() => resolveAppModule(pathname), [pathname]);
+  const { activeModule, menus, modules } = useWorkspaceData();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const searchPopover = useDisclosure();
@@ -159,16 +172,11 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
   const mobileSidebarOpen = useUiStore((state) => state.mobileSidebarOpen);
   const openMobileSidebar = useUiStore((state) => state.openMobileSidebar);
   const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
-  const storedMenus = useMenuStore((state) => state.menus);
-  const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const flatMenus = useMemo(
     () =>
-      flattenMenus(menus).filter((menu) => {
+      flattenNavigableMenus(menus).filter((menu) => {
         const href = getHref(menu);
-        return (
-          (menu.type !== 'DIR' || href === '/admin') &&
-          href !== '/admin/profile'
-        );
+        return href !== '/profile' && href !== '/admin/profile';
       }),
     [menus],
   );
@@ -186,9 +194,10 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
-  const canToggleSidebar = Boolean(activeModule?.capabilities.sidebarToggle);
-  const canSearchMenus = Boolean(activeModule?.capabilities.menuSearch);
-  const moduleHomePath = activeModule?.homePath ?? DEFAULT_AUTHENTICATED_PATH;
+  const canToggleSidebar = Boolean(activeModule);
+  const canSearchMenus = Boolean(activeModule);
+  const moduleLandingPath =
+    activeModule?.landingPath ?? modules[0]?.landingPath;
   const restoreMobileSidebarToggleFocus = useCallback(() => {
     window.requestAnimationFrame(() => {
       mobileSidebarToggleRef.current?.focus({ preventScroll: true });
@@ -297,18 +306,26 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
           </HStack>
         </HStack>
 
-        <HStack spacing={{ base: 0, sm: 1, md: 2 }} flexShrink={0} minW={0}>
-          <ModuleSwitcher pathname={pathname} />
+        <HStack
+          spacing={{ base: 0, sm: 1, md: 2 }}
+          flex={1}
+          justify="flex-end"
+          minW={0}
+        >
+          <ModuleSwitcher activeModule={activeModule} modules={modules} />
 
-          <IconButton
-            as={Link}
-            href={moduleHomePath}
-            aria-label={`返回${activeModule?.label ?? ''}首页`}
-            aria-current={pathname === moduleHomePath ? 'page' : undefined}
-            icon={<Icon as={Home} boxSize={5} aria-hidden />}
-            variant="ghost"
-            size="sm"
-          />
+          {moduleLandingPath ? (
+            <IconButton
+              as={Link}
+              href={moduleLandingPath}
+              aria-label={`返回${activeModule?.name ?? '应用模块'}首个菜单`}
+              aria-current={pathname === moduleLandingPath ? 'page' : undefined}
+              icon={<Icon as={Home} boxSize={5} aria-hidden />}
+              variant="ghost"
+              size="sm"
+              flexShrink={0}
+            />
+          ) : null}
 
           {canSearchMenus ? (
             <Popover
@@ -322,7 +339,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
             >
               <PopoverTrigger>
                 <IconButton
-                  aria-label="搜索后台菜单"
+                  aria-label="搜索应用菜单"
                   icon={<Icon as={Search} boxSize={5} aria-hidden />}
                   variant="ghost"
                   size="sm"
@@ -341,8 +358,8 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                       ref={searchInputRef}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="输入后台菜单名称或路径"
-                      aria-label="搜索后台菜单"
+                      placeholder="输入菜单名称或路径"
+                      aria-label="搜索应用菜单"
                       size="sm"
                     />
 
@@ -407,7 +424,7 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                         })
                       ) : (
                         <Text px={3} py={4} color="ink.500" fontSize="sm">
-                          没有匹配的后台菜单
+                          没有匹配的应用菜单
                         </Text>
                       )}
                     </Stack>
@@ -453,10 +470,10 @@ export function Header({ user, initialMenus = [] }: HeaderProps) {
                 <MenuDivider borderColor="ink.100" />
                 <MenuItem
                   as={Link}
-                  href="/admin/profile"
+                  href="/profile"
                   icon={<Icon as={UserCircle} boxSize={4.5} aria-hidden />}
                   aria-current={
-                    isActive(pathname, '/admin/profile') ? 'page' : undefined
+                    isActive(pathname, '/profile') ? 'page' : undefined
                   }
                   rounded="xl"
                 >

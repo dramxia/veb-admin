@@ -48,6 +48,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class GoneError extends AppError {
+  constructor(message = '接口已废弃', cause?: unknown) {
+    super(ERROR_CODES.NOT_FOUND, message, 410, cause);
+  }
+}
+
 export class RateLimitError extends AppError {
   constructor(message = t('error.rateLimited'), cause?: unknown) {
     super(ERROR_CODES.RATE_LIMITED, message, 429, cause);

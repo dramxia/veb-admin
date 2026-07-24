@@ -27,68 +27,93 @@ model User {
 }
 
 model Role {
-  id          String           @id @default(cuid())
-  code        String           @unique
+  id          String       @id @default(cuid())
+  code        String       @unique
   name        String
   description String?
-  status      CommonStatus     @default(ENABLED)
-  sort        Int              @default(0)
-  isSystem    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  status      CommonStatus @default(ENABLED)
+  sort        Int          @default(0)
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   users       UserRole[]
-  permissions RolePermission[]
+  modules     RoleModule[]
+  menus       RoleMenu[]
 }
 
-model Permission {
-  id          String           @id @default(cuid())
-  code        String           @unique
+model AppModule {
+  id          String       @id @default(cuid())
+  code        String       @unique
   name        String
-  type        PermissionType
   description String?
-  parentId    String?
-  isSystem    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  roles       RolePermission[]
+  icon        String?
+  sort        Int          @default(0)
+  status      CommonStatus @default(ENABLED)
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       RoleModule[]
   menus       Menu[]
 }
 
 model Menu {
   id             String       @id @default(cuid())
   parentId       String?
+  moduleId       String
+  module         AppModule    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  parent         Menu?        @relation("MenuTree", fields: [parentId, moduleId], references: [id, moduleId], onDelete: Restrict)
+  children       Menu[]       @relation("MenuTree")
   name           String
-  path           String
+  description    String?
+  path           String?      @unique
   component      String?
   icon           String?
   sort           Int          @default(0)
   type           MenuType     @default(PAGE)
-  permissionCode String?
-  permission     Permission?  @relation(fields: [permissionCode], references: [code])
+  permissionCode String?      @unique
   visible        Boolean      @default(true)
   status         CommonStatus @default(ENABLED)
   externalUrl    String?
   isSystem       Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  roles          RoleMenu[]
+
+  @@unique([id, moduleId])
+  @@index([moduleId, parentId])
 }
 
 model UserRole {
   userId String
   roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
 
-model RolePermission {
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+model RoleModule {
+  roleId   String
+  moduleId String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   AppModule  @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  menus    RoleMenu[]
 
-  @@id([roleId, permissionId])
+  @@id([roleId, moduleId])
+  @@index([moduleId])
+}
+
+model RoleMenu {
+  roleId   String
+  moduleId String
+  menuId   String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   RoleModule @relation(fields: [roleId, moduleId], references: [roleId, moduleId], onDelete: Cascade)
+  menu     Menu       @relation(fields: [menuId, moduleId], references: [id, moduleId], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@index([roleId, moduleId])
+  @@index([menuId, moduleId])
 }
 
 model OperationLog {
@@ -161,15 +186,11 @@ enum CommonStatus {
   DISABLED
 }
 
-enum PermissionType {
-  MENU
-  BUTTON
-}
-
 enum MenuType {
   DIR
   PAGE
   LINK
+  BUTTON
 }
 
 enum LogStatus {

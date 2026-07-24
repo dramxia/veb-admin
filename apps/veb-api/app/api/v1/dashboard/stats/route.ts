@@ -1,10 +1,10 @@
 export const dynamic = 'force-dynamic';
 
 import { ok, withApi } from '@/lib/api';
-import { requireUser } from '@/lib/session';
+import { requirePermission } from '@/lib/permission';
 import { getDashboardStats } from '@/src/modules/dashboard/service';
 
 export const GET = withApi(async () => {
-  await requireUser();
+  await requirePermission('dashboard:view');
   return ok(await getDashboardStats());
 });

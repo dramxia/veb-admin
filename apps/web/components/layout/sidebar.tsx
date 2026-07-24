@@ -32,17 +32,17 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useMenuStore } from '@/stores/menu-store';
 import { useUiStore } from '@/stores/ui-store';
 import {
   flattenNavigableMenus,
   getCurrentMenu,
   getHref,
+  isButtonMenu,
   isExternalHref,
-  normalizeAdminMenuPath,
+  normalizeMenuPath,
 } from './navigation-utils';
 import { ADMIN_SIDEBAR_ID, ADMIN_SIDEBAR_TOGGLE_ID } from './layout-constants';
-import { useWorkspaceMenus } from './workspace-data-context';
+import { useWorkspaceData } from './workspace-data-context';
 
 export const DESKTOP_SIDEBAR_EXPANDED_WIDTH = '184px';
 export const DESKTOP_SIDEBAR_COLLAPSED_WIDTH = '76px';
@@ -74,7 +74,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 function getMenuIcon(menu: MenuNode): LucideIcon {
   const configured = menu.icon?.toLowerCase();
-  const path = normalizeAdminMenuPath(menu.path);
+  const path = normalizeMenuPath(menu.path);
   if (configured && iconMap[configured]) return iconMap[configured];
   if (path === '/admin') return LayoutDashboard;
   if (path.startsWith('/admin/profile')) return User;
@@ -307,19 +307,19 @@ function MenuGroup({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const initialMenus = useWorkspaceMenus();
-  const storedMenus = useMenuStore((state) => state.menus);
+  const { menus } = useWorkspaceData();
   const desktopSidebarCollapsed = useUiStore(
     (state) => state.desktopSidebarCollapsed,
   );
   const mobileSidebarOpen = useUiStore((state) => state.mobileSidebarOpen);
   const closeMobileSidebar = useUiStore((state) => state.closeMobileSidebar);
-  const menus = storedMenus.length > 0 ? storedMenus : initialMenus;
   const sidebarMenus = useMemo(
     () =>
-      menus.filter(
-        (menu) => normalizeAdminMenuPath(menu.path) !== '/admin/profile',
-      ),
+      menus.filter((menu) => {
+        if (isButtonMenu(menu)) return false;
+        const href = getHref(menu);
+        return !href || (href !== '/profile' && href !== '/admin/profile');
+      }),
     [menus],
   );
   const currentMenu = useMemo(

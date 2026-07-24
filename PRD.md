@@ -1,607 +1,541 @@
-# 通用后台管理系统 — 产品需求文档 (PRD)
+# 通用后台管理系统 - 产品需求文档
 
-> 版本:v1.0 · 日期:2026-05-25 · 状态:Draft
-> 技术栈:Next.js 14+ (App Router) · React · TypeScript · Prisma · PostgreSQL · NextAuth.js · Chakra-UI · TailwindCSS · Zustand
+> 版本：v1.2 · 日期：2026-07-24 · 状态：Implemented
+> 技术栈：Next.js App Router、React、TypeScript、Prisma、PostgreSQL、Auth.js、Chakra UI、Tailwind CSS、Zustand
 
----
+## 1. 产品概述
 
-## 1. 概述
+### 1.1 定位
 
-### 1.1 文档目的与读者
+VEB 是不绑定具体业务领域的后台管理脚手架，提供认证、基于角色的访问控制、动态导航、系统管理、操作日志、文件上传和博客管理。业务方可以在此基础上增加模块、页面和操作节点，而不需要重建账号与权限基础设施。
 
-本文档定义一个**通用后台管理系统模板**的产品需求,作为后续开发、设计、测试的共同依据。读者:研发、设计、测试、产品。
+### 1.2 设计原则
 
-### 1.2 项目定位
+1. **配置即资源**：模块负责分组，菜单节点同时承载导航和权限；页面组件由代码 manifest 映射。
+2. **最小授权**：模块、页面和按钮必须显式授予角色，页面授权不会隐式授予按钮。
+3. **同角色门禁**：模块与节点必须在同一角色内同时成立，禁止跨角色拼接权限。
+4. **服务端安全边界**：前端隐藏只改善体验，页面守卫和 API 权限断言负责防越权。
+5. **即时撤权**：用户、角色、模块或节点停用，以及角色授权替换，在事务提交后的下一次请求生效。
+6. **稳定路由**：页面 URL 由 `PAGE.path` 独立决定，不从模块编码派生。
 
-- **通用后台脚手架**,不绑定具体业务领域。
-- 内置 RBAC、动态菜单、三层权限校验、操作日志、文件上传。
-- 业务方可在此基础上叠加自有模块,无需重新搭建账号/权限基础设施。
+## 2. 技术与工程约束
 
-### 1.3 设计原则
+| 分层       | 选型                                    | 约束                                             |
+| ---------- | --------------------------------------- | ------------------------------------------------ |
+| 前端       | Next.js App Router + React + TypeScript | Server Component 执行页面门禁                    |
+| UI         | Chakra UI + Tailwind CSS                | Chakra 提供组件与 token，Tailwind 只用于布局微调 |
+| 客户端状态 | Zustand                                 | 保存会话、导航、权限码和 UI 偏好                 |
+| API        | Next.js Route Handler                   | canonical 路径使用 `/api/v1/**`                  |
+| 数据       | Prisma + PostgreSQL                     | schema 和 migration 由 VEB API 独立拥有          |
+| 认证       | Auth.js JWT session                     | token 保存用户标识，授权结果由服务端重新计算     |
+| 包管理     | pnpm workspace                          | 应用不得跨目录导入其他应用源码                   |
 
-1. **配置化优先**:菜单、权限、角色都可以通过页面配置,而非改代码。
-2. **最小可用**:首版只做 P0 功能,P1 模块独立、可拆。
-3. **可扩展**:数据模型、目录结构、权限模型为后续接入 SSO、多租户、审批流预留扩展点。
-4. **安全优先**:任何"前端隐藏按钮"必须伴随后端断言,前端权限只承担 UX 作用。
+## 3. 用户、角色与典型场景
 
----
+### 3.1 内置角色
 
-## 2. 技术栈
+| 角色 code    | 名称       | 规则                                         |
+| ------------ | ---------- | -------------------------------------------- |
+| `superadmin` | 超级管理员 | 隐式拥有所有启用模块及有效节点；访问权限只读 |
+| `admin`      | 管理员     | 初始拥有系统管理所需节点，可继续调整         |
+| `user`       | 普通用户   | 初始仅登录和个人中心，可按业务分配角色       |
 
-| 分层       | 选型                                    | 说明                                                       |
-| ---------- | --------------------------------------- | ---------------------------------------------------------- |
-| 前端框架   | Next.js 14+ (App Router)                | RSC + Server Actions + middleware                          |
-| 语言       | TypeScript (strict)                     | 全栈一致                                                   |
-| UI 组件    | Chakra-UI v2                            | 表单、表格、Modal、Menu、Toast 等                          |
-| 原子样式   | TailwindCSS                             | 仅用于布局与间距微调,不与 Chakra 组件 props 在同一元素叠加 |
-| 客户端状态 | Zustand                                 | 轻量 store,服务端数据交给 RSC / fetch 缓存                 |
-| 数据层     | Prisma ORM + PostgreSQL                 | 迁移走 `prisma migrate`                                    |
-| 认证       | NextAuth.js (Auth.js) v5                | Credentials Provider 起步,OAuth 可后续接入                 |
-| 包管理     | pnpm                                    | 工作空间预留                                               |
-| 工程化     | ESLint + Prettier + Husky + lint-staged | 强制基线                                                   |
+### 3.2 用户故事
 
----
+1. 管理员创建模块，只填写编码、名称、描述、图标、排序和状态。
+2. 管理员在“菜单与权限”中为模块创建目录、页面、外链，并在页面下创建按钮。
+3. 管理员打开角色的“配置访问权限”抽屉，选择模块并勾选该模块的页面、外链和按钮，一次保存。
+4. 管理员通过现有用户流程把角色分配给用户。
+5. 用户登录后进入排序第一的可用模块 `landingPath`，切换模块时进入该模块的第一个授权页面。
+6. 拥有 `system:user:delete` 的用户能看到删除按钮且能调用删除 API；只隐藏按钮而未通过 API 断言不视为完成鉴权。
+7. 撤销页面或按钮、停用其祖先、停用角色或用户后，下一次请求立即拒绝。
 
-## 3. 角色与用户场景
+## 4. 功能范围
 
-### 3.1 默认内置角色
+| 功能       | 责任                               | 优先级 |
+| ---------- | ---------------------------------- | ------ |
+| 认证       | 登录、登出、Session 守卫           | P0     |
+| 模块管理   | 模块元数据 CRUD、状态和统计        | P0     |
+| 菜单与权限 | 目录、页面、外链、按钮的统一树管理 | P0     |
+| 角色管理   | 角色 CRUD、统一访问授权、分配用户  | P0     |
+| 用户管理   | 用户 CRUD、改密、启停、分配角色    | P0     |
+| 导航与路由 | 用户级落点、动态侧栏、403/404 区分 | P0     |
+| 个人中心   | 全局资料修改、改密                 | P0     |
+| 仪表盘     | 用户、角色、权限节点和导航节点统计 | P1     |
+| 操作日志   | 关键操作审计与导出                 | P1     |
+| 文件上传   | 上传、下载、预览和删除             | P1     |
 
-| 角色 code    | 名称       | 说明                               | 可改/可删         |
-| ------------ | ---------- | ---------------------------------- | ----------------- |
-| `superadmin` | 超级管理员 | 拥有全部权限,跳过校验              | 不可删,不可改权限 |
-| `admin`      | 管理员     | 拥有除"系统级危险操作"外的全部权限 | 可改              |
-| `user`       | 普通用户   | 仅登录 + 个人中心                  | 可改              |
+## 5. 权限模型
 
-> 自定义角色由角色管理模块创建。
+### 5.1 授权链
 
-### 3.2 典型用户故事
-
-1. **管理员登录**:管理员输入账号密码 → 系统校验 → 写入 session → 跳转到默认首页(由其菜单第一项决定)。
-2. **新增用户并分配角色**:管理员在「系统管理 → 用户管理」点击新增,填写资料并勾选角色 `admin` → 保存。
-3. **细粒度按钮控制**:产品要求"只有拥有 `system:user:delete` 权限的人能看见删除按钮且能调通接口" → 前端 `<Auth code="system:user:delete">` 包裹按钮,后端 `requirePermission('system:user:delete')` 守卫接口。
-4. **被禁用账户**:管理员将某用户 `status` 改为 `DISABLED` → 该用户当前 session 下一次请求失效,跳登录页。
-5. **审计查询**:出现疑似越权操作 → 管理员进入「操作日志」按 actor、action、时间检索。
-
----
-
-## 4. 主要功能点总览
-
-| #   | 模块          | 责任                                     | 优先级 |
-| --- | ------------- | ---------------------------------------- | ------ |
-| 1   | 认证          | 登录、登出、找回密码、Session 守卫       | P0     |
-| 2   | 用户管理      | 用户 CRUD、改密、启停、分配角色          | P0     |
-| 3   | 角色管理      | 角色 CRUD、分配权限、分配用户            | P0     |
-| 4   | 权限管理      | 权限码 CRUD,菜单/按钮类型                | P0     |
-| 5   | 菜单/路由管理 | 菜单树 CRUD、绑定权限码、动态下发        | P0     |
-| 6   | 个人中心      | 资料修改、改密                           | P0     |
-| 7   | 仪表盘        | 占位首页(P1 可叠加数据卡片)              | P1     |
-| 8   | 操作日志      | 关键操作审计                             | P1     |
-| 9   | 文件上传      | 上传、下载、预览(本地存储,留 OSS 适配口) | P1     |
-
----
-
-## 5. 权限管理(详细)
-
-### 5.1 权限模型(RBAC)
-
-实体关系:
-
-```
-User  ─┐
-       ├──< UserRole >── Role ──< RolePermission >── Permission
-       │                                                  ▲
-       │                                                  │ (menu permission 绑定)
-       └─ Session                                         │
-                                                       Menu
+```text
+创建 AppModule
+  -> 在模块内配置 Menu(DIR / PAGE / LINK / BUTTON)
+  -> 通过 RoleModule + RoleMenu 为 Role 配置访问权限
+  -> 通过 UserRole 将 Role 分配给 User
+  -> User 获得模块入口、页面、按钮和 API 权限
 ```
 
-- `User` ↔ `Role`:多对多。
-- `Role` ↔ `Permission`:多对多。
-- `Menu` → `Permission`:菜单挂一个 `MENU` 类型权限码,通过该权限码加入角色。
-- 超级管理员(`role.code = 'superadmin'`)在所有校验点短路通过。
+实体关系：
 
-### 5.2 权限类型
+```text
+User --< UserRole >-- Role --< RoleModule >-- AppModule
+                         |
+                         +--< RoleMenu >------ Menu
+```
 
-| type     | 含义                             | 示例                                                               |
-| -------- | -------------------------------- | ------------------------------------------------------------------ |
-| `MENU`   | 控制菜单/路由可见与可访问        | `system:user:view`                                                 |
-| `BUTTON` | 控制页面内按钮、列操作、批量动作 | `system:user:create` / `system:user:delete` / `system:user:export` |
+- `UserRole` 维持现有用户与角色多对多关系。
+- `RoleModule` 表示角色被分配了某模块。
+- `RoleMenu` 表示角色在该模块内被分配了某个页面、外链或按钮。
+- `RoleMenu` 同时通过复合外键关联 `RoleModule` 和同模块 `Menu`，数据库阻止跨模块节点和未分配模块的授权。
+- 目录不直接授权，其选中和半选状态由后代节点计算。
 
-### 5.3 权限标识规范
+### 5.2 有效授权
 
-- 命名:`模块:对象:操作`,全小写、英文冒号分隔。
-- 示例:
-  - `system:user:view` / `system:user:create` / `system:user:update` / `system:user:delete`
-  - `system:role:assign-permission`
-  - `system:menu:view`
-  - `log:operation:view` / `log:operation:export`
-- 操作动词推荐:`view`、`create`、`update`、`delete`、`export`、`import`、`assign-xxx`。
+普通用户的授权逐角色计算：
 
-### 5.4 权限下发流程
+```text
+角色有效模块 = 启用角色的 RoleModule 中仍启用的模块
+角色有效节点 = 该角色 RoleMenu 中属于角色有效模块，且自身与祖先均启用的节点
+用户授权 = 各启用角色有效结果的并集
+```
 
-1. 用户登录,NextAuth 生成 session(JWT 策略),`userId` 写入 token。
-2. 受保护的根 layout(Server Component)读取 session → 调 `getUserMenuAndPermissions(userId)`,聚合:
-   - 菜单树(已剪枝,仅包含用户可见)
-   - 按钮权限码集合 `Set<string>`
-3. 通过初始化 props 注入 Zustand `menuStore`,客户端组件可读。
-4. API 路由侧不依赖前端,只读 session + DB 实时校验。
+只有同一个角色同时拥有模块和节点时，节点才有效。角色 A 的模块不能与角色 B 的节点组合出权限。
 
-### 5.5 三层校验防越权
+`permissionCodes` 是由有效 `PAGE/LINK/BUTTON.permissionCode` 生成的鉴权快照，不单独维护。现有 `<Auth>`、`useHasPermission`、`canAccess` 和 `requirePermission` 继续消费该快照。
 
-| 层          | 实现                                             | 作用                              |
-| ----------- | ------------------------------------------------ | --------------------------------- |
-| 前端按钮    | `<Auth code="...">` 或 `useHasPermission(code)`  | UX 隐藏/禁用,**不可作为安全边界** |
-| 中间件      | `middleware.ts` 检查 session 与路由 → 菜单权限码 | 防止用户直接粘贴 URL 进入未授权页 |
-| API handler | `requirePermission(code)` 装饰器 / 工具函数      | 真正的安全边界,所有变更类接口必须 |
+### 5.3 状态规则
 
-### 5.6 权限管理页面功能
+- 用户、角色或模块停用后，相关授权立即失效。
+- 节点自身或任一祖先停用后，其页面、按钮和 API 权限立即失效。
+- `visible=false` 只影响导航和落点，不撤销已授权页面的直接访问权限。
+- 后续隐藏或停用导致模块没有可用页面时，该模块从用户导航隐藏，管理端标记“缺少可用入口”，不会回退到未授权页面。
+- `superadmin` 隐式拥有全部启用模块和有效节点，不依赖显式关联记录；UI 只读且服务端拒绝修改。
 
-- 权限码列表(分页、按 type 筛选、按 code 模糊搜索)。
-- 新增/编辑/删除权限:字段 `code`、`name`、`type`、`description`、`parentId`(可选,用于权限分组展示)。
-- 内置权限(系统自带的)不可删除,标记 `system = true`。
+## 6. 模块与菜单资源
 
----
+### 6.1 AppModule
 
-## 6. 角色管理(详细)
+模块是一级权限及导航分组，不负责注册页面、路由前缀或布局。模块编码只作稳定业务标识。
 
-### 6.1 字段
+| 字段                  | 类型               | 规则             |
+| --------------------- | ------------------ | ---------------- |
+| `id`                  | string             | 主键             |
+| `code`                | string unique      | 创建后不可修改   |
+| `name`                | string             | 模块切换器显示名 |
+| `description`         | string?            | 描述             |
+| `icon`                | string?            | 图标名           |
+| `sort`                | int                | 模块稳定排序     |
+| `status`              | `ENABLED/DISABLED` | 停用后立即撤权   |
+| `isSystem`            | boolean            | 内置保护         |
+| `createdAt/updatedAt` | datetime           | 审计时间         |
 
-| 字段                  | 类型                       | 说明                              |
-| --------------------- | -------------------------- | --------------------------------- |
-| id                    | string (cuid)              | 主键                              |
-| code                  | string unique              | 业务唯一标识(英文,内置角色不可改) |
-| name                  | string                     | 显示名                            |
-| description           | string?                    | 描述                              |
-| status                | enum(`ENABLED`/`DISABLED`) | 禁用后该角色对应用户即时失权      |
-| sort                  | int                        | 列表排序                          |
-| isSystem              | boolean                    | 内置角色保护                      |
-| createdAt / updatedAt | datetime                   | —                                 |
+模块列表展示导航节点数、按钮数和角色数。没有页面的模块显示“待配置”，已被角色引用但没有可用落点时显示“缺少可用入口”。
 
-### 6.2 功能列表
+### 6.2 Menu 类型
 
-1. 角色列表(分页 + 关键字搜索 + 状态筛选)。
-2. 新增/编辑角色(普通字段)。
-3. 启停切换(内置角色禁止)。
-4. 删除角色:仅当未关联任何用户时允许;内置角色不可删。
-5. **分配权限**:右侧抽屉打开权限树(按权限 `parentId` 分组),勾选后保存。超管角色禁止改权限。
-6. **分配用户**:支持从用户池搜索勾选;支持批量解绑。
+| 类型     | 允许父级        | 路由及组件                 | 权限码         | 导航行为                     |
+| -------- | --------------- | -------------------------- | -------------- | ---------------------------- |
+| `DIR`    | 根或 `DIR`      | 全部为空                   | 无             | 只作结构分组                 |
+| `PAGE`   | 根或 `DIR`      | `path`、`component` 必填   | 必填且全局唯一 | 可导航，可作为模块落点       |
+| `LINK`   | 根或 `DIR`      | HTTP(S) `externalUrl` 必填 | 必填且全局唯一 | 可导航，不作为模块落点       |
+| `BUTTON` | 必须直属 `PAGE` | 路由、组件、图标、外链为空 | 必填且全局唯一 | 不进入导航，只控制操作和 API |
 
-### 6.3 涉及权限码
+Menu 通用字段：
 
-- `system:role:view` / `system:role:create` / `system:role:update` / `system:role:delete`
-- `system:role:assign-permission`
-- `system:role:assign-user`
+| 字段                   | 说明                         |
+| ---------------------- | ---------------------------- |
+| `moduleId`             | 必填所属模块，创建后不可修改 |
+| `parentId`             | 同模块父节点；根节点为 null  |
+| `name` / `description` | 名称与说明                   |
+| `sort`                 | 同级稳定排序                 |
+| `status`               | 自身及后代有效性             |
+| `visible`              | 导航可见性；按钮固定为 false |
+| `isSystem`             | 内置节点保护                 |
 
----
+### 6.3 路径与树约束
 
-## 7. 路由管理(详细)
+- `PAGE.path` 是全局唯一的规范绝对路径。
+- 路径禁止查询串、片段、反斜杠、百分号编码、重复斜杠、尾斜杠和系统保留路径。
+- 导航最多四级，按钮不计入导航深度。
+- 节点 `type` 和 `moduleId` 创建后不可修改。
+- 父级移动必须留在同一模块，并满足类型规则；服务层检测循环。
+- `Menu(parentId, moduleId)` 到 `Menu(id, moduleId)` 使用复合自关联，数据库拒绝跨模块父子和孤儿。
+- 有子节点的菜单禁止删除；删除叶子时级联撤销对应 `RoleMenu`；内置节点受保护。
+- 页面 React 组件由 `PAGE.component` 与 Web 页面 manifest 映射。
 
-### 7.1 设计理念
+### 6.4 权限码
 
-**菜单即路由**:一条菜单记录对应一个可访问页面(或一个目录节点)。菜单存储在数据库中,前端启动后按用户拉取菜单树并动态渲染。
+- 格式：`域:对象:操作`，使用小写字母、数字、连字符和英文冒号。
+- 示例：`system:user:view`、`system:user:create`、`system:role:assign-access`。
+- 推荐动作：`view`、`create`、`update`、`delete`、`export`、`import`、`assign-*`。
+- 页面读取、按钮展示和 API 操作使用同一节点权限码。
 
-### 7.2 字段
+## 7. 角色访问权限
 
-| 字段                  | 类型                       | 说明                                               |
-| --------------------- | -------------------------- | -------------------------------------------------- |
-| id                    | string                     | 主键                                               |
-| parentId              | string?                    | 父菜单,根菜单为 null                               |
-| name                  | string                     | 显示名                                             |
-| path                  | string                     | 后台绝对路由路径(如 `/admin/system/user`)          |
-| component             | string?                    | 页面组件路径标识(动态导入用,如 `system/user/page`) |
-| icon                  | string?                    | Chakra-UI / lucide 图标名                          |
-| sort                  | int                        | 同级排序                                           |
-| type                  | enum(`DIR`/`PAGE`/`LINK`)  | 目录/页面/外链                                     |
-| permissionCode        | string?                    | 关联的 `MENU` 类型权限码                           |
-| visible               | boolean                    | 是否在侧边栏显示(隐藏型路由仍可访问,如详情页)      |
-| status                | enum(`ENABLED`/`DISABLED`) | 禁用后所有用户均不可访问                           |
-| externalUrl           | string?                    | type=LINK 时使用                                   |
-| createdAt / updatedAt | datetime                   | —                                                  |
+### 7.1 管理端交互
 
-### 7.3 功能列表
+角色列表把原有多个授权入口合并为“配置访问权限”：
 
-1. 树形展示菜单,支持展开/折叠、拖拽排序(可选 P1)。
-2. 新增/编辑/删除菜单。
-3. 选择/创建关联的权限码:若为 PAGE 类型,必须绑定一个 `MENU` 权限;DIR 可选;LINK 可选。
-4. 预览效果:实时显示当前用户视角下的菜单树。
-5. 内置基础菜单(系统管理下的子项)不可删,只能改名/改图标。
+- 抽屉左侧是模块复选列表，右侧是当前模块的菜单与按钮树。
+- 切换模块保留未保存草稿。
+- 目录显示由后代节点派生的选中或半选状态。
+- 勾选按钮时自动补齐其直属父页面。
+- 取消页面时清除页面下全部按钮。
+- 勾选页面不自动授予按钮。
+- “全选本组菜单”只选择页面和外链，按钮必须单独选择。
+- 取消已有授权模块前二次确认，并清空该模块草稿。
+- 保存前逐模块提示缺少入口页面。
 
-### 7.4 前端动态路由生成
+### 7.2 原子接口
 
-**静态路由(代码固定)**:
+```http
+PUT /api/v1/system/roles/:id/access
+Content-Type: application/json
+```
 
-- `/login` 登录
-- `/403` 无权限
-- `/404` 找不到
-- `/admin/profile` 个人中心
-- `/admin` 后台仪表盘(当前登录后默认进入)
-- `/` 顶级主页模块预留入口，主页上线前临时跳转到 `/admin`
+```json
+{
+  "modules": [
+    {
+      "moduleId": "module-admin",
+      "menuIds": ["menu-system-user", "button-system-user-create"]
+    }
+  ]
+}
+```
 
-**动态路由**:
+`menuIds` 只接受 `PAGE/LINK/BUTTON`。服务端去重后校验：
 
-- `app/(workspace)/layout.tsx` 提供登录后共享 Header 和顶级模块导航。
-- `app/(workspace)/admin/[...slug]/page.tsx` 仅匹配 `/admin/**` 数据库菜单；后台 layout 独占侧边栏，无侧栏模块使用独立 plain shell。
-- 顶级模块由前端代码注册表声明，数据库菜单仅表示后台模块内部导航。
-- 命中后台页面时,通过 `component` 字段映射到后台页面 manifest(用 dynamic import 装载)。
-- 找不到 `component` → 跳 `/404`;命中但无权限 → 跳 `/403`。
+1. 角色、模块和节点 ID 全部存在。
+2. 节点属于声明的模块，不接受目录 ID。
+3. 节点具有权限码。
+4. 每个按钮的直属父页面也在同一模块请求中。
+5. 每个模块至少有一个已授权、启用、可见且祖先有效的页面。
+6. 目标角色不是 `superadmin`。
 
-### 7.5 中间件鉴权(`middleware.ts`)
+任一校验错误时请求整体失败。校验通过后，在 Serializable 事务中全量替换该角色的 `RoleModule` 和 `RoleMenu`；并发序列化冲突进行有限重试。取消模块会在同一事务撤销该模块全部节点。
 
-伪代码:
+接口权限码为 `system:role:assign-access`。审计事件为 `role.assign-access`，payload 保存变更前后的模块和节点 ID。
+
+### 7.3 分配用户
+
+角色分配用户以及用户新增、编辑、分配角色流程保持不变。保存角色访问权限后刷新受影响用户的导航；服务端下一次请求始终重新计算授权。
+
+## 8. 导航与页面路由
+
+### 8.1 UserNavigation
+
+`GET /api/v1/navigation` 返回：
 
 ```ts
-export async function middleware(req) {
-  const session = await getToken(req);
-  const { pathname } = req.nextUrl;
-
-  if (isPublic(pathname)) return NextResponse.next();
-  if (!session) return redirect('/login');
-
-  const allowed = await canAccess(session.userId, pathname); // 缓存
-  if (!allowed) return redirect('/403');
-  return NextResponse.next();
+{
+  modules: Array<{
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+    icon: string | null;
+    sort: number;
+    landingPath: string;
+    menus: MenuNode[]; // DIR | PAGE | LINK
+  }>;
+  permissionCodes: string[];
+  roleCodes: string[];
+  menus: MenuNode[]; // 兼容字段
 }
 ```
 
-- 公开路径白名单:`/login`、`/api/auth/*`、静态资源。
-- `canAccess` 内部基于用户菜单 + 通配匹配,结果缓存(LRU,5 分钟)。
+- `BUTTON` 永远不进入导航树。
+- 模块按 `sort -> name -> id` 排序。
+- 菜单树每级按 `sort -> name -> id` 排序并剪除空目录。
+- 对排序后的树做深度优先遍历，第一个启用、可见、已授权 `PAGE.path` 是用户级 `landingPath`。
+- `LINK` 不作为落点。
+- 没有落点的模块不返回。
 
-### 7.6 涉及权限码
+### 8.2 工作区行为
 
-- `system:menu:view` / `system:menu:create` / `system:menu:update` / `system:menu:delete`
+- `/` 跳转到排序第一的可用模块 `landingPath`；没有模块时显示空状态，并保留个人中心和退出。
+- 模块切换器和首页操作统一使用 `landingPath`。
+- 所有模块共用当前工作区 Header、侧栏和内容布局。
+- `/profile` 是登录后全局页面，不属于模块或菜单；`/admin/profile` 永久重定向。
+- 外链只有在模块和节点授权有效时才展示并安全打开。
 
----
+### 8.3 403 与 404
 
-## 8. 数据模型(Prisma Schema 草案)
+工作区页面统一调用 `GET /api/v1/navigation/page?path=...`：先精确匹配已知 `PAGE.path`，详情子路径再按最长有效页面前缀匹配，随后校验用户授权。单段模块落点只精确匹配，不能兜底未知子路径：
 
-> 仅展示关键字段;实施时按 Prisma 语法补全。
+- 没有匹配页面：404。
+- 页面存在但用户未通过同角色模块与节点门禁：403。
+- 页面已授权但 `component` 未在 Web manifest 注册：404。
+
+## 9. 管理端功能与 API
+
+### 9.1 模块管理
+
+- 页面：`/admin/system/module`。
+- API：`GET/POST /api/v1/system/modules`、`GET/PATCH/DELETE /api/v1/system/modules/:id`。
+- 表单字段：编码、名称、描述、图标、排序、状态。
+- 列表字段：基础元数据、导航节点数、按钮数、角色数和入口状态。
+- 权限码：`system:module:view/create/update/delete`。
+- 审计：`module.create/update/delete`。
+
+### 9.2 菜单与权限
+
+- 页面：`/admin/system/menu`，标题为“菜单与权限”。
+- API：`GET/POST /api/v1/system/menus`、`GET /api/v1/system/menus/tree`、`PATCH/DELETE /api/v1/system/menus/:id`。
+- 按模块展示完整树，页面行提供“新增按钮”并锁定父页面。
+- 新建抽屉根据节点类型动态展示字段；按钮不展示路径、组件、图标、外链或导航可见性。
+- 按钮行展示名称、权限码、描述、状态和排序。
+- 权限码：`system:menu:view/create/update/delete`。
+- 审计：`menu.create/update/delete`。
+
+### 9.3 角色管理
+
+- 页面：`/admin/system/role`。
+- CRUD：`GET/POST /api/v1/system/roles`、`GET/PATCH/DELETE /api/v1/system/roles/:id`。
+- 访问授权：`PUT /api/v1/system/roles/:id/access`。
+- 分配用户：`POST /api/v1/system/roles/:id/users`。
+- 权限码：`system:role:view/create/update/delete/assign-access/assign-user`。
+
+### 9.4 用户管理
+
+- 页面：`/admin/system/user`。
+- API：`GET/POST /api/v1/system/users`、`GET/PATCH/DELETE /api/v1/system/users/:id`、重置密码、分配角色。
+- 权限码：`system:user:view/create/update/delete/reset-password/assign-role`。
+- 用户停用后当前会话的下一次请求失效。
+
+### 9.5 兼容行为
+
+旧权限资源 CRUD、旧角色模块分配和旧角色权限分配接口保留一个发布周期，但不再写入数据，统一返回 HTTP `410 Gone` 和迁移提示。版本化与非版本化旧路径行为一致。
+
+旧 `/admin/system/permission` 永久重定向到 `/admin/system/menu`。统一访问授权和菜单管理是唯一可写入口。
+
+### 9.6 其他页面
+
+- 个人中心：`/profile`，所有已登录用户可用。
+- 操作日志：`/admin/system/log/operation`，使用 `log:operation:view/export`。
+- 文件管理：`/admin/system/file`，使用 `system:file:view/upload/delete`。
+- 仪表盘：内置 `PAGE`，展示用户数、角色数、带权限码节点数和 `DIR/PAGE/LINK` 节点数。
+
+## 10. 关键 Prisma 模型
+
+> 省略与本需求无关的字段和模型。
 
 ```prisma
-model User {
-  id            String     @id @default(cuid())
-  username      String     @unique
-  email         String?    @unique
-  passwordHash  String
-  nickname      String?
-  avatar        String?
-  status        UserStatus @default(ENABLED)
-  lastLoginAt   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  roles         UserRole[]
-  files         File[]
-  operationLogs OperationLog[]
-}
-
 model Role {
-  id          String           @id @default(cuid())
-  code        String           @unique
+  id          String       @id @default(cuid())
+  code        String       @unique
   name        String
   description String?
-  status      CommonStatus     @default(ENABLED)
-  sort        Int              @default(0)
-  isSystem    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  status      CommonStatus @default(ENABLED)
+  sort        Int          @default(0)
+  isSystem    Boolean      @default(false)
   users       UserRole[]
-  permissions RolePermission[]
+  modules     RoleModule[]
+  menus       RoleMenu[]
 }
 
-model Permission {
-  id          String           @id @default(cuid())
-  code        String           @unique           // e.g. system:user:create
+model AppModule {
+  id          String       @id @default(cuid())
+  code        String       @unique
   name        String
-  type        PermissionType                     // MENU | BUTTON
   description String?
-  parentId    String?
-  isSystem    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  roles       RolePermission[]
+  icon        String?
+  sort        Int          @default(0)
+  status      CommonStatus @default(ENABLED)
+  isSystem    Boolean      @default(false)
+  roles       RoleModule[]
   menus       Menu[]
 }
 
 model Menu {
-  id              String      @id @default(cuid())
-  parentId        String?
-  name            String
-  path            String
-  component       String?
-  icon            String?
-  sort            Int         @default(0)
-  type            MenuType    @default(PAGE)     // DIR | PAGE | LINK
-  permissionCode  String?
-  permission      Permission? @relation(fields: [permissionCode], references: [code])
-  visible         Boolean     @default(true)
-  status          CommonStatus @default(ENABLED)
-  externalUrl     String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id             String       @id @default(cuid())
+  parentId       String?
+  moduleId       String
+  module         AppModule    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  parent         Menu?        @relation("MenuTree", fields: [parentId, moduleId], references: [id, moduleId], onDelete: Restrict)
+  children       Menu[]       @relation("MenuTree")
+  name           String
+  description    String?
+  path           String?      @unique
+  component      String?
+  icon           String?
+  sort           Int          @default(0)
+  type           MenuType     @default(PAGE)
+  permissionCode String?      @unique
+  visible        Boolean      @default(true)
+  status         CommonStatus @default(ENABLED)
+  externalUrl    String?
+  isSystem       Boolean      @default(false)
+  roles          RoleMenu[]
+
+  @@unique([id, moduleId])
+  @@index([moduleId, parentId])
 }
 
-model UserRole {
-  userId String
-  roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  @@id([userId, roleId])
+model RoleModule {
+  roleId   String
+  moduleId String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   AppModule  @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  menus    RoleMenu[]
+
+  @@id([roleId, moduleId])
+  @@index([moduleId])
 }
 
-model RolePermission {
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  @@id([roleId, permissionId])
+model RoleMenu {
+  roleId   String
+  moduleId String
+  menuId   String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   RoleModule @relation(fields: [roleId, moduleId], references: [roleId, moduleId], onDelete: Cascade)
+  menu     Menu       @relation(fields: [menuId, moduleId], references: [id, moduleId], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@index([roleId, moduleId])
+  @@index([menuId, moduleId])
 }
 
-model OperationLog {
-  id         String   @id @default(cuid())
-  actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id])
-  action     String                       // e.g. user.create
-  target     String?                      // e.g. user:{id}
-  ip         String?
-  userAgent  String?
-  payload    Json?
-  status     LogStatus @default(SUCCESS)
-  message    String?
-  createdAt  DateTime @default(now())
+enum MenuType {
+  DIR
+  PAGE
+  LINK
+  BUTTON
 }
-
-model File {
-  id         String   @id @default(cuid())
-  name       String
-  path       String
-  mime       String
-  size       Int
-  uploaderId String?
-  uploader   User?    @relation(fields: [uploaderId], references: [id])
-  scope      String?                      // 业务范围标签
-  createdAt  DateTime @default(now())
-}
-
-enum UserStatus      { ENABLED DISABLED }
-enum CommonStatus    { ENABLED DISABLED }
-enum PermissionType  { MENU BUTTON }
-enum MenuType        { DIR PAGE LINK }
-enum LogStatus       { SUCCESS FAILURE }
 ```
 
-> NextAuth 所需的 `Account` / `Session` / `VerificationToken` 表按 Auth.js 官方 Prisma adapter 模板叠加。
+## 11. 前端架构
 
----
+```text
+app/(workspace)/
+  layout.tsx                   读取用户导航，渲染共享工作区
+  page.tsx                     跳转首个模块 landingPath
+  [...slug]/page.tsx           全局 PAGE 路由解析和权限门禁
+  profile/page.tsx             全局个人中心
+  admin/system/module          模块管理
+  admin/system/menu            菜单与权限
+  admin/system/role            角色与访问授权
+  admin/system/user            用户管理
 
-## 9. 主要功能点详述
+app/_modules/
+  page-manifest.ts             PAGE.component -> React loader
 
-### 9.1 认证(P0)
+components/
+  auth/Auth.tsx                按钮可见性
+  layout/Header.tsx            模块切换器
+  layout/Sidebar.tsx           当前模块菜单树
 
-- **页面**:`/login`、`/forgot-password`(P1,可后置)。
-- **接口**:`POST /api/auth/callback/credentials`(NextAuth 提供)、`POST /api/auth/signout`。
-- **字段**:username、password。
-- **逻辑**:bcrypt 比对密码 → 检查 `user.status === ENABLED` → 生成 JWT session。
-- **失败提示**:统一返回"账号或密码错误",不暴露用户是否存在。
-- **边界**:首版不做注册入口(用户由管理员创建)、不做邮箱验证。
-
-### 9.2 用户管理(P0)
-
-- **页面**:`/admin/system/user`。
-- **接口**:`GET/POST/PATCH/DELETE /api/system/users`、`POST /api/system/users/:id/reset-password`、`POST /api/system/users/:id/assign-roles`。
-- **字段**:见 §8 `User`。
-- **权限码**:`system:user:view` / `:create` / `:update` / `:delete` / `:reset-password` / `:assign-role`。
-- **非目标**:不做用户自助注册、不做手机号验证。
-
-### 9.3 角色管理(P0)
-
-- **页面**:`/admin/system/role`。
-- **接口**:`GET/POST/PATCH/DELETE /api/system/roles`、`POST /api/system/roles/:id/permissions`、`POST /api/system/roles/:id/users`。
-- **字段**:见 §8 `Role` + §6.1。
-- **权限码**:见 §6.3。
-- **校验**:删除前检查关联用户数 > 0 时拒绝。
-
-### 9.4 权限管理(P0)
-
-- **页面**:`/admin/system/permission`。
-- **接口**:`GET/POST/PATCH/DELETE /api/system/permissions`。
-- **字段**:见 §8 `Permission`。
-- **权限码**:`system:permission:view` / `:create` / `:update` / `:delete`。
-- **校验**:`isSystem = true` 的权限不可删,不可改 `code`。
-
-### 9.5 菜单/路由管理(P0)
-
-- **页面**:`/admin/system/menu`。
-- **接口**:`GET /api/system/menus/tree`、`POST/PATCH/DELETE /api/system/menus`、`GET /api/menu/me`(当前用户菜单)。
-- **字段**:见 §7.2。
-- **权限码**:见 §7.6。
-- **边界**:首版菜单上限 4 级。
-
-### 9.6 个人中心(P0)
-
-- **页面**:`/admin/profile`。
-- **接口**:`PATCH /api/profile`、`POST /api/profile/change-password`。
-- **功能**:改昵称、头像、邮箱;改密码(需输入原密码)。
-
-### 9.7 操作日志(P1)
-
-- **页面**:`/admin/system/log/operation`。
-- **接口**:`GET /api/system/logs/operation`、`GET /api/system/logs/operation/export`。
-- **字段**:见 §8 `OperationLog`。
-- **权限码**:`log:operation:view` / `log:operation:export`。
-- **写入策略**:在所有 `POST/PATCH/DELETE` API handler 通过统一中间件写入,避免散落。
-- **保留期**:默认 180 天,超过定时清理(留 cron 接口,首版不实现自动清理)。
-
-### 9.8 文件上传(P1)
-
-- **页面**:无独立页面(以组件 `<FileUpload>` 提供);可选「文件管理」`/admin/system/file` 列表查看。
-- **接口**:`POST /api/files`(multipart)、`GET /api/files/:id`、`DELETE /api/files/:id`。
-- **存储**:首版本地磁盘(`./uploads`),封装 `StorageAdapter` 接口,后续可替换为 OSS/S3。
-- **权限码**:`system:file:upload` / `:view` / `:delete`。
-- **限制**:单文件 ≤ 20MB,白名单 mime 校验。
-
-### 9.9 仪表盘(P1)
-
-- **页面**:`/admin`(当前登录后默认)。
-- **首版**:仅欢迎语 + 用户数/角色数等基础统计卡片。
-
----
-
-## 10. 前端架构与状态划分
-
-### 10.1 目录结构(草案)
-
-```
-.
-├── app/
-│   ├── (auth)/login/page.tsx
-│   ├── (workspace)/
-│   │   ├── layout.tsx              // 拉取用户与导航、共享 Header
-│   │   ├── page.tsx                // 临时跳转默认模块
-│   │   └── admin/
-│   │       ├── layout.tsx          // 后台 Sidebar + 内容区
-│   │       ├── page.tsx            // 后台仪表盘
-│   │       ├── profile/page.tsx
-│   │       └── [...slug]/page.tsx  // 动态匹配后台数据库菜单
-│   ├── 403/page.tsx
-│   ├── 404/page.tsx
-│   └── api/
-│       ├── auth/[...nextauth]/route.ts
-│       ├── menu/me/route.ts
-│       └── system/
-│           ├── users/...
-│           ├── roles/...
-│           ├── permissions/...
-│           └── menus/...
-├── components/
-│   ├── auth/Auth.tsx               // <Auth code="..."> 按钮守卫
-│   ├── layout/Sidebar.tsx
-│   ├── layout/Header.tsx
-│   └── common/...
-├── stores/
-│   ├── authStore.ts
-│   ├── menuStore.ts
-│   └── uiStore.ts
-├── lib/
-│   ├── auth.ts                     // NextAuth 配置
-│   ├── prisma.ts
-│   ├── permission.ts               // requirePermission, canAccess
-│   └── api.ts                      // 统一响应壳、错误码
-├── prisma/
-│   ├── schema.prisma
-│   └── seed.ts                     // 内置超管 / 内置权限 / 内置菜单
-├── middleware.ts
-├── tailwind.config.ts
-└── PRD.md
+stores/
+  auth-store.ts                会话摘要
+  menu-store.ts                modules、landingPath、menus、permissionCodes
+  ui-store.ts                  侧栏与移动端 UI 偏好
 ```
 
-### 10.2 Zustand 状态划分
+模块切换、首页跳转和侧栏读取同一 `UserNavigation`，避免本地另算落点。授权保存后重新拉取导航。
 
-| store       | 内容                                                 | 来源                         |
-| ----------- | ---------------------------------------------------- | ---------------------------- |
-| `authStore` | 当前 session 快照(userId、username、avatar、roles[]) | RSC 注入                     |
-| `menuStore` | 菜单树、按钮权限码 Set                               | RSC 注入                     |
-| `uiStore`   | 桌面侧栏折叠偏好、移动抽屉临时状态                   | 桌面偏好持久化(localStorage) |
+## 12. 数据迁移与发布
 
-> 服务端数据(列表/详情)走 React Server Components 或 fetch + revalidate,不进 Zustand。
+### 12.1 迁移策略
 
-### 10.3 Chakra + Tailwind 共存策略
+`20260723120000_app_modules` 尚未进入共享环境，直接重写为最终模型，避免发布过渡数据结构。
 
-- Chakra 提供组件库与主题 token(`extendTheme` 定义主色、圆角等)。
-- Tailwind 只在容器/布局层用(`flex`、`gap-4`、`p-6`、`grid`、响应式断点)。
-- **禁止**在同一元素上同时使用 Chakra 样式 props 和 Tailwind 类名,避免覆盖优先级踩坑。
-- `ChakraProvider` 包在根 `layout.tsx`,与 Tailwind base 样式协调(Tailwind 的 preflight 仅在不影响 Chakra 默认的范围内启用)。
+迁移在写入前检查：
 
----
+- 菜单孤儿、循环、非法导航深度。
+- 重复页面路径、重复权限码、页面缺少组件或权限码。
+- 按钮父级映射和新旧 ID 冲突。
+- 角色按钮授权缺少父页面授权。
+- 角色模块缺少启用、可见的页面入口。
 
-## 11. 非功能性需求
+### 12.2 历史数据转换
 
-### 11.1 安全
+- 历史 `MENU` 类型资源迁移到对应 `PAGE/LINK Menu`，目录授权不持久化。
+- 历史 `BUTTON` 类型资源转换为直属页面的 `BUTTON Menu`。
+- 历史 `RolePermission` 转为 `RoleMenu`；按钮仅在同一角色同时拥有父页面时迁移。
+- 内置按钮使用显式页面映射，禁止根据权限码前缀猜测。
+- 自定义按钮优先根据历史父级关系唯一解析到页面；无法唯一映射时 SQL `RAISE EXCEPTION` 输出清单并整批回滚。
+- 原权限管理菜单删除，菜单管理改名为“菜单与权限”。
+- `system:menu:*` 仅迁移给历史上同时拥有菜单管理和权限管理对应能力的角色。
+- `system:role:assign-permission` 重命名为 `system:role:assign-access`。
 
-- 密码 bcrypt(cost ≥ 12)。
-- NextAuth 默认 CSRF。
-- API 限流:在 `app/api/*` 接入限流工具(预留 `lib/rate-limit.ts`,首版可空实现)。
-- 敏感字段输出脱敏(`passwordHash` 永远不返回前端)。
-- 所有写接口必须 `requirePermission`。
+### 12.3 发布
 
-### 11.2 性能
+生产 migration、VEB API 和 Web 在同一维护窗口发布。执行前备份数据库；失败依赖事务回滚；成功后运行授权等价性检查。生产需要的内置节点必须写入 migration，不能只依赖 seed。
 
-- 列表统一分页(默认 pageSize=20,最大 100)。
-- Prisma `select` / `include` 精确控制返回字段。
-- 用户菜单/权限缓存:LRU 内存缓存 + 关键变更(分配权限/角色)时主动失效。
+## 13. 测试与验收
 
-### 11.3 可维护
+### 13.1 自动化覆盖
 
-- 全量 TypeScript strict 模式。
-- 统一 API 响应壳:`{ code: number, data: T, message: string }`,错误码集中在 `lib/errors.ts`。
-- 提交规范:Conventional Commits。
+- 契约：四种节点字段组合、路径、权限码和角色访问请求。
+- 数据库与服务：同模块父子、循环、深度、删除限制、按钮直属页面、复合外键和状态失效。
+- 角色授权：原子替换、全量撤销、跨模块拒绝、按钮父页面、空入口拒绝、事务回滚、并发重试、超级管理员只读。
+- 安全回归：同角色门禁、禁止跨角色拼接、停用即时撤权、按钮 UI 与 API 一致。
+- 导航：稳定排序、首页面落点、隐藏与停用、外链和按钮排除、无入口模块、403/404。
+- 迁移：空库、历史 seed、显式映射、自定义映射、未映射阻断、异常回滚和授权等价性。
+- E2E：创建模块 -> 创建页面和按钮 -> 配置角色访问 -> 分配用户 -> 登录切换模块 -> 页面、按钮和 API 放行 -> 撤权失效。
 
-### 11.4 国际化
+### 13.2 验收命令
 
-- 预留 i18n provider(可选 `next-intl`)。
-- 首版仅中文,所有文案集中在 `messages/zh.ts`,便于后续抽离。
-
-### 11.5 可访问性
-
-- Chakra-UI 默认 ARIA 友好,保持组件语义化。
-- 键盘可达(tab 顺序、Modal focus trap)。
-
----
-
-## 12. 里程碑
-
-| 里程碑                   | 范围                                                                              | 验收                                                           |
-| ------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| M1 — 脚手架与核心 CRUD   | Next.js + Prisma + NextAuth + Chakra/Tailwind 搭建;用户/角色/权限/菜单 CRUD 页面  | 内置超管可登录并跑通增删改查                                   |
-| M2 — 动态菜单与三层校验  | 菜单树下发、Sidebar 动态渲染、middleware 鉴权、`<Auth>` 组件、`requirePermission` | 普通用户登录后只能看见被授权的菜单与按钮,直接粘 URL 也无法绕过 |
-| M3 — 操作日志 + 文件上传 | 日志统一写入中间件、日志查询页;文件上传组件、本地存储                             | 任意 CUD 操作可在日志中查到;上传一张图片可下载/预览            |
-| M4 — 打磨                | 国际化抽离、错误码补全、文档、E2E 用例                                            | 跑通 Playwright 关键路径                                       |
-
----
-
-## 13. 开放问题 / 待定项
-
-| #   | 问题                                   | 当前默认                                   | 决策时点      |
-| --- | -------------------------------------- | ------------------------------------------ | ------------- |
-| 1   | 是否做多租户(组织/工作区)              | 否(单租户)                                 | v1 之后       |
-| 2   | 是否接入 SSO(企业微信、飞书、钉钉)     | 否,首版仅账号密码;NextAuth 已为 OAuth 预留 | v1 之后或按需 |
-| 3   | 部署形态(Vercel / Docker / K8s)        | Docker(自托管)                             | 实施前确认    |
-| 4   | 是否需要数据权限(部门/本人/自定义范围) | 否(首版只做菜单+按钮级)                    | v2            |
-| 5   | 是否做审批流 / 工作流                  | 否                                         | v2            |
-| 6   | 操作日志保留期与自动清理               | 默认保留 180 天,首版不自动清理             | M3            |
-
----
-
-## 附录 A:内置权限码与菜单种子数据(建议)
-
-| 菜单路径                      | 名称          | 权限码                   | 类型 |
-| ----------------------------- | ------------- | ------------------------ | ---- |
-| `/admin/system`               | 系统管理      | `system:view`            | DIR  |
-| `/admin/system/user`          | 用户管理      | `system:user:view`       | PAGE |
-| `/admin/system/role`          | 角色管理      | `system:role:view`       | PAGE |
-| `/admin/system/permission`    | 权限管理      | `system:permission:view` | PAGE |
-| `/admin/system/menu`          | 菜单管理      | `system:menu:view`       | PAGE |
-| `/admin/system/file`          | 文件管理 (P1) | `system:file:view`       | PAGE |
-| `/admin/system/log/operation` | 操作日志 (P1) | `log:operation:view`     | PAGE |
-
-按钮级权限按 `:create` / `:update` / `:delete` / `:export` / `:assign-*` 后缀派生,在 `prisma/seed.ts` 中初始化。
-
----
-
-## 附录 B:统一 API 响应壳
-
-```ts
-// 成功
-{ "code": 0, "data": <T>, "message": "ok" }
-
-// 失败
-{ "code": 40301, "data": null, "message": "无权限" }
+```bash
+pnpm db:generate
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm test:e2e
+pnpm build
 ```
 
-错误码分段:
+## 14. 非功能要求
 
-- `0` 成功
-- `400xx` 参数/校验类
-- `401xx` 未认证
-- `403xx` 无权限
-- `404xx` 资源不存在
-- `409xx` 冲突
-- `500xx` 服务端错误
+### 安全
+
+- 密码使用 bcrypt，敏感字段永不返回前端。
+- 所有受控写接口必须调用 `requirePermission`。
+- 页面路由和 API 都从服务端重新计算授权，不信任前端导航数据。
+- 审计覆盖 `menu.*`、`module.*` 和 `role.assign-access`。
+
+### 一致性
+
+授权快照当前不做跨请求缓存，每次从 PostgreSQL 主库计算。后续如恢复缓存，必须引入数据库授权版本，并与用户角色、角色模块、角色节点、模块和菜单变更在同一事务递增。
+
+### 可维护性
+
+- TypeScript strict。
+- API 响应壳统一为 `{ code, data, message }`。
+- Prisma 查询显式选择字段，列表统一分页。
+- 生产只运行 `prisma migrate deploy`，不自动执行 seed。
+
+## 附录 A：内置节点示例
+
+| 父级       | 名称         | 类型   | 路径或权限码                                 |
+| ---------- | ------------ | ------ | -------------------------------------------- |
+| 根         | 仪表盘       | PAGE   | `/admin`、`dashboard:view`                   |
+| 系统管理   | 模块管理     | PAGE   | `/admin/system/module`、`system:module:view` |
+| 模块管理   | 新增模块     | BUTTON | `system:module:create`                       |
+| 系统管理   | 用户管理     | PAGE   | `/admin/system/user`、`system:user:view`     |
+| 用户管理   | 删除用户     | BUTTON | `system:user:delete`                         |
+| 系统管理   | 角色管理     | PAGE   | `/admin/system/role`、`system:role:view`     |
+| 角色管理   | 配置访问权限 | BUTTON | `system:role:assign-access`                  |
+| 系统管理   | 菜单与权限   | PAGE   | `/admin/system/menu`、`system:menu:view`     |
+| 菜单与权限 | 新增节点     | BUTTON | `system:menu:create`                         |
+
+内置按钮和页面的父子映射必须显式写入 migration 和 seed。
+
+## 附录 B：统一 API 响应
+
+```json
+{ "code": 0, "data": {}, "message": "ok" }
+```
+
+常用错误分段：
+
+- `400xx`：参数或业务校验。
+- `401xx`：未认证。
+- `403xx`：资源存在但未授权。
+- `404xx`：资源或页面不存在。
+- HTTP `410 Gone`：已退役兼容接口。
+- `409xx`：冲突。
+- `500xx`：服务端错误。

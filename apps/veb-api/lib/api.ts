@@ -24,6 +24,10 @@ export function fail(code: ApiErrorCode, message: string, status = 400) {
   );
 }
 
+export function gone(message = '接口已废弃') {
+  return fail(ERROR_CODES.NOT_FOUND, message, 410);
+}
+
 export function handleApiError(error: unknown, requestId?: string) {
   let response: Response;
   if (error instanceof ZodError) {
@@ -62,6 +66,16 @@ const sensitiveKeys = [
   'token',
   'secret',
 ];
+
+const operationPayloads = new WeakMap<Response, Prisma.InputJsonValue | null>();
+
+export function withOperationPayload<T extends Response>(
+  response: T,
+  payload: Prisma.InputJsonValue | null,
+) {
+  operationPayloads.set(response, payload);
+  return response;
+}
 
 function redactPayload(value: unknown): Prisma.InputJsonValue | null {
   if (Array.isArray(value)) return value.map(redactPayload);
@@ -149,7 +163,7 @@ export function withApi<TArgs extends unknown[]>(
         options,
         LogStatus.SUCCESS,
         undefined,
-        await payloadPromise,
+        operationPayloads.get(response) ?? (await payloadPromise),
       );
       const result = requestId
         ? attachRequestId(response, requestId)

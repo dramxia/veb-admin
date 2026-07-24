@@ -1,25 +1,10 @@
 export const dynamic = 'force-dynamic';
 
-import { permissionListQuerySchema } from '@veb/api-contracts';
-import { ok, pageOptions, readJson, readQuery, withApi } from '@/lib/api';
-import { requirePermission } from '@/lib/permission';
-import { permissionSchema } from '@/lib/validation';
-import {
-  createPermission,
-  listPermissions,
-} from '@/src/modules/permissions/service';
+import { gone, withApi } from '@/lib/api';
 
-export const GET = withApi(async (request: Request) => {
-  await requirePermission('system:permission:view');
-  const query = readQuery(request, permissionListQuerySchema);
-  return ok(await listPermissions({ ...query, ...pageOptions(query) }));
-});
-
-export const POST = withApi(
-  async (request: Request) => {
-    await requirePermission('system:permission:create');
-    const data = await readJson(request, permissionSchema);
-    return ok(await createPermission(data));
-  },
-  { action: 'permission.create' },
+const retired = withApi(() =>
+  gone('权限管理已合并到菜单与权限管理，请改用菜单接口'),
 );
+
+export const GET = retired;
+export const POST = retired;

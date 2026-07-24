@@ -7,6 +7,6 @@ import { getMenuTree } from '@/src/modules/menus/service';
 
 export const GET = withApi(async (request: Request) => {
   await requirePermission('system:menu:view');
-  readQuery(request, menuListQuerySchema);
-  return ok(await getMenuTree());
+  const query = readQuery(request, menuListQuerySchema);
+  return ok(await getMenuTree(query));
 });

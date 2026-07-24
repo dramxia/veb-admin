@@ -22,12 +22,12 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react';
-import type { PermissionDto, RoleDto, VebUser } from '@veb/api-contracts';
+import type { RoleDto } from '@veb/api-contracts';
 import {
-  KeyRound,
   MoreHorizontal,
   Pencil,
   Plus,
+  ShieldCheck,
   Trash2,
   Users,
 } from 'lucide-react';
@@ -42,7 +42,7 @@ import {
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
-import { AssignPermissionDrawer } from './assign-permission-drawer';
+import { AssignAccessDrawer } from './assign-access-drawer';
 import { AssignUserDrawer } from './assign-user-drawer';
 import { RoleFormModal } from './role-form-modal';
 
@@ -50,20 +50,12 @@ function api<T = unknown>(path: string, init: RequestInit) {
   return requestJson<T>(path, init);
 }
 
-export function RoleTable({
-  roles,
-  permissions,
-  users,
-}: {
-  roles: RoleDto[];
-  permissions: PermissionDto[];
-  users: VebUser[];
-}) {
+export function RoleTable({ roles }: { roles: RoleDto[] }) {
   const { clearError, error, loading, run } = useActionFeedback({
     refresh: true,
   });
   const formModal = useDisclosure();
-  const permissionDrawer = useDisclosure();
+  const accessDrawer = useDisclosure();
   const userDrawer = useDisclosure();
   const deleteDialog = useDisclosure();
   const [editingRole, setEditingRole] = useState<RoleDto | null>(null);
@@ -76,7 +68,7 @@ export function RoleTable({
         minW={{ base: '680px', lg: '900px' }}
         title="角色矩阵"
         description="集中维护角色状态、授权范围与用户关联。"
-        meta={`${roles.length} 个角色 · ${permissions.length} 个权限 · ${users.length} 个用户`}
+        meta={`${roles.length} 个角色`}
         toolbar={
           error ? (
             <Alert status="error" aria-live="polite">
@@ -110,7 +102,10 @@ export function RoleTable({
                 用户数
               </Th>
               <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>
-                权限数
+                模块数
+              </Th>
+              <Th isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                节点数
               </Th>
               <Th display={{ base: 'none', lg: 'table-cell' }}>归属</Th>
               <Th>操作</Th>
@@ -139,8 +134,10 @@ export function RoleTable({
                         color="ink.500"
                         fontSize="xs"
                       >
-                        {role._count.users} 个用户 · {role._count.permissions}{' '}
-                        个权限
+                        {role._count.users} 个用户 ·{' '}
+                        {role.code === 'superadmin'
+                          ? '全部模块 · 全部节点'
+                          : `${role._count.modules} 个模块 · ${role._count.menus} 个节点`}
                       </Text>
                     </Stack>
                   </Td>
@@ -155,7 +152,10 @@ export function RoleTable({
                     {role._count.users}
                   </Td>
                   <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>
-                    {role._count.permissions}
+                    {role.code === 'superadmin' ? '全部' : role._count.modules}
+                  </Td>
+                  <Td isNumeric display={{ base: 'none', md: 'table-cell' }}>
+                    {role.code === 'superadmin' ? '全部' : role._count.menus}
                   </Td>
                   <Td display={{ base: 'none', lg: 'table-cell' }}>
                     <Badge colorScheme={role.isSystem ? 'purple' : 'gray'}>
@@ -180,18 +180,22 @@ export function RoleTable({
                         }}
                       />
                       <AuthButton
-                        code="system:role:assign-permission"
+                        code="system:role:assign-access"
                         size="xs"
                         intent="neutral"
                         variant="ghost"
-                        tooltip="分配权限"
-                        aria-label={`为角色 ${role.name} 分配权限`}
-                        icon={<Icon as={KeyRound} boxSize={4} />}
+                        tooltip={
+                          role.code === 'superadmin'
+                            ? '查看访问权限'
+                            : '配置访问权限'
+                        }
+                        aria-label={`${role.code === 'superadmin' ? '查看' : '配置'}角色 ${role.name} 的访问权限`}
+                        icon={<Icon as={ShieldCheck} boxSize={4} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
                           setSelectedRole(role);
-                          permissionDrawer.onOpen();
+                          accessDrawer.onOpen();
                         }}
                       />
                       <Menu placement="bottom-end" strategy="fixed">
@@ -241,7 +245,7 @@ export function RoleTable({
               ))}
             </Tbody>
           ) : (
-            <EmptyTableRow colSpan={7} text="暂无角色数据" />
+            <EmptyTableRow colSpan={8} text="暂无角色数据" />
           )}
         </Table>
       </DataTableCard>
@@ -271,17 +275,15 @@ export function RoleTable({
         }
       />
 
-      <AssignPermissionDrawer
-        isOpen={permissionDrawer.isOpen}
+      <AssignAccessDrawer
+        isOpen={accessDrawer.isOpen}
         role={selectedRole}
-        permissions={permissions}
-        onClose={permissionDrawer.onClose}
+        onClose={accessDrawer.onClose}
       />
 
       <AssignUserDrawer
         isOpen={userDrawer.isOpen}
         role={selectedRole}
-        users={users}
         onClose={userDrawer.onClose}
       />
 

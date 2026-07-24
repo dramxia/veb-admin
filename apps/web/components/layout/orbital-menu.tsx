@@ -548,7 +548,7 @@ export function OrbitalMenu({
       new Set(
         flattenNavigableMenus(menus)
           .map((menu) => getHref(menu))
-          .filter((href) => !isExternalHref(href)),
+          .filter((href) => Boolean(href) && !isExternalHref(href)),
       ),
     );
     let index = 0;

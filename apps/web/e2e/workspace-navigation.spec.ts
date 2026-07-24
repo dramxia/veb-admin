@@ -4,15 +4,18 @@ import { login } from './helpers';
 async function getAdminModuleLink(page: Page): Promise<Locator> {
   const desktopNavigation = page.getByRole('navigation', { name: '应用模块' });
   if (await desktopNavigation.isVisible()) {
-    return desktopNavigation.getByRole('link', { name: '后台', exact: true });
+    return desktopNavigation.getByRole('link', {
+      name: '后台管理',
+      exact: true,
+    });
   }
 
   await page.getByRole('button', { name: '切换应用模块' }).click();
-  return page.getByRole('menuitem', { name: '后台', exact: true });
+  return page.getByRole('menuitem', { name: '后台管理', exact: true });
 }
 
 async function expectHeaderControlsInsideViewport(page: Page) {
-  const layoutIssues = await page.locator('header').evaluate((header) => {
+  const layoutIssues = await page.getByRole('banner').evaluate((header) => {
     const controls = [...header.querySelectorAll<HTMLElement>('a, button')]
       .filter((element) => {
         const style = window.getComputedStyle(element);
@@ -74,7 +77,9 @@ test('workspace navigation keeps the admin module active and restores its home',
   await expect(page).toHaveURL(/\/admin$/);
 
   await page.goto('/admin/system/user');
-  await page.getByRole('link', { name: '返回后台首页' }).click();
+  await page
+    .getByRole('link', { name: '返回后台管理首个菜单', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/admin$/);
 
   await page.goBack();
@@ -85,7 +90,7 @@ test('workspace navigation keeps the admin module active and restores its home',
   await expect(page).toHaveURL(/\/admin$/);
 
   await expect(
-    page.getByRole('button', { name: '搜索后台菜单' }),
+    page.getByRole('button', { name: '搜索应用菜单' }),
   ).toBeVisible();
   await expectHeaderControlsInsideViewport(page);
 });
@@ -164,7 +169,7 @@ test('the 375px module header and mobile sidebar stay within the viewport', asyn
   await page.setViewportSize({ width: 375, height: 812 });
   await expect(
     page.getByRole('button', { name: '切换应用模块' }),
-  ).toContainText('后台');
+  ).toContainText('后台管理');
   await expectHeaderControlsInsideViewport(page);
 
   const sidebar = page.locator('aside');
@@ -234,11 +239,6 @@ test('the 375px module header and mobile sidebar stay within the viewport', asyn
 
   await page.getByRole('button', { name: '打开侧边栏' }).click();
   await page.goto('/admin/profile');
-  await expect(page).toHaveURL(/\/admin\/profile$/);
-  await expect
-    .poll(async () => {
-      const box = await sidebar.boundingBox();
-      return box ? box.x + box.width : 0;
-    })
-    .toBeLessThanOrEqual(1);
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(sidebar).toHaveCount(0);
 });

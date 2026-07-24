@@ -83,7 +83,6 @@ export const zhMessages = {
   'validation.roleCode': '角色编码格式不正确',
   'validation.roleName': '角色名称不能为空',
   'validation.permissionCode': '权限码格式不正确',
-  'validation.permissionName': '权限名称不能为空',
   'validation.menuName': '菜单名称不能为空',
   'validation.pathRequired': '路径不能为空',
   'validation.oldPasswordRequired': '请输入原密码',

@@ -1,48 +1,86 @@
-import { CommonStatus, type Menu } from '@/generated/client';
 import {
-  getCachedPermissions,
-  setCachedPermissions,
-} from '@/lib/permission-cache';
+  CommonStatus,
+  UserStatus,
+  type AppModule,
+  type Menu,
+} from '@/generated/client';
+import { createMenuHierarchy } from '@/lib/menu-hierarchy';
+import type { PermissionSnapshot } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
+import { NotFoundError, PermissionError } from '@/lib/errors';
 
-export type MenuNode = Pick<
-  Menu,
-  | 'id'
-  | 'parentId'
-  | 'name'
-  | 'path'
-  | 'component'
-  | 'icon'
-  | 'sort'
-  | 'type'
-  | 'permissionCode'
-  | 'visible'
-  | 'status'
-  | 'externalUrl'
-> & { children: MenuNode[] };
+type NavigationMenuType = 'DIR' | 'PAGE' | 'LINK';
+
+export type MenuNode = Omit<
+  Pick<
+    Menu,
+    | 'id'
+    | 'moduleId'
+    | 'parentId'
+    | 'name'
+    | 'description'
+    | 'path'
+    | 'component'
+    | 'icon'
+    | 'sort'
+    | 'permissionCode'
+    | 'visible'
+    | 'status'
+    | 'externalUrl'
+  >,
+  never
+> & {
+  type: NavigationMenuType;
+  children: MenuNode[];
+};
 
 export type UserMenuAndPermissions = {
   menus: MenuNode[];
+  modules: Array<
+    Pick<
+      AppModule,
+      | 'id'
+      | 'code'
+      | 'name'
+      | 'description'
+      | 'icon'
+      | 'sort'
+      | 'status'
+      | 'isSystem'
+    > & {
+      landingPath: string;
+      menus: MenuNode[];
+    }
+  >;
   permissionCodes: string[];
   roleCodes: string[];
 };
 
-function sortMenus<T extends { sort: number; name: string }>(items: T[]) {
-  return items.sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
+function compareText(a: string, b: string) {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function buildTree(items: Menu[], options?: { onlyVisible?: boolean }) {
-  const filtered = options?.onlyVisible
-    ? items.filter((item) => item.visible)
-    : items;
+function sortMenus<T extends { id: string; sort: number; name: string }>(
+  items: T[],
+) {
+  return items.sort(
+    (a, b) =>
+      a.sort - b.sort || compareText(a.name, b.name) || compareText(a.id, b.id),
+  );
+}
+
+function buildTree(items: Menu[]) {
   const map = new Map<string, MenuNode>();
   const roots: MenuNode[] = [];
 
-  for (const item of filtered) {
+  for (const item of items) {
+    if (item.type === 'BUTTON') continue;
     map.set(item.id, {
       id: item.id,
+      moduleId: item.moduleId,
       parentId: item.parentId,
       name: item.name,
+      description: item.description,
       path: item.path,
       component: item.component,
       icon: item.icon,
@@ -76,25 +114,26 @@ function pruneEmptyDirs(nodes: MenuNode[]): MenuNode[] {
     .filter((node) => node.type !== 'DIR' || node.children.length > 0);
 }
 
-function normalizeStoredAdminMenuPath(path: string) {
-  if (/^https?:\/\//i.test(path)) return null;
-
-  const withoutTrailingSlash =
-    path.length > 1 ? path.replace(/\/+$/, '') : path;
-  if (!withoutTrailingSlash || withoutTrailingSlash === '/') return '/admin';
-
-  const namespaced =
-    withoutTrailingSlash === '/admin' ||
-    withoutTrailingSlash.startsWith('/admin/')
-      ? withoutTrailingSlash
-      : `/admin${withoutTrailingSlash.startsWith('/') ? '' : '/'}${withoutTrailingSlash}`;
-  return namespaced.replace(/\/{2,}/g, '/');
+function findLandingPath(nodes: MenuNode[]): string | null {
+  for (const node of nodes) {
+    if (node.type === 'PAGE' && node.path) return node.path;
+    const childPath = findLandingPath(node.children);
+    if (childPath) return childPath;
+  }
+  return null;
 }
 
-export async function getUserPermissionSnapshot(userId: string) {
-  const cached = getCachedPermissions(userId);
-  if (cached) return cached;
+function normalizeRequestedPath(path: string) {
+  return path.length > 1 ? path.replace(/\/+$/, '') : path;
+}
 
+/**
+ * Computes effective access role by role. A menu permission only survives when
+ * that same role owns its enabled module, preventing cross-role privilege joins.
+ */
+export async function getUserPermissionSnapshot(
+  userId: string,
+): Promise<PermissionSnapshot> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -105,9 +144,11 @@ export async function getUserPermissionSnapshot(userId: string) {
           role: {
             select: {
               code: true,
-              permissions: {
-                select: { permission: { select: { code: true } } },
+              modules: {
+                where: { module: { status: CommonStatus.ENABLED } },
+                select: { moduleId: true },
               },
+              menus: { select: { menuId: true, moduleId: true } },
             },
           },
         },
@@ -115,69 +156,195 @@ export async function getUserPermissionSnapshot(userId: string) {
     },
   });
 
-  if (!user || user.status !== 'ENABLED') {
-    return setCachedPermissions(userId, { roleCodes: [], permissionCodes: [] });
+  if (!user || user.status !== UserStatus.ENABLED) {
+    return { roleCodes: [], moduleIds: [], permissionCodes: [] };
   }
 
-  const roleCodes = user.roles.map((item) => item.role.code);
-  const permissionCodes = [
-    ...new Set(
-      user.roles.flatMap((item) =>
-        item.role.permissions.map((rp) => rp.permission.code),
-      ),
-    ),
-  ];
-  return setCachedPermissions(userId, { roleCodes, permissionCodes });
+  const roleCodes = [...new Set(user.roles.map((item) => item.role.code))];
+  if (roleCodes.includes('superadmin')) {
+    const modules = await prisma.appModule.findMany({
+      where: { status: CommonStatus.ENABLED },
+      select: { id: true, menus: true },
+    });
+    const menus = modules.flatMap((module) => module.menus);
+    const hierarchy = createMenuHierarchy(menus);
+    return {
+      roleCodes,
+      moduleIds: modules.map((module) => module.id),
+      permissionCodes: [
+        ...new Set(
+          menus
+            .filter(
+              (menu) =>
+                menu.type !== 'DIR' &&
+                Boolean(menu.permissionCode) &&
+                hierarchy.isEnabled(menu.id),
+            )
+            .map((menu) => menu.permissionCode!),
+        ),
+      ],
+    };
+  }
+
+  const moduleIds = new Set<string>();
+  for (const { role } of user.roles) {
+    for (const assignment of role.modules) moduleIds.add(assignment.moduleId);
+  }
+  const menus = moduleIds.size
+    ? await prisma.menu.findMany({
+        where: { moduleId: { in: [...moduleIds] } },
+      })
+    : [];
+  const hierarchy = createMenuHierarchy(menus);
+  const menuById = hierarchy.byId;
+  const permissionCodes = new Set<string>();
+
+  for (const { role } of user.roles) {
+    const roleModuleIds = new Set(
+      role.modules.map((assignment) => assignment.moduleId),
+    );
+    for (const assignment of role.menus) {
+      if (!roleModuleIds.has(assignment.moduleId)) continue;
+      const menu = menuById.get(assignment.menuId);
+      if (
+        menu &&
+        menu.moduleId === assignment.moduleId &&
+        menu.type !== 'DIR' &&
+        menu.permissionCode &&
+        hierarchy.isEnabled(menu.id)
+      ) {
+        permissionCodes.add(menu.permissionCode);
+      }
+    }
+  }
+
+  return {
+    roleCodes,
+    moduleIds: [...moduleIds],
+    permissionCodes: [...permissionCodes],
+  };
 }
+
+export const getUserAuthorizationSnapshot = getUserPermissionSnapshot;
 
 export async function getUserMenuAndPermissions(
   userId: string,
 ): Promise<UserMenuAndPermissions> {
   const snapshot = await getUserPermissionSnapshot(userId);
-  const isSuperadmin = snapshot.roleCodes.includes('superadmin');
-  const menus = await prisma.menu.findMany({
-    where: { status: CommonStatus.ENABLED },
-    orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-  });
-
-  if (isSuperadmin) {
-    const permissions = await prisma.permission.findMany({
-      select: { code: true },
-    });
+  if (!snapshot.moduleIds.length) {
     return {
-      menus: buildTree(menus, { onlyVisible: true }),
-      permissionCodes: permissions.map((item) => item.code),
+      menus: [],
+      modules: [],
+      permissionCodes: snapshot.permissionCodes,
       roleCodes: snapshot.roleCodes,
     };
   }
 
+  const modules = await prisma.appModule.findMany({
+    where: {
+      id: { in: snapshot.moduleIds },
+      status: CommonStatus.ENABLED,
+    },
+    orderBy: [{ sort: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+    include: { menus: true },
+  });
+
   const allowed = new Set(snapshot.permissionCodes);
-  const accessibleMenus = menus.filter(
-    (menu) => !menu.permissionCode || allowed.has(menu.permissionCode),
-  );
+  const resolvedModules = modules.flatMap((module) => {
+    const hierarchy = createMenuHierarchy(module.menus);
+    const accessibleMenus = module.menus.filter(
+      (menu) =>
+        menu.type !== 'BUTTON' &&
+        hierarchy.isEnabled(menu.id) &&
+        hierarchy.isVisible(menu.id) &&
+        (menu.type === 'DIR' ||
+          Boolean(menu.permissionCode && allowed.has(menu.permissionCode))),
+    );
+    const menus = pruneEmptyDirs(buildTree(accessibleMenus));
+    const landingPath = findLandingPath(menus);
+    if (!landingPath) return [];
+    return [
+      {
+        id: module.id,
+        code: module.code,
+        name: module.name,
+        description: module.description,
+        icon: module.icon,
+        sort: module.sort,
+        status: module.status,
+        isSystem: module.isSystem,
+        landingPath,
+        menus,
+      },
+    ];
+  });
+
+  const primaryModule =
+    resolvedModules.find((module) => module.code === 'admin') ??
+    resolvedModules[0];
   return {
-    menus: pruneEmptyDirs(buildTree(accessibleMenus, { onlyVisible: true })),
+    menus: primaryModule?.menus ?? [],
+    modules: resolvedModules,
     permissionCodes: snapshot.permissionCodes,
     roleCodes: snapshot.roleCodes,
   };
 }
 
 export async function getMenuByPath(pathname: string) {
-  const normalized =
-    pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-  const menus = await prisma.menu.findMany({
-    where: { status: CommonStatus.ENABLED },
+  const normalized = normalizeRequestedPath(pathname);
+  const pages = await prisma.menu.findMany({
+    where: { type: 'PAGE', path: { not: null } },
   });
-  return (
-    menus
-      .map((menu) => ({ menu, path: normalizeStoredAdminMenuPath(menu.path) }))
-      .filter(
-        (entry): entry is { menu: Menu; path: string } =>
-          entry.path !== null &&
-          (normalized === entry.path ||
-            (entry.path !== '/admin' &&
-              normalized.startsWith(`${entry.path}/`))),
-      )
-      .sort((a, b) => b.path.length - a.path.length)[0]?.menu ?? null
+  const routablePages = pages.filter((page): page is Menu & { path: string } =>
+    Boolean(page.path),
   );
+  const exact = routablePages.find((page) => page.path === normalized);
+  if (exact) return exact;
+
+  // A one-segment module landing page (for example /admin) is exact-only. If
+  // it acted as a prefix it would turn every unknown workspace URL into that
+  // module's dashboard instead of a 404.
+  return (
+    routablePages
+      .filter(
+        (page) =>
+          page.path.split('/').filter(Boolean).length > 1 &&
+          normalized.startsWith(`${page.path}/`),
+      )
+      .sort(
+        (a, b) => b.path.length - a.path.length || compareText(a.id, b.id),
+      )[0] ?? null
+  );
+}
+
+export async function resolveUserPage(userId: string, pathname: string) {
+  const page = await getMenuByPath(pathname);
+  if (!page) throw new NotFoundError('页面不存在');
+
+  const snapshot = await getUserPermissionSnapshot(userId);
+  if (
+    !snapshot.moduleIds.includes(page.moduleId) ||
+    !page.permissionCode ||
+    !snapshot.permissionCodes.includes(page.permissionCode)
+  ) {
+    throw new PermissionError();
+  }
+  if (!page.path || !page.component) throw new NotFoundError('页面组件未配置');
+
+  return {
+    id: page.id,
+    moduleId: page.moduleId,
+    path: page.path,
+    component: page.component,
+  };
+}
+
+/** @deprecated Resolve the owning module through the matching PAGE instead. */
+export async function getModuleByPath(pathname: string) {
+  const menu = await getMenuByPath(pathname);
+  if (!menu) return null;
+  const appModule = await prisma.appModule.findUnique({
+    where: { id: menu.moduleId },
+  });
+  return appModule ? { module: appModule, menu } : null;
 }

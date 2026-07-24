@@ -1,27 +1,55 @@
 export const dynamic = 'force-dynamic';
 
 import type { ReactNode } from 'react';
-import type { MenuNode, ProfileDto, UserNavigation } from '@veb/api-contracts';
+import type { ProfileDto } from '@veb/api-contracts';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
+import {
+  normalizePathname,
+  sortWorkspaceModules,
+} from '@/components/layout/app-modules';
 import { WorkspaceShell } from '@/components/layout/workspace-shell';
 import { requestVebPage } from '@/lib/server-api';
+import {
+  getWorkspaceNavigation,
+  getWorkspacePage,
+} from '@/lib/workspace-navigation';
+
+const GLOBAL_OR_LEGACY_PATHS = new Set([
+  '/',
+  '/profile',
+  '/admin/profile',
+  '/admin/system/permission',
+]);
 
 export default async function WorkspaceLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [profile, navigation] = await Promise.all([
+  const pathname = normalizePathname(headers().get('x-veb-pathname') ?? '/');
+  const pagePromise = GLOBAL_OR_LEGACY_PATHS.has(pathname)
+    ? Promise.resolve(null)
+    : getWorkspacePage(pathname);
+  const [profile, navigation, page] = await Promise.all([
     requestVebPage<ProfileDto>('/api/v1/me'),
-    requestVebPage<UserNavigation>('/api/v1/navigation'),
+    getWorkspaceNavigation(),
+    pagePromise,
   ]);
-  const menus = navigation.menus as MenuNode[];
+  if (!GLOBAL_OR_LEGACY_PATHS.has(pathname) && !page) notFound();
+
+  const modules = sortWorkspaceModules(
+    navigation.modules.filter((module) => module.status === 'ENABLED'),
+  );
+
   const user = { ...profile, roles: navigation.roleCodes };
 
   return (
     <WorkspaceShell
       user={user}
-      menus={menus}
+      modules={modules}
       permissionCodes={navigation.permissionCodes}
+      activeModuleId={page?.moduleId}
     >
       {children}
     </WorkspaceShell>

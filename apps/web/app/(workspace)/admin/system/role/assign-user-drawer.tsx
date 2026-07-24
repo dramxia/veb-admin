@@ -26,7 +26,11 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import type { RoleDetailDto, RoleDto, VebUser } from '@veb/api-contracts';
+import type {
+  RoleDto,
+  RoleUserAssignmentDetailDto,
+  RoleUserOption,
+} from '@veb/api-contracts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getErrorMessage,
@@ -38,18 +42,22 @@ import { useRoleAssignmentDetail } from './use-role-assignment-detail';
 type AssignUserDrawerProps = {
   isOpen: boolean;
   role: RoleDto | null;
-  users: VebUser[];
   onClose: () => void;
 };
 
-function getUserIds(detail: RoleDetailDto) {
-  return detail.users.map((item) => item.user.id);
+const EMPTY_USERS: RoleUserOption[] = [];
+
+function getUserDetailPath(roleId: string) {
+  return `/api/v1/system/roles/${roleId}/users`;
+}
+
+function getUserIds(detail: RoleUserAssignmentDetailDto) {
+  return detail.userIds;
 }
 
 export function AssignUserDrawer({
   isOpen,
   role,
-  users,
   onClose,
 }: AssignUserDrawerProps) {
   const { loading, run } = useActionFeedback({ refresh: true });
@@ -58,8 +66,9 @@ export function AssignUserDrawer({
   const activeRoleIdRef = useRef<string | null>(role?.id ?? null);
   activeRoleIdRef.current = role?.id ?? null;
 
-  const detail = useRoleAssignmentDetail<RoleDetailDto>({
+  const detail = useRoleAssignmentDetail<RoleUserAssignmentDetailDto>({
     errorFallback: '用户详情加载失败',
+    getPath: getUserDetailPath,
     getSelectedIds: getUserIds,
     isOpen,
     roleId: role?.id ?? null,
@@ -69,6 +78,8 @@ export function AssignUserDrawer({
     setKeyword('');
     setSubmitError(null);
   }, [isOpen, role?.id]);
+
+  const users = detail.data?.users ?? EMPTY_USERS;
 
   const filtered = useMemo(() => {
     const value = keyword.trim().toLowerCase();

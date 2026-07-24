@@ -3,23 +3,27 @@ import { describe, expect, it, vi } from 'vitest';
 const menuRows = [
   {
     id: 'dashboard',
+    moduleId: 'admin-module',
     parentId: null,
     name: 'Dashboard',
+    description: null,
     path: '/admin',
-    component: null,
+    component: 'dashboard/page',
     icon: null,
     sort: 0,
     type: 'PAGE',
-    permissionCode: null,
+    permissionCode: 'dashboard:view',
     visible: true,
     status: 'ENABLED',
     externalUrl: null,
   },
   {
     id: 'root',
+    moduleId: 'admin-module',
     parentId: null,
     name: 'System',
-    path: '/admin/system',
+    description: null,
+    path: null,
     component: null,
     icon: null,
     sort: 1,
@@ -31,8 +35,10 @@ const menuRows = [
   },
   {
     id: 'user',
+    moduleId: 'admin-module',
     parentId: 'root',
     name: 'User',
+    description: null,
     path: '/admin/system/user',
     component: 'system/user/page',
     icon: null,
@@ -45,8 +51,10 @@ const menuRows = [
   },
   {
     id: 'role',
+    moduleId: 'admin-module',
     parentId: 'root',
     name: 'Role',
+    description: null,
     path: '/admin/system/role',
     component: 'system/role/page',
     icon: null,
@@ -58,10 +66,12 @@ const menuRows = [
     externalUrl: null,
   },
   {
-    id: 'legacy-audit',
+    id: 'audit',
+    moduleId: 'admin-module',
     parentId: 'root',
-    name: 'Legacy audit',
-    path: '/system/audit',
+    name: 'Audit',
+    description: null,
+    path: '/admin/system/audit',
     component: 'system/audit/page',
     icon: null,
     sort: 3,
@@ -73,9 +83,11 @@ const menuRows = [
   },
   {
     id: 'empty',
+    moduleId: 'admin-module',
     parentId: null,
     name: 'Empty',
-    path: '/admin/empty',
+    description: null,
+    path: null,
     component: null,
     icon: null,
     sort: 9,
@@ -84,6 +96,22 @@ const menuRows = [
     visible: true,
     status: 'ENABLED',
     externalUrl: null,
+  },
+  {
+    id: 'docs',
+    moduleId: 'admin-module',
+    parentId: null,
+    name: 'Docs',
+    description: null,
+    path: null,
+    component: null,
+    icon: null,
+    sort: 10,
+    type: 'LINK',
+    permissionCode: 'system:docs:view',
+    visible: true,
+    status: 'ENABLED',
+    externalUrl: 'https://example.com/docs',
   },
 ];
 
@@ -101,7 +129,11 @@ vi.mock('../prisma', () => ({
           {
             role: {
               code: 'user',
-              permissions: [{ permission: { code: 'system:user:view' } }],
+              modules: [{ moduleId: 'admin-module' }],
+              menus: [
+                { menuId: 'dashboard', moduleId: 'admin-module' },
+                { menuId: 'user', moduleId: 'admin-module' },
+              ],
             },
           },
         ],
@@ -110,10 +142,21 @@ vi.mock('../prisma', () => ({
     menu: {
       findMany: vi.fn(async () => menuRows),
     },
-    permission: {
+    appModule: {
       findMany: vi.fn(async () => [
-        { code: 'system:user:view' },
-        { code: 'system:role:view' },
+        {
+          id: 'admin-module',
+          code: 'admin',
+          name: '后台管理',
+          description: null,
+          icon: null,
+          sort: 0,
+          status: 'ENABLED',
+          isSystem: true,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+          menus: menuRows,
+        },
       ]),
     },
   },
@@ -122,9 +165,14 @@ vi.mock('../prisma', () => ({
 const menu = await import('../menu');
 
 describe('menu aggregation', () => {
-  it('prunes inaccessible pages and empty dirs', async () => {
+  it('prunes inaccessible pages and empty dirs and resolves a module landing page', async () => {
     const result = await menu.getUserMenuAndPermissions('u1');
-    expect(result.permissionCodes).toEqual(['system:user:view']);
+    expect(result.permissionCodes).toEqual([
+      'dashboard:view',
+      'system:user:view',
+    ]);
+    expect(result.modules).toHaveLength(1);
+    expect(result.modules[0]?.landingPath).toBe('/admin');
     expect(result.menus.map((item) => item.id)).toEqual(['dashboard', 'root']);
     expect(
       result.menus
@@ -133,18 +181,35 @@ describe('menu aggregation', () => {
     ).toEqual(['user']);
   });
 
-  it('matches migrated routes against new and legacy stored menu paths', async () => {
+  it('uses the longest matching PAGE path and never resolves external links', async () => {
     await expect(
       menu.getMenuByPath('/admin/system/user/detail'),
     ).resolves.toMatchObject({ id: 'user' });
-    await expect(menu.getMenuByPath('/admin')).resolves.toMatchObject({
+    await expect(menu.getMenuByPath('/admin/')).resolves.toMatchObject({
       id: 'dashboard',
     });
     await expect(menu.getMenuByPath('/admin/unknown')).resolves.toBeNull();
     await expect(
       menu.getMenuByPath('/admin/system/audit/detail'),
-    ).resolves.toMatchObject({ id: 'legacy-audit' });
-    await expect(menu.getMenuByPath('/system/user')).resolves.toBeNull();
+    ).resolves.toMatchObject({ id: 'audit' });
     await expect(menu.getMenuByPath('/system/audit')).resolves.toBeNull();
+    await expect(menu.getMenuByPath('/admin/docs')).resolves.toBeNull();
+  });
+
+  it('distinguishes unknown pages from known but unauthorized pages', async () => {
+    await expect(
+      menu.resolveUserPage('u1', '/admin/system/user/detail'),
+    ).resolves.toEqual({
+      id: 'user',
+      moduleId: 'admin-module',
+      path: '/admin/system/user',
+      component: 'system/user/page',
+    });
+    await expect(
+      menu.resolveUserPage('u1', '/admin/system/role'),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      menu.resolveUserPage('u1', '/admin/unknown'),
+    ).rejects.toMatchObject({ status: 404, message: '页面不存在' });
   });
 });

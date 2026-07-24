@@ -30,6 +30,8 @@ type PublicArticle = {
 };
 
 type LikeState = { liked: boolean; likeCount: number };
+const blogPublicApiUrl =
+  process.env.E2E_BLOG_PUBLIC_URL || 'http://127.0.0.1:1068';
 type PageResult<T> = {
   items: T[];
   total: number;
@@ -93,7 +95,7 @@ test('blog management BFF publishes content for the public API', async ({
     expect(created.data).toMatchObject({ title, slug, status: 'PUBLISHED' });
     expect(created.data?.author?.username).toBe('admin');
 
-    const publicUrl = `http://127.0.0.1:1068/api/v1/public/articles/${slug}`;
+    const publicUrl = `${blogPublicApiUrl}/api/v1/public/articles/${slug}`;
     const publicResponse = await page.request.get(publicUrl);
     expect(publicResponse.status()).toBe(200);
     const publicPayload =

@@ -1,7 +1,11 @@
 import bcrypt from 'bcryptjs';
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { CommonStatus, UserStatus } from '@/generated/client';
+import { UserStatus } from '@/generated/client';
+import {
+  getUserMenuAndPermissions,
+  type MenuNode,
+} from '@/src/modules/navigation/service';
 import { prisma } from './prisma';
 import { assertRateLimit, getClientIp } from './rate-limit';
 
@@ -30,19 +34,6 @@ async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
       nickname: true,
       avatar: true,
       status: true,
-      roles: {
-        where: { role: { status: CommonStatus.ENABLED } },
-        select: {
-          role: {
-            select: {
-              code: true,
-              permissions: {
-                select: { permission: { select: { code: true } } },
-              },
-            },
-          },
-        },
-      },
     },
   });
 
@@ -56,31 +47,20 @@ async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
     };
   }
 
-  const roles = user.roles.map((item) => item.role.code);
-  const permissionCodes = [
-    ...new Set(
-      user.roles.flatMap((item) =>
-        item.role.permissions.map((rp) => rp.permission.code),
-      ),
-    ),
-  ];
-  const isSuperadmin = roles.includes('superadmin');
-
-  const menus = await prisma.menu.findMany({
-    where: { status: CommonStatus.ENABLED, type: { not: 'DIR' } },
-    select: { path: true, permissionCode: true },
-  });
-  const allowed = new Set(permissionCodes);
+  const navigation = await getUserMenuAndPermissions(userId);
+  const flattenPaths = (menus: MenuNode[]): string[] =>
+    menus.flatMap((menu) => [
+      ...(menu.type === 'PAGE' && menu.path
+        ? [normalizeMenuPath(menu.path)]
+        : []),
+      ...flattenPaths(menu.children),
+    ]);
   const menuPaths = [
     ...new Set(
-      menus
-        .filter(
-          (menu) =>
-            isSuperadmin ||
-            !menu.permissionCode ||
-            allowed.has(menu.permissionCode),
-        )
-        .map((menu) => normalizeMenuPath(menu.path)),
+      navigation.modules.flatMap((module) => [
+        normalizeMenuPath(module.landingPath),
+        ...flattenPaths(module.menus),
+      ]),
     ),
   ];
 
@@ -89,8 +69,8 @@ async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
     username: user.username,
     nickname: user.nickname,
     avatar: user.avatar,
-    roles,
-    permissionCodes,
+    roles: navigation.roleCodes,
+    permissionCodes: navigation.permissionCodes,
     menuPaths,
     disabled: false,
   };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ERROR_CODES,
+  appModuleCreateInputSchema,
   apiResultSchema,
   createApiError,
   createApiSuccess,
@@ -11,10 +12,14 @@ import {
   publicArticleDetailSchema,
   likeListQuerySchema,
   menuCreateInputSchema,
+  menuManagementListSchema,
   menuUpdateInputSchema,
+  roleAccessDetailDtoSchema,
+  roleAccessUpdateInputSchema,
   roleDetailDtoSchema,
   roleDtoSchema,
   roleListQuerySchema,
+  roleUserAssignmentDetailDtoSchema,
   userCreateInputSchema,
   vebUserSchema,
 } from './index';
@@ -155,7 +160,7 @@ describe('service DTO boundaries', () => {
       isSystem: true,
       createdAt: timestamp,
       updatedAt: timestamp,
-      _count: { users: 1, permissions: 1 },
+      _count: { users: 1, menus: 2, modules: 1 },
     };
     const { _count, ...roleDetailBase } = role;
     const { roles, ...assignedUser } = user;
@@ -167,26 +172,82 @@ describe('service DTO boundaries', () => {
     expect(
       roleDetailDtoSchema.parse({
         ...roleDetailBase,
-        permissions: [
+        modules: [
           {
-            roleId: 'role-1',
-            permissionId: 'permission-1',
-            permission: {
-              id: 'permission-1',
-              code: 'system:user:view',
-              name: '查看用户',
-              type: 'BUTTON',
+            moduleId: 'module-1',
+            module: {
+              id: 'module-1',
+              code: 'admin',
+              name: '后台',
               description: null,
-              parentId: null,
+              icon: null,
+              sort: 0,
+              status: 'ENABLED',
               isSystem: true,
               createdAt: timestamp,
               updatedAt: timestamp,
             },
+            menuIds: ['menu-user', 'button-user-create'],
           },
         ],
         users: [{ userId: 'user-1', roleId: 'role-1', user: assignedUser }],
       }),
     ).toBeDefined();
+  });
+
+  it('keeps role assignment detail responses scoped to each dedicated drawer', () => {
+    const accessDetail = {
+      id: 'role-1',
+      assignments: [
+        { moduleId: 'module-1', menuIds: ['menu-user', 'button-user-create'] },
+      ],
+      modules: [
+        {
+          id: 'module-1',
+          name: '系统管理',
+          status: 'ENABLED' as const,
+          _count: { menus: 1, buttons: 1 },
+        },
+      ],
+      menus: [
+        {
+          id: 'menu-user',
+          moduleId: 'module-1',
+          parentId: null,
+          name: '用户管理',
+          path: '/admin/system/user',
+          sort: 1,
+          type: 'PAGE' as const,
+          permissionCode: 'system:user:view',
+          visible: true,
+          status: 'ENABLED' as const,
+          externalUrl: null,
+        },
+      ],
+    };
+    const userDetail = {
+      id: 'role-1',
+      userIds: ['user-1'],
+      users: [
+        {
+          id: 'user-1',
+          username: 'admin',
+          nickname: 'Admin',
+          status: 'ENABLED' as const,
+        },
+      ],
+    };
+
+    expect(roleAccessDetailDtoSchema.parse(accessDetail)).toEqual(accessDetail);
+    expect(roleUserAssignmentDetailDtoSchema.parse(userDetail)).toEqual(
+      userDetail,
+    );
+    expect(
+      roleUserAssignmentDetailDtoSchema.safeParse({
+        ...userDetail,
+        users: [{ ...userDetail.users[0], email: 'admin@example.com' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('keeps password validation at the contract boundary', () => {
@@ -199,21 +260,46 @@ describe('service DTO boundaries', () => {
 
 describe('menu inputs', () => {
   const pageMenu = {
+    moduleId: 'module-1',
     name: '用户管理',
     path: '/admin/system/user',
+    component: 'system/user/page',
     type: 'PAGE' as const,
     permissionCode: 'system:user:view',
   };
 
-  it('accepts admin paths and rejects legacy paths for create and update', () => {
+  it('limits menu management module options to the fields needed by the menu UI', () => {
+    expect(
+      menuManagementListSchema.parse({
+        items: [],
+        modules: [{ id: 'module-1', name: '系统管理' }],
+      }),
+    ).toEqual({
+      items: [],
+      modules: [{ id: 'module-1', name: '系统管理' }],
+    });
+    expect(
+      menuManagementListSchema.safeParse({
+        items: [],
+        modules: [
+          { id: 'module-1', name: '系统管理', description: '不应暴露' },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts canonical absolute page paths without a module registry', () => {
     expect(menuCreateInputSchema.safeParse(pageMenu).success).toBe(true);
     expect(
       menuCreateInputSchema.safeParse({ ...pageMenu, path: '/system/user' })
         .success,
-    ).toBe(false);
+    ).toBe(true);
     expect(
-      menuUpdateInputSchema.safeParse({ path: '/content/article' }).success,
-    ).toBe(false);
+      menuUpdateInputSchema.safeParse({
+        type: 'PAGE',
+        path: '/content/article',
+      }).success,
+    ).toBe(true);
   });
 
   it('rejects admin-looking paths that browsers normalize elsewhere', () => {
@@ -232,22 +318,114 @@ describe('menu inputs', () => {
     }
   });
 
-  it('keeps a LINK destination separate from its admin menu path', () => {
+  it('rejects the permanently redirected legacy permission page path', () => {
     expect(
       menuCreateInputSchema.safeParse({
+        ...pageMenu,
+        path: '/admin/system/permission',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps LINK and BUTTON fields separate from page routing', () => {
+    expect(
+      menuCreateInputSchema.safeParse({
+        moduleId: 'module-1',
         name: '项目文档',
-        path: '/admin/docs',
         type: 'LINK',
         externalUrl: 'https://example.com/docs',
+        permissionCode: 'docs:view',
       }).success,
     ).toBe(true);
     expect(
       menuCreateInputSchema.safeParse({
+        moduleId: 'module-1',
         name: '项目文档',
         path: 'https://example.com/docs',
         type: 'LINK',
         externalUrl: 'https://example.com/docs',
+        permissionCode: 'docs:view',
       }).success,
     ).toBe(false);
+
+    expect(
+      menuCreateInputSchema.safeParse({
+        moduleId: 'module-1',
+        parentId: 'menu-user',
+        name: '新增用户',
+        type: 'BUTTON',
+        permissionCode: 'system:user:create',
+      }).success,
+    ).toBe(true);
+    expect(
+      menuCreateInputSchema.safeParse({
+        moduleId: 'module-1',
+        parentId: 'menu-user',
+        name: '新增用户',
+        type: 'BUTTON',
+        permissionCode: 'system:user:create',
+        path: '/forbidden',
+      }).success,
+    ).toBe(false);
+    expect(
+      menuUpdateInputSchema.safeParse({
+        type: 'BUTTON',
+        name: '新增用户',
+        path: '/forbidden',
+      }).success,
+    ).toBe(false);
+    expect(
+      menuUpdateInputSchema.safeParse({
+        name: '缺少节点类型',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts paths in any non-reserved workspace namespace', () => {
+    expect(
+      menuCreateInputSchema.safeParse({
+        ...pageMenu,
+        path: '/example/report',
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('application module inputs', () => {
+  it('creates metadata-only modules and rejects component registration fields', () => {
+    const moduleInput = {
+      code: 'example',
+      name: '示例模块',
+    };
+
+    expect(appModuleCreateInputSchema.safeParse(moduleInput).success).toBe(
+      true,
+    );
+    expect(
+      appModuleCreateInputSchema.safeParse({
+        ...moduleInput,
+        componentKey: 'unknown/home',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('validates an atomic module and menu access replacement', () => {
+    expect(
+      roleAccessUpdateInputSchema.parse({
+        modules: [
+          {
+            moduleId: 'module-1',
+            menuIds: ['menu-report', 'button-report-export'],
+          },
+        ],
+      }),
+    ).toEqual({
+      modules: [
+        {
+          moduleId: 'module-1',
+          menuIds: ['menu-report', 'button-report-export'],
+        },
+      ],
+    });
   });
 });

@@ -8,8 +8,6 @@ function toCodes(code: string | string[]) {
 
 export async function hasPermission(userId: string, code: string | string[]) {
   const snapshot = await getUserPermissionSnapshot(userId);
-  if (snapshot.roleCodes.includes('superadmin')) return true;
-
   const permissions = new Set(snapshot.permissionCodes);
   return toCodes(code).some((item) => permissions.has(item));
 }
@@ -30,19 +28,20 @@ export async function assertPermission(
 }
 
 export async function canAccess(userId: string, pathname: string) {
+  const normalized =
+    pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   if (
-    pathname === '/' ||
-    pathname === '/admin' ||
-    pathname === '/admin/profile'
+    normalized === '/' ||
+    normalized === '/profile' ||
+    normalized === '/admin/profile'
   )
     return true;
 
   const snapshot = await getUserPermissionSnapshot(userId);
-  if (snapshot.roleCodes.includes('superadmin')) return true;
-
-  const menu = await getMenuByPath(pathname);
-  if (!menu) return false;
-  if (!menu.permissionCode) return true;
-
-  return snapshot.permissionCodes.includes(menu.permissionCode);
+  const menu = await getMenuByPath(normalized);
+  if (!menu || !snapshot.moduleIds.includes(menu.moduleId)) return false;
+  return Boolean(
+    menu.permissionCode &&
+    snapshot.permissionCodes.includes(menu.permissionCode),
+  );
 }

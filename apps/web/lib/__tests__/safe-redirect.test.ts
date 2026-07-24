@@ -16,6 +16,6 @@ describe('getSafeInternalPath', () => {
     '/\\example.com/path',
     'javascript:alert(1)',
   ])('拒绝不安全回跳地址：%s', (value) => {
-    expect(getSafeInternalPath(value)).toBe('/admin');
+    expect(getSafeInternalPath(value)).toBe('/');
   });
 });

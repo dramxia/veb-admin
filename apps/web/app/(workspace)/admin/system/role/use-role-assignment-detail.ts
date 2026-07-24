@@ -14,6 +14,7 @@ type DetailLoadState = {
 
 type UseRoleAssignmentDetailOptions<TDetail extends { id: string }> = {
   errorFallback: string;
+  getPath: (roleId: string) => string;
   getSelectedIds: (detail: TDetail) => string[];
   isOpen: boolean;
   roleId: string | null;
@@ -35,6 +36,7 @@ function getErrorMessage(error: unknown, fallback: string) {
  */
 export function useRoleAssignmentDetail<TDetail extends { id: string }>({
   errorFallback,
+  getPath,
   getSelectedIds,
   isOpen,
   roleId,
@@ -48,6 +50,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
   );
   const [loadState, setLoadState] = useState<DetailLoadState>(IDLE_STATE);
   const [requestVersion, setRequestVersion] = useState(0);
+  const [storedDetail, setStoredDetail] = useState<TDetail | null>(null);
   const [storedSelectedIds, setStoredSelectedIds] = useState<string[]>([]);
   const requestSequenceRef = useRef(0);
 
@@ -56,6 +59,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
 
     // 请求一开始就清空旧角色选择，不能等待新详情返回后再覆盖。
     setStoredSelectedIds([]);
+    setStoredDetail(null);
 
     if (!isOpen || !roleId) {
       setLoadState(IDLE_STATE);
@@ -71,7 +75,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
       status: 'loading',
     });
 
-    requestJson<TDetail>(`/api/v1/system/roles/${roleId}`, {
+    requestJson<TDetail>(getPath(roleId), {
       signal: controller.signal,
     })
       .then((detail) => {
@@ -86,6 +90,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
         }
 
         setStoredSelectedIds([...new Set(selectedIds)]);
+        setStoredDetail(detail);
         setLoadState({
           context: requestContext,
           error: null,
@@ -96,6 +101,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
       .catch((error) => {
         if (!active || requestSequenceRef.current !== requestSequence) return;
         setStoredSelectedIds([]);
+        setStoredDetail(null);
         setLoadState({
           context: requestContext,
           error: getErrorMessage(error, errorFallback),
@@ -110,6 +116,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
     };
   }, [
     errorFallback,
+    getPath,
     getSelectedIds,
     isOpen,
     requestContext,
@@ -128,6 +135,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
   const retry = useCallback(() => {
     if (!isOpen || !roleId) return;
     setStoredSelectedIds([]);
+    setStoredDetail(null);
     setLoadState({
       context: requestContext,
       error: null,
@@ -138,6 +146,7 @@ export function useRoleAssignmentDetail<TDetail extends { id: string }>({
   }, [isOpen, requestContext, roleId]);
 
   return {
+    data: isReady ? storedDetail : null,
     error: status === 'error' ? loadState.error : null,
     isReady,
     retry,

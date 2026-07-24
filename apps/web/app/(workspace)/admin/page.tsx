@@ -10,18 +10,16 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { KeyRound, ListTree, Shield, Users } from 'lucide-react';
+import { Boxes, KeyRound, ListTree, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
-import type {
-  DashboardStats,
-  MenuNode,
-  UserNavigation,
-} from '@veb/api-contracts';
+import type { DashboardStats, MenuNode } from '@veb/api-contracts';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { MetricIsland } from '@/components/common/metric-island';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { normalizeAdminMenuPath } from '@/components/layout/navigation-utils';
+import { resolveAppModule } from '@/components/layout/app-modules';
+import { flattenNavigableMenus } from '@/components/layout/navigation-utils';
 import { requestVebPage } from '@/lib/server-api';
+import { getWorkspaceNavigation } from '@/lib/workspace-navigation';
 
 const statMeta = [
   { label: '用户', icon: Users, tone: 'brand' as const, help: '系统账号总量' },
@@ -43,19 +41,20 @@ const statMeta = [
 const quickLinkMeta = [
   { path: '/admin/system/user', icon: Users },
   { path: '/admin/system/role', icon: Shield },
-  { path: '/admin/system/permission', icon: KeyRound },
   { path: '/admin/system/menu', icon: ListTree },
+  { path: '/admin/system/module', icon: Boxes },
 ];
-
-function flattenMenus(menus: MenuNode[]): MenuNode[] {
-  return menus.flatMap((menu) => [menu, ...flattenMenus(menu.children)]);
-}
 
 export default async function DashboardPage() {
   const [menuSnapshot, stats] = await Promise.all([
-    requestVebPage<UserNavigation>('/api/v1/navigation'),
+    getWorkspaceNavigation(),
     requestVebPage<DashboardStats>('/api/v1/dashboard/stats'),
   ]);
+  const adminMenus =
+    resolveAppModule(
+      '/admin',
+      menuSnapshot.modules.filter((module) => module.status === 'ENABLED'),
+    )?.menus ?? [];
   const values = [
     stats.userCount,
     stats.roleCount,
@@ -64,10 +63,9 @@ export default async function DashboardPage() {
   ];
   const total = values.reduce((sum, value) => sum + value, 0);
   const menuByPath = new Map(
-    flattenMenus(menuSnapshot.menus as MenuNode[]).map((menu) => [
-      normalizeAdminMenuPath(menu.path),
-      menu,
-    ]),
+    flattenNavigableMenus(adminMenus as MenuNode[]).flatMap((menu) =>
+      menu.type === 'PAGE' && menu.path ? [[menu.path, menu] as const] : [],
+    ),
   );
   const quickLinks = quickLinkMeta.flatMap(({ path, icon }) => {
     const menu = menuByPath.get(path);

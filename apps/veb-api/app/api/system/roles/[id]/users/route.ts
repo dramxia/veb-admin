@@ -3,7 +3,17 @@ export const dynamic = 'force-dynamic';
 import { ok, readJson, withApi } from '@/lib/api';
 import { requirePermission } from '@/lib/permission';
 import { assignUsersSchema } from '@/lib/validation';
-import { assignRoleUsers } from '@/src/modules/roles/service';
+import {
+  assignRoleUsers,
+  getRoleUserAssignmentDetail,
+} from '@/src/modules/roles/service';
+
+export const GET = withApi(
+  async (_request: Request, { params }: { params: { id: string } }) => {
+    await requirePermission('system:role:assign-user');
+    return ok(await getRoleUserAssignmentDetail(params.id));
+  },
+);
 
 export const POST = withApi(
   async (request: Request, { params }: { params: { id: string } }) => {

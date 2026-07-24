@@ -131,15 +131,21 @@ test('canonical VEB APIs enforce user, RBAC, and file workflows', async ({
     await disabledPage.getByLabel(/用户名|Username/i).fill(disabledUsername);
     await disabledPage.getByLabel(/密码|Password/i).fill(password);
     await disabledPage.getByRole('button', { name: /登录|Sign in/i }).click();
-    await expect(disabledPage).toHaveURL(/\/login/);
-    await expect(disabledPage.getByRole('alert')).toContainText(
-      '账号或密码错误',
+    const disabledLoginError = disabledPage.getByRole('alert').filter({
+      hasText: '账号或密码错误，请检查后重试。',
+    });
+    await expect(disabledLoginError).toContainText(
+      '账号或密码错误，请检查后重试。',
+      { timeout: 30_000 },
     );
+    await expect(disabledPage).toHaveURL(/\/login/);
 
     const restrictedContext = await browser.newContext({ baseURL });
     extraContexts.push(restrictedContext);
     const restrictedPage = await restrictedContext.newPage();
-    await login(restrictedPage, restrictedUsername, password);
+    await login(restrictedPage, restrictedUsername, password, {
+      destination: null,
+    });
     const forbidden = await restrictedPage.request.post(
       '/api/v1/system/users',
       {

@@ -13,33 +13,49 @@ async function expectRedirect(
   expect(response.status()).toBe(status);
   expect(location).toBeTruthy();
 
-  const redirectedUrl = new URL(location!, page.url());
+  const redirectedUrl = new URL(location!, response.url());
   expect(`${redirectedUrl.pathname}${redirectedUrl.search}`).toBe(to);
 }
 
-test('legacy admin URLs use permanent redirects into /admin', async ({
+test('PAGE namespaces are not rewritten by broad legacy redirects', async ({
   page,
 }) => {
   await login(page);
 
+  const systemResponse = await page.request.get('/system/user?status=enabled', {
+    maxRedirects: 0,
+  });
+  const contentResponse = await page.request.get('/content/article/new', {
+    maxRedirects: 0,
+  });
+
+  expect(systemResponse.status()).toBe(404);
+  expect(systemResponse.headers()['location']).toBeUndefined();
+  expect(contentResponse.status()).toBe(404);
+  expect(contentResponse.headers()['location']).toBeUndefined();
+  await expectRedirect(page, '/admin/profile', '/profile', 308);
   await expectRedirect(
     page,
-    '/system/user?status=enabled',
-    '/admin/system/user?status=enabled',
+    '/admin/system/permission',
+    '/admin/system/menu',
     308,
   );
-  await expectRedirect(
-    page,
-    '/content/article/new',
-    '/admin/content/article/new',
-    308,
-  );
-  await expectRedirect(page, '/profile', '/admin/profile', 308);
 });
 
-test('the root temporarily redirects to the admin module home', async ({
+test('the root redirects to the first authorized module home', async ({
   page,
 }) => {
   await login(page);
   await expectRedirect(page, '/', '/admin', 307);
+});
+
+test('the profile compatibility URL redirects before authentication', async ({
+  page,
+}) => {
+  await expectRedirect(page, '/admin/profile', '/profile', 308);
+});
+
+test('the forbidden page preserves an HTTP 403 status', async ({ page }) => {
+  const response = await page.request.get('/403');
+  expect(response.status()).toBe(403);
 });

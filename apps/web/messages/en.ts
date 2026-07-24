@@ -85,7 +85,6 @@ export const enMessages: Record<MessageKey, string> = {
   'validation.roleCode': 'Invalid role code',
   'validation.roleName': 'Role name is required',
   'validation.permissionCode': 'Invalid permission code',
-  'validation.permissionName': 'Permission name is required',
   'validation.menuName': 'Menu name is required',
   'validation.pathRequired': 'Path is required',
   'validation.oldPasswordRequired': 'Old password is required',

@@ -20,7 +20,6 @@ import {
   FormErrorMessage,
   FormHelperText,
   FormLabel,
-  HStack,
   Input,
   NumberInput,
   NumberInputField,
@@ -28,8 +27,9 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  Textarea,
 } from '@chakra-ui/react';
-import type { MenuDto, PermissionDto } from '@veb/api-contracts';
+import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildMenuHierarchy,
@@ -37,71 +37,116 @@ import {
   type MenuHierarchyRow,
 } from './menu-hierarchy';
 
-type MenuPayload = {
+export type MenuPayload = {
+  moduleId?: string;
   parentId?: string | null;
   name: string;
-  path?: string;
+  description?: string | null;
+  path?: string | null;
   component?: string | null;
   icon?: string | null;
   sort?: number;
-  type?: string;
+  type: MenuDto['type'];
   permissionCode?: string | null;
   visible?: boolean;
-  status?: string;
+  status?: MenuDto['status'];
   externalUrl?: string | null;
+};
+
+export type MenuCreateDefaults = {
+  moduleId?: string;
+  parentId?: string;
+  type?: MenuDto['type'];
+  lockParent?: boolean;
 };
 
 type MenuFormModalProps = {
   isOpen: boolean;
   isLoading?: boolean;
+  error?: string | null;
   menu?: MenuDto | null;
   menus: MenuDto[];
-  permissions: PermissionDto[];
+  modules: MenuModuleOption[];
+  createDefaults?: MenuCreateDefaults | null;
+  formSession: number;
   onClose: () => void;
   onSubmit: (payload: MenuPayload) => Promise<boolean> | boolean;
 };
 
 function getParentOptionLabel(row: MenuHierarchyRow<MenuDto>) {
   const prefix = row.depth > 0 ? `${'　'.repeat(row.depth - 1)}└─ ` : '';
-  return `${prefix}${row.menu.name} · ${row.menu.path || '无路径'}`;
+  return `${prefix}${row.menu.name}`;
+}
+
+function isAllowedParent(type: MenuDto['type'], parent: MenuDto) {
+  return type === 'BUTTON' ? parent.type === 'PAGE' : parent.type === 'DIR';
 }
 
 export function MenuFormModal({
   isOpen,
   isLoading,
+  error,
   menu,
   menus,
-  permissions,
+  modules,
+  createDefaults,
+  formSession,
   onClose,
   onSubmit,
 }: MenuFormModalProps) {
   const editing = Boolean(menu);
   const locked = Boolean(menu?.isSystem);
   const busy = Boolean(isLoading);
-  const [type, setType] = useState(menu?.type ?? 'PAGE');
+  const presetButton = Boolean(
+    !menu &&
+    createDefaults?.lockParent &&
+    createDefaults.type === 'BUTTON' &&
+    createDefaults.parentId,
+  );
+  const [type, setType] = useState<MenuDto['type']>(
+    menu?.type ?? createDefaults?.type ?? 'PAGE',
+  );
   const [visible, setVisible] = useState(menu?.visible ?? true);
-  const [parentId, setParentId] = useState(menu?.parentId ?? '');
+  const [parentId, setParentId] = useState(
+    menu?.parentId ?? createDefaults?.parentId ?? '',
+  );
+  const [moduleId, setModuleId] = useState(
+    menu?.moduleId ?? createDefaults?.moduleId ?? '',
+  );
   const [parentError, setParentError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const hierarchy = useMemo(() => buildMenuHierarchy(menus), [menus]);
+  const moduleMenus = useMemo(
+    () => menus.filter((item) => item.moduleId === moduleId),
+    [menus, moduleId],
+  );
+  const hierarchy = useMemo(
+    () => buildMenuHierarchy(moduleMenus),
+    [moduleMenus],
+  );
   const forbiddenParentIds = useMemo(() => {
     if (!menu) return new Set<string>();
-    return new Set([menu.id, ...collectDescendantIds(menus, menu.id)]);
-  }, [menu, menus]);
+    return new Set([menu.id, ...collectDescendantIds(moduleMenus, menu.id)]);
+  }, [menu, moduleMenus]);
   const parentOptions = useMemo(
-    () => hierarchy.filter((row) => !forbiddenParentIds.has(row.menu.id)),
-    [forbiddenParentIds, hierarchy],
+    () =>
+      hierarchy.filter(
+        (row) =>
+          !forbiddenParentIds.has(row.menu.id) &&
+          isAllowedParent(type, row.menu),
+      ),
+    [forbiddenParentIds, hierarchy, type],
   );
 
   useEffect(() => {
     if (!isOpen) return;
-    setType(menu?.type ?? 'PAGE');
+    setType(menu?.type ?? createDefaults?.type ?? 'PAGE');
     setVisible(menu?.visible ?? true);
-    setParentId(menu?.parentId ?? '');
+    setParentId(menu?.parentId ?? createDefaults?.parentId ?? '');
+    setModuleId(menu?.moduleId ?? createDefaults?.moduleId ?? '');
     setParentError(null);
     setSubmitError(null);
-  }, [isOpen, menu]);
+  }, [createDefaults, isOpen, menu]);
 
   async function handleSubmit(formData: FormData) {
     if (busy) return;
@@ -109,33 +154,68 @@ export function MenuFormModal({
     setSubmitError(null);
 
     const normalizedParentId = parentId || null;
-    if (!locked && normalizedParentId) {
-      if (!menus.some((item) => item.id === normalizedParentId)) {
-        setParentError('所选父菜单已不存在，请重新选择。');
-        return;
-      }
-      if (forbiddenParentIds.has(normalizedParentId)) {
-        setParentError('不能选择当前菜单或其后代作为父菜单。');
-        return;
-      }
+    const parent = normalizedParentId
+      ? menus.find((item) => item.id === normalizedParentId)
+      : null;
+
+    if (type === 'BUTTON' && !parent) {
+      setParentError('按钮必须选择一个直属页面。');
+      return;
+    }
+    if (parent && parent.moduleId !== moduleId) {
+      setParentError('父节点必须与当前节点属于同一模块。');
+      return;
+    }
+    if (parent && !isAllowedParent(type, parent)) {
+      setParentError(
+        type === 'BUTTON'
+          ? '按钮只能直属页面。'
+          : '目录、页面和外链只能放在目录下。',
+      );
+      return;
+    }
+    if (normalizedParentId && forbiddenParentIds.has(normalizedParentId)) {
+      setParentError('不能选择当前节点或其后代作为父节点。');
+      return;
     }
 
     const payload: MenuPayload = {
+      type,
       name: String(formData.get('name') || ''),
-      component: String(formData.get('component') || '') || null,
-      icon: String(formData.get('icon') || '') || null,
-      sort: Number(formData.get('sort') || 0),
-      visible,
-      status: String(formData.get('status') || 'ENABLED'),
     };
 
+    if (!editing) {
+      payload.moduleId = moduleId;
+    }
     if (!locked) {
       payload.parentId = normalizedParentId;
+      payload.description = String(formData.get('description') || '') || null;
+      payload.sort = Number(formData.get('sort') || 0);
+      payload.status = String(
+        formData.get('status') || 'ENABLED',
+      ) as MenuDto['status'];
+    }
+
+    if (type !== 'BUTTON' && !locked) {
+      payload.icon = String(formData.get('icon') || '') || null;
+      payload.visible = visible;
+    } else if (type !== 'BUTTON') {
+      payload.icon = String(formData.get('icon') || '') || null;
+    }
+    if (!locked && type === 'PAGE') {
       payload.path = String(formData.get('path') || '');
-      payload.type = type;
+      payload.component = String(formData.get('component') || '') || null;
       payload.permissionCode =
         String(formData.get('permissionCode') || '') || null;
+    }
+    if (!locked && type === 'LINK') {
       payload.externalUrl = String(formData.get('externalUrl') || '') || null;
+      payload.permissionCode =
+        String(formData.get('permissionCode') || '') || null;
+    }
+    if (!locked && type === 'BUTTON') {
+      payload.permissionCode =
+        String(formData.get('permissionCode') || '') || null;
     }
 
     try {
@@ -167,16 +247,23 @@ export function MenuFormModal({
       <DrawerContent>
         <Box
           as="form"
-          key={menu?.id ?? 'new-menu'}
+          key={`${
+            menu?.id ??
+            `${createDefaults?.parentId ?? 'root'}-${createDefaults?.type ?? 'new'}`
+          }-${formSession}`}
           action={handleSubmit}
           display="flex"
           flex="1"
           flexDirection="column"
           minH={0}
         >
-          <DrawerCloseButton aria-label="关闭菜单编辑抽屉" isDisabled={busy} />
+          <DrawerCloseButton aria-label="关闭节点编辑抽屉" isDisabled={busy} />
           <DrawerHeader pr={12}>
-            {editing ? '编辑菜单' : '新增菜单'}
+            {editing
+              ? '编辑菜单或按钮'
+              : presetButton
+                ? '新增按钮'
+                : '新增菜单或按钮'}
           </DrawerHeader>
           <DrawerBody overflowY="auto">
             <Stack spacing={6} pb={4}>
@@ -184,20 +271,19 @@ export function MenuFormModal({
                 <Alert status="info">
                   <AlertIcon />
                   <Box>
-                    <AlertTitle>系统菜单受保护</AlertTitle>
+                    <AlertTitle>系统节点受保护</AlertTitle>
                     <AlertDescription>
-                      父级、路径、类型、权限码和外链地址不可修改。
+                      所属模块、类型、父级、路由和权限码不可修改。
                     </AlertDescription>
                   </Box>
                 </Alert>
               ) : null}
-
-              {submitError ? (
+              {error || submitError ? (
                 <Alert status="error">
                   <AlertIcon />
                   <Box>
-                    <AlertTitle>菜单保存失败</AlertTitle>
-                    <AlertDescription>{submitError}</AlertDescription>
+                    <AlertTitle>保存失败</AlertTitle>
+                    <AlertDescription>{error || submitError}</AlertDescription>
                   </Box>
                 </Alert>
               ) : null}
@@ -208,12 +294,58 @@ export function MenuFormModal({
                     基础信息
                   </Text>
                   <Text color="ink.500" fontSize="sm" mt={1}>
-                    定义菜单名称、类型及其在导航树中的位置。
+                    模块和类型创建后不可修改；按钮必须直属页面。
                   </Text>
                 </Box>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl isRequired>
-                    <FormLabel>菜单名称</FormLabel>
+                    <FormLabel>所属模块</FormLabel>
+                    <Select
+                      value={moduleId}
+                      onChange={(event) => {
+                        setModuleId(event.target.value);
+                        setParentId('');
+                      }}
+                      isDisabled={editing || presetButton || busy}
+                      placeholder="选择模块"
+                    >
+                      {modules.map((module) => (
+                        <option key={module.id} value={module.id}>
+                          {module.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>类型</FormLabel>
+                    <Select
+                      value={type}
+                      onChange={(event) => {
+                        const nextType = event.target.value as MenuDto['type'];
+                        setType(nextType);
+                        const selectedParent = menus.find(
+                          (item) => item.id === parentId,
+                        );
+                        if (
+                          selectedParent &&
+                          !isAllowedParent(nextType, selectedParent)
+                        ) {
+                          setParentId('');
+                        }
+                        setParentError(null);
+                      }}
+                      isDisabled={editing || presetButton || busy}
+                    >
+                      <option value="DIR">目录</option>
+                      <option value="PAGE">页面</option>
+                      <option value="LINK">外链</option>
+                      <option value="BUTTON">按钮</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>
+                      {type === 'BUTTON' ? '按钮名称' : '节点名称'}
+                    </FormLabel>
                     <Input
                       name="name"
                       defaultValue={menu?.name ?? ''}
@@ -221,136 +353,150 @@ export function MenuFormModal({
                       autoFocus
                     />
                   </FormControl>
-                  <FormControl>
-                    <FormLabel>类型</FormLabel>
+                  <FormControl
+                    isInvalid={Boolean(parentError)}
+                    isRequired={type === 'BUTTON'}
+                  >
+                    <FormLabel>父节点</FormLabel>
                     <Select
-                      value={type}
+                      value={parentId}
                       onChange={(event) => {
-                        setType(event.target.value as MenuDto['type']);
-                        setSubmitError(null);
+                        setParentId(event.target.value);
+                        setParentError(null);
                       }}
-                      isDisabled={busy || locked}
+                      isDisabled={busy || locked || presetButton}
                     >
-                      <option value="DIR">目录</option>
-                      <option value="PAGE">页面</option>
-                      <option value="LINK">外链</option>
+                      {type !== 'BUTTON' ? (
+                        <option value="">无父级（模块根节点）</option>
+                      ) : (
+                        <option value="">选择直属页面</option>
+                      )}
+                      {parentOptions.map((row) => (
+                        <option key={row.menu.id} value={row.menu.id}>
+                          {getParentOptionLabel(row)}
+                        </option>
+                      ))}
                     </Select>
+                    <FormHelperText>
+                      {type === 'BUTTON'
+                        ? '按钮只显示同模块页面。'
+                        : '仅目录可作为父节点。'}
+                    </FormHelperText>
+                    <FormErrorMessage>{parentError}</FormErrorMessage>
                   </FormControl>
                 </SimpleGrid>
-                <FormControl isInvalid={Boolean(parentError)}>
-                  <FormLabel>父菜单</FormLabel>
-                  <Select
-                    name="parentId"
-                    value={parentId}
-                    onChange={(event) => {
-                      setParentId(event.target.value);
-                      setParentError(null);
-                      setSubmitError(null);
-                    }}
-                    isDisabled={busy || locked}
-                  >
-                    <option value="">无父级（根菜单）</option>
-                    {parentOptions.map((row) => (
-                      <option key={row.menu.id} value={row.menu.id}>
-                        {getParentOptionLabel(row)}
-                      </option>
-                    ))}
-                  </Select>
-                  <FormHelperText>
-                    选项按菜单树层级排列；编辑时已排除当前节点及其全部后代。
-                  </FormHelperText>
-                  <FormErrorMessage>{parentError}</FormErrorMessage>
-                </FormControl>
-                <FormControl isRequired>
-                  <FormLabel>路径</FormLabel>
-                  <Input
-                    name="path"
-                    defaultValue={menu?.path ?? ''}
-                    isDisabled={busy || locked}
-                    placeholder="/admin/system/demo"
+                <FormControl>
+                  <FormLabel>描述</FormLabel>
+                  <Textarea
+                    name="description"
+                    defaultValue={menu?.description ?? ''}
+                    rows={3}
+                    isDisabled={busy}
                   />
                 </FormControl>
               </Stack>
 
-              <Divider borderColor="ink.100" />
+              {type !== 'DIR' ? <Divider borderColor="ink.100" /> : null}
 
-              <Stack spacing={4}>
-                <Box>
+              {type === 'PAGE' ? (
+                <Stack spacing={4}>
                   <Text color="ink.900" fontWeight="900">
-                    路由与权限
+                    页面路由
                   </Text>
-                  <Text color="ink.500" fontSize="sm" mt={1}>
-                    页面填写组件标识，外链填写完整地址，并按需绑定权限码。
-                  </Text>
-                </Box>
-                <FormControl>
-                  <FormLabel>权限码</FormLabel>
-                  <Select
-                    name="permissionCode"
-                    defaultValue={menu?.permissionCode ?? ''}
-                    isDisabled={busy || locked}
-                  >
-                    <option value="">不绑定</option>
-                    {permissions.map((permission) => (
-                      <option key={permission.code} value={permission.code}>
-                        {permission.name} / {permission.code}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>页面路径</FormLabel>
+                    <Input
+                      name="path"
+                      defaultValue={menu?.path ?? ''}
+                      isDisabled={busy || locked}
+                      placeholder="/admin/system/demo"
+                    />
+                  </FormControl>
+                  <FormControl isRequired>
                     <FormLabel>组件标识</FormLabel>
                     <Input
                       name="component"
                       defaultValue={menu?.component ?? ''}
-                      placeholder="example/page"
-                      isDisabled={busy || type !== 'PAGE'}
+                      isDisabled={busy || locked}
+                      placeholder="system/demo/page"
                     />
-                    <FormHelperText>
-                      {type === 'PAGE'
-                        ? '用于定位页面组件。'
-                        : '仅页面类型可填写。'}
-                    </FormHelperText>
                   </FormControl>
-                  <FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>权限码</FormLabel>
+                    <Input
+                      name="permissionCode"
+                      defaultValue={menu?.permissionCode ?? ''}
+                      isDisabled={busy || locked}
+                      placeholder="system:demo:view"
+                    />
+                  </FormControl>
+                </Stack>
+              ) : null}
+
+              {type === 'LINK' ? (
+                <Stack spacing={4}>
+                  <Text color="ink.900" fontWeight="900">
+                    外链与权限
+                  </Text>
+                  <FormControl isRequired>
                     <FormLabel>外链地址</FormLabel>
                     <Input
                       name="externalUrl"
                       defaultValue={menu?.externalUrl ?? ''}
+                      isDisabled={busy || locked}
                       placeholder="https://example.com"
-                      isDisabled={busy || locked || type !== 'LINK'}
+                    />
+                  </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>权限码</FormLabel>
+                    <Input
+                      name="permissionCode"
+                      defaultValue={menu?.permissionCode ?? ''}
+                      isDisabled={busy || locked}
+                      placeholder="example:docs:view"
+                    />
+                  </FormControl>
+                </Stack>
+              ) : null}
+
+              {type === 'BUTTON' ? (
+                <Stack spacing={4}>
+                  <Text color="ink.900" fontWeight="900">
+                    操作权限
+                  </Text>
+                  <FormControl isRequired>
+                    <FormLabel>权限码</FormLabel>
+                    <Input
+                      name="permissionCode"
+                      defaultValue={menu?.permissionCode ?? ''}
+                      isDisabled={busy || locked}
+                      placeholder="system:demo:create"
                     />
                     <FormHelperText>
-                      {type === 'LINK'
-                        ? '建议使用 HTTPS 完整地址。'
-                        : '仅外链类型可填写。'}
+                      页面按钮和对应 API 使用同一个权限码鉴权。
                     </FormHelperText>
                   </FormControl>
-                </SimpleGrid>
-              </Stack>
+                </Stack>
+              ) : null}
 
               <Divider borderColor="ink.100" />
 
               <Stack spacing={4}>
-                <Box>
-                  <Text color="ink.900" fontWeight="900">
-                    展示设置
-                  </Text>
-                  <Text color="ink.500" fontSize="sm" mt={1}>
-                    控制图标、顺序、启停状态和导航可见性。
-                  </Text>
-                </Box>
+                <Text color="ink.900" fontWeight="900">
+                  状态与排序
+                </Text>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <FormControl>
-                    <FormLabel>图标名称</FormLabel>
-                    <Input
-                      name="icon"
-                      defaultValue={menu?.icon ?? ''}
-                      placeholder="users / shield / file"
-                      isDisabled={busy}
-                    />
-                  </FormControl>
+                  {type !== 'BUTTON' ? (
+                    <FormControl>
+                      <FormLabel>图标名称</FormLabel>
+                      <Input
+                        name="icon"
+                        defaultValue={menu?.icon ?? ''}
+                        placeholder="users / shield / file"
+                        isDisabled={busy}
+                      />
+                    </FormControl>
+                  ) : null}
                   <FormControl>
                     <FormLabel>排序</FormLabel>
                     <NumberInput
@@ -372,16 +518,15 @@ export function MenuFormModal({
                     </Select>
                   </FormControl>
                 </SimpleGrid>
-                <Checkbox
-                  isChecked={visible}
-                  onChange={(event) => {
-                    setVisible(event.target.checked);
-                    setSubmitError(null);
-                  }}
-                  isDisabled={busy}
-                >
-                  在导航中显示
-                </Checkbox>
+                {type !== 'BUTTON' ? (
+                  <Checkbox
+                    isChecked={visible}
+                    onChange={(event) => setVisible(event.target.checked)}
+                    isDisabled={busy}
+                  >
+                    在导航中显示
+                  </Checkbox>
+                ) : null}
               </Stack>
             </Stack>
           </DrawerBody>

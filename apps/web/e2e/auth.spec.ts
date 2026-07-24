@@ -12,6 +12,10 @@ test('wrong password stays on login', async ({ page }) => {
   await page.getByLabel(/用户名|Username/i).fill('admin');
   await page.getByLabel(/密码|Password/i).fill('wrong-password');
   await page.getByRole('button', { name: /登录|Sign in/i }).click();
+  await expect(
+    page
+      .getByRole('alert')
+      .getByText('账号或密码错误，请检查后重试。', { exact: true }),
+  ).toBeVisible({ timeout: 30_000 });
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByText('账号或密码错误，请检查后重试。')).toBeVisible();
 });

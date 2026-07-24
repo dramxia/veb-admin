@@ -1,33 +1,32 @@
 export const dynamic = 'force-dynamic';
 
 import { Badge, HStack } from '@chakra-ui/react';
-import type { MenuDto, PageResult, PermissionDto } from '@veb/api-contracts';
+import type { MenuManagementList } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { requestVebPage } from '@/lib/server-api';
 import { MenuTree } from './menu-tree';
 
 export default async function MenuPage() {
-  const [menuPayload, permissionPage] = await Promise.all([
-    requestVebPage<{ items: MenuDto[] }>('/api/v1/system/menus'),
-    requestVebPage<PageResult<PermissionDto>>(
-      '/api/v1/system/permissions?pageSize=100&type=MENU',
-    ),
-  ]);
-  const menus = menuPayload.items;
-  const permissions = permissionPage.items;
+  const { items: menus, modules } = await requestVebPage<MenuManagementList>(
+    '/api/v1/system/menus',
+  );
   return (
     <WorkspaceCanvas
-      eyebrow="导航配置"
-      title="菜单管理"
-      description="维护导航层级、页面入口与菜单权限绑定。"
+      eyebrow="导航与访问控制"
+      title="菜单与权限"
+      description="在模块树中统一维护目录、页面、外链以及页面下的按钮权限。"
       heroSlot={
         <HStack spacing={2} wrap="wrap">
-          <Badge colorScheme="brand">{menus.length} 个菜单节点</Badge>
-          <Badge colorScheme="gray">{permissions.length} 个菜单权限码</Badge>
+          <Badge colorScheme="brand">
+            {menus.filter((menu) => menu.type !== 'BUTTON').length} 个导航节点
+          </Badge>
+          <Badge colorScheme="orange">
+            {menus.filter((menu) => menu.type === 'BUTTON').length} 个按钮
+          </Badge>
         </HStack>
       }
     >
-      <MenuTree menus={menus} permissions={permissions} />
+      <MenuTree menus={menus} modules={modules} />
     </WorkspaceCanvas>
   );
 }

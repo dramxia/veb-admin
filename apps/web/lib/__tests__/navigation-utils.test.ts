@@ -1,84 +1,75 @@
 import { describe, expect, it } from 'vitest';
-import type { MenuNode } from '@veb/api-contracts';
+import type { MenuDto, MenuNode } from '@veb/api-contracts';
 import {
+  filterNavigableMenuTree,
+  flattenNavigableMenus,
   getCurrentMenu,
   getHref,
   getRouteLabel,
   isMenuBranchActive,
-  normalizeAdminMenuPath,
+  normalizeMenuPath,
 } from '@/components/layout/navigation-utils';
 
 function createMenu(
   id: string,
-  path: string,
+  path: string | null,
   options?: {
-    type?: MenuNode['type'];
+    type?: MenuDto['type'];
     children?: MenuNode[];
     externalUrl?: string | null;
   },
 ): MenuNode {
+  const type = options?.type ?? 'PAGE';
   return {
     id,
+    moduleId: 'module-admin',
     parentId: null,
     name: id,
+    description: null,
     path,
-    component: null,
+    component: type === 'PAGE' ? 'example/page' : null,
     icon: null,
     sort: 0,
-    type: options?.type ?? 'PAGE',
-    permissionCode: null,
+    type,
+    permissionCode: type === 'DIR' ? null : `${id}:view`,
     visible: true,
     status: 'ENABLED',
     externalUrl: options?.externalUrl ?? null,
     children: options?.children ?? [],
-  };
+  } as MenuNode;
 }
 
-describe('admin navigation compatibility', () => {
-  it('normalizes legacy and relative menu paths into the admin namespace', () => {
-    expect(normalizeAdminMenuPath('/')).toBe('/admin');
-    expect(normalizeAdminMenuPath('/system/user')).toBe('/admin/system/user');
-    expect(normalizeAdminMenuPath('content/article/')).toBe(
-      '/admin/content/article',
-    );
+describe('workspace navigation', () => {
+  it('keeps canonical absolute PAGE paths stable', () => {
+    expect(normalizeMenuPath('/admin')).toBe('/admin');
+    expect(normalizeMenuPath('/admin/system/user/')).toBe('/admin/system/user');
+    expect(normalizeMenuPath(null)).toBe('');
   });
 
-  it('keeps already migrated paths stable and removes trailing slashes', () => {
-    expect(normalizeAdminMenuPath('/admin')).toBe('/admin');
-    expect(normalizeAdminMenuPath('/admin/system/user/')).toBe(
-      '/admin/system/user',
-    );
-  });
-
-  it('normalizes internal links while preserving explicit external links', () => {
-    expect(getHref(createMenu('legacy', '/system/user'))).toBe(
+  it('uses PAGE paths and LINK URLs without a module path prefix', () => {
+    expect(getHref(createMenu('users', '/admin/system/user'))).toBe(
       '/admin/system/user',
     );
     expect(
       getHref(
-        createMenu('docs', '/docs', {
+        createMenu('docs', null, {
           type: 'LINK',
           externalUrl: 'https://example.com/docs',
         }),
       ),
     ).toBe('https://example.com/docs');
-    expect(
-      getHref(
-        createMenu('legacy-docs', 'https://legacy.example.com/docs', {
-          type: 'LINK',
-        }),
-      ),
-    ).toBe('https://legacy.example.com/docs');
+    expect(getHref(createMenu('directory', null, { type: 'DIR' }))).toBe('');
+    expect(getHref(createMenu('create', null, { type: 'BUTTON' }))).toBe('');
   });
 
-  it('selects the deepest legacy-backed menu on an admin route', () => {
-    const operation = createMenu('operation', '/system/log/operation');
+  it('selects the deepest PAGE for nested application routes', () => {
+    const operation = createMenu('operation', '/admin/system/log/operation');
     const menus = [
-      createMenu('dashboard', '/'),
-      createMenu('system', '/system', {
+      createMenu('dashboard', '/admin'),
+      createMenu('system', null, {
         type: 'DIR',
         children: [
-          createMenu('logs', '/system/log', {
+          createMenu('logs', null, {
             type: 'DIR',
             children: [operation],
           }),
@@ -97,22 +88,34 @@ describe('admin navigation compatibility', () => {
     ).toBe(true);
   });
 
-  it('ranks mixed legacy and migrated menus by their normalized paths', () => {
-    const legacyChild = createMenu('legacy-child', '/system/user');
-    const migratedParent = createMenu('migrated-parent', '/admin/system', {
-      type: 'DIR',
-      children: [legacyChild],
-    });
+  it('never treats LINK or BUTTON nodes as route owners', () => {
+    const menus = [
+      createMenu('docs', '/admin/docs', {
+        type: 'LINK',
+        externalUrl: 'https://example.com/docs',
+      }),
+      createMenu('edit', '/admin/docs', { type: 'BUTTON' }),
+    ];
 
-    expect(
-      getCurrentMenu('/admin/system/user/detail', [migratedParent])?.id,
-    ).toBe('legacy-child');
-    expect(getRouteLabel('/admin/system/user/detail', [migratedParent])).toBe(
-      'legacy-child',
-    );
+    expect(getCurrentMenu('/admin/docs', menus)).toBeUndefined();
+    expect(isMenuBranchActive('/admin/docs', menus[0]!)).toBe(false);
   });
 
-  it('uses the dashboard label for the admin module home', () => {
-    expect(getRouteLabel('/admin', [])).toBe('仪表盘');
+  it('excludes BUTTON nodes from flattened and tree navigation data', () => {
+    const button = createMenu('edit', null, { type: 'BUTTON' });
+    const page = createMenu('users', '/admin/system/user', {
+      children: [button],
+    });
+    const directory = createMenu('system', null, {
+      type: 'DIR',
+      children: [page],
+    });
+
+    expect(flattenNavigableMenus([directory]).map(({ id }) => id)).toEqual([
+      'users',
+    ]);
+    expect(
+      filterNavigableMenuTree([directory])[0]?.children[0]?.children,
+    ).toEqual([]);
   });
 });

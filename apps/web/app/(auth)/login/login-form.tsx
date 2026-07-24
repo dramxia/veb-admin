@@ -79,15 +79,22 @@ export function LoginForm() {
 
         <FormControl isRequired isInvalid={Boolean(fieldErrors.username)}>
           <FormLabel>用户名</FormLabel>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none" color="ink.400">
-              <Icon as={UserRound} boxSize={4} />
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full" w={12}>
+              <Icon
+                as={UserRound}
+                aria-hidden
+                boxSize={8}
+                p={1.5}
+                borderRadius="10px"
+                bg="brand.50"
+                color="brand.600"
+              />
             </InputLeftElement>
             <Input
               name="username"
               autoComplete="username"
-              size="lg"
-              pl={11}
+              ps={14}
               autoFocus
               onChange={() => {
                 setFieldErrors((current) => ({
@@ -102,16 +109,23 @@ export function LoginForm() {
         </FormControl>
         <FormControl isRequired isInvalid={Boolean(fieldErrors.password)}>
           <FormLabel>密码</FormLabel>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none" color="ink.400">
-              <Icon as={LockKeyhole} boxSize={4} />
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full" w={12}>
+              <Icon
+                as={LockKeyhole}
+                aria-hidden
+                boxSize={8}
+                p={1.5}
+                borderRadius="10px"
+                bg="brand.50"
+                color="brand.600"
+              />
             </InputLeftElement>
             <Input
               name="password"
               type="password"
               autoComplete="current-password"
-              size="lg"
-              pl={11}
+              ps={14}
               onChange={() => {
                 setFieldErrors((current) => ({
                   ...current,

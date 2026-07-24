@@ -8,8 +8,8 @@ import { createMenu, listMenus } from '@/src/modules/menus/service';
 
 export const GET = withApi(async (request: Request) => {
   await requirePermission('system:menu:view');
-  readQuery(request, menuListQuerySchema);
-  return ok(await listMenus());
+  const query = readQuery(request, menuListQuerySchema);
+  return ok(await listMenus(query));
 });
 
 export const POST = withApi(
