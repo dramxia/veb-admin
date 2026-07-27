@@ -88,6 +88,7 @@ services:
       SERVICE_AUTH_ISSUER: veb-api
       UPLOAD_DIR: /app/uploads
       STORAGE_KIND: local
+      HOSTNAME: '0.0.0.0'
     expose:
       - '1067'
     volumes:
@@ -116,6 +117,7 @@ services:
       BLOG_VISITOR_HASH_SECRET: ${BLOG_VISITOR_HASH_SECRET:?BLOG_VISITOR_HASH_SECRET is required}
       SERVICE_AUTH_JWKS_URL: http://veb-api:1067/api/internal/.well-known/jwks.json
       SERVICE_AUTH_ISSUER: veb-api
+      HOSTNAME: '0.0.0.0'
     expose:
       - '1068'
     healthcheck:
