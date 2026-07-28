@@ -8,12 +8,21 @@ RUN apk add --no-cache libc6-compat \
   && corepack prepare pnpm@9.15.9 --activate
 
 FROM base AS dependencies
-COPY . .
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/api-contracts/package.json packages/api-contracts/package.json
+RUN --mount=type=cache,id=veb-pnpm-store,target=/pnpm/store,sharing=locked \
+  pnpm install --frozen-lockfile \
+    --filter @veb/web... \
+    --store-dir /pnpm/store
 
 FROM dependencies AS builder
-RUN pnpm --filter @veb/api-contracts build \
-  && pnpm --filter @veb/web build
+COPY tsconfig.base.json ./
+COPY apps/web apps/web
+COPY packages/api-contracts packages/api-contracts
+RUN pnpm --filter @veb/api-contracts build
+RUN --mount=type=cache,id=web-next-cache,target=/workspace/apps/web/.next/cache,sharing=locked \
+  pnpm --filter @veb/web build
 
 FROM node:20-alpine AS runner
 WORKDIR /app/apps/web

@@ -26,6 +26,7 @@
     "db:migrate:blog-data:apply": "pnpm --filter @veb/migrate-blog-data migrate --apply",
     "db:verify:blog-data": "pnpm --filter @veb/migrate-blog-data migrate --verify",
     "compose:up": "docker compose up --build",
+    "compose:deploy": "./deploy/compose-deploy.sh",
     "prepare": "husky"
   },
   "devDependencies": {

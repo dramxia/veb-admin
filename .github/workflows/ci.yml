@@ -66,10 +66,17 @@ jobs:
           node-version: '20.10.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @veb/veb-api prisma:generate
-      - run: pnpm --filter @veb/veb-api prisma:migrate:deploy
+      - name: Build production migration image
+        run: docker build --file deploy/migrate/Dockerfile --target runner --tag veb-prisma-migrate:ci .
+      - name: Deploy VEB migrations with production image
+        run: >-
+          docker run --rm --network host
+          --env DATABASE_URL
+          veb-prisma-migrate:ci
+          migrate deploy --schema /app/apps/veb-api/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/veb_test?schema=public
+      - run: pnpm --filter @veb/veb-api prisma:generate
       - run: pnpm --filter @veb/veb-api exec prisma migrate status
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/veb_test?schema=public
@@ -79,10 +86,15 @@ jobs:
           pnpm --filter @veb/veb-api exec vitest run lib/__tests__/app-modules-migration.runtime.test.ts
         env:
           MIGRATION_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/veb_test
-      - run: pnpm --filter @veb/blog-api prisma:generate
-      - run: pnpm --filter @veb/blog-api prisma:migrate:deploy
+      - name: Deploy Blog migrations with production image
+        run: >-
+          docker run --rm --network host
+          --env DATABASE_URL
+          veb-prisma-migrate:ci
+          migrate deploy --schema /app/apps/blog-api/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/blog_test?schema=public
+      - run: pnpm --filter @veb/blog-api prisma:generate
       - run: pnpm --filter @veb/blog-api exec prisma migrate status
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5433/blog_test?schema=public

@@ -79,6 +79,14 @@ docker compose up --build
 
 Compose 会依次执行 VEB 与 Blog 的 `prisma migrate deploy`，两套迁移成功后才启动 API；不会在应用启动时执行 `db push` 或 seed。对外只发布可信 Web 网关和经过路径白名单限制的 Blog public 网关；原始 Web、VEB API 与 Blog API 仅在 Compose 私网可达，两套数据库只提供 `127.0.0.1` 回环端口供本地开发进程使用。
 
+生产环境使用带健康检查和缓存回收的部署入口：
+
+```bash
+pnpm compose:deploy
+```
+
+该命令只会在全部长期服务 ready 后删除已成功退出的 migration 容器，并清理悬挂镜像。BuildKit 缓存默认限制为 `8GB`；不会删除命名镜像、运行中镜像或任何 volume。可通过 `DOCKER_BUILD_CACHE_MAX_SIZE` 调整上限，或临时设置 `DOCKER_DEPLOY_PRUNE=0` 跳过回收。
+
 ## API
 
 - VEB canonical API：`/api/v1/system/**`、`/api/v1/me/**`、`/api/v1/files/**`、`/api/v1/navigation`。

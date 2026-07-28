@@ -1,5 +1,6 @@
 packages:
   - 'apps/*'
+  - 'deploy/migrate'
   - 'packages/*'
   - 'tools/*'
 

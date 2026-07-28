@@ -2,25 +2,30 @@
 FROM node:20-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN apk add --no-cache openssl && corepack enable
+RUN apk add --no-cache openssl \
+    && corepack enable \
+    && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/veb-api/package.json apps/veb-api/package.json
 COPY packages/api-contracts/package.json packages/api-contracts/package.json
 COPY packages/service-auth/package.json packages/service-auth/package.json
-RUN pnpm install --frozen-lockfile --filter @veb/veb-api...
+RUN --mount=type=cache,id=veb-pnpm-store,target=/pnpm/store,sharing=locked \
+    pnpm install --frozen-lockfile \
+      --filter @veb/veb-api... \
+      --store-dir /pnpm/store
 
 FROM deps AS builder
+COPY tsconfig.base.json ./
+COPY apps/veb-api/prisma apps/veb-api/prisma
+RUN pnpm --filter @veb/veb-api prisma:generate
 COPY apps/veb-api apps/veb-api
 COPY packages/api-contracts packages/api-contracts
 COPY packages/service-auth packages/service-auth
-RUN pnpm --filter @veb/veb-api prisma:generate
-RUN pnpm --filter @veb/veb-api build
-
-FROM builder AS migrate
-CMD ["pnpm", "--filter", "@veb/veb-api", "prisma:migrate:deploy"]
+RUN --mount=type=cache,id=veb-api-next-cache,target=/app/apps/veb-api/.next/cache,sharing=locked \
+    pnpm --filter @veb/veb-api build
 
 FROM node:20-alpine AS runner
 ENV NODE_ENV=production

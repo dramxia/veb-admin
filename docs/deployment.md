@@ -56,3 +56,30 @@ Blog public 网关只暴露 Blog 的两个健康路径；VEB 健康路径仅在 
 ## 5. 回滚
 
 拆库切换后的一个发布周期内保留旧内容表只读。若 smoke test 失败，在重新开放写流量前恢复旧镜像和旧连接即可回滚。观察期结束后再提交删除旧内容表的 VEB migration。
+
+## 6. 部署与磁盘回收
+
+生产发布统一使用：
+
+```bash
+pnpm compose:deploy
+```
+
+脚本先构建并启动 Compose 项目，等待所有长期服务 ready，成功后才执行以下回收：
+
+- 删除已成功退出的 `veb-migrate` 与 `blog-migrate` 容器。
+- 删除超过 24 小时的悬挂镜像；不会删除有 tag 的回滚镜像、运行中镜像或 volume。
+- 将宿主机 BuildKit 缓存限制在 `8GB`。构建缓存由 Docker daemon 全局管理，因此这项上限同时适用于宿主机上的其他项目；它只影响后续构建速度，不影响运行中的容器。
+
+可通过 `COMPOSE_WAIT_TIMEOUT`、`DOCKER_IMAGE_PRUNE_UNTIL` 和 `DOCKER_BUILD_CACHE_MAX_SIZE` 调整默认值。旧版 Docker 不支持缓存容量上限时，脚本回退为删除超过 `DOCKER_BUILD_CACHE_MAX_AGE`（默认 168 小时）的缓存。设置 `DOCKER_DEPLOY_PRUNE=0` 可跳过镜像与构建缓存回收，但仍会删除成功退出的 migration 容器。
+
+首次启用前可在部署成功后执行一次即时回收：
+
+```bash
+docker compose rm --force veb-migrate blog-migrate
+docker image prune --force
+docker builder prune --force --max-used-space 8GB
+docker system df
+```
+
+不要给以上命令增加 `--volumes`；数据库和上传文件都保存在命名 volume 中。

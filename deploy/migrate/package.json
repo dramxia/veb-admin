@@ -1,0 +1,8 @@
+{
+  "name": "@veb/migration-runner",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "prisma": "5.22.0"
+  }
+}

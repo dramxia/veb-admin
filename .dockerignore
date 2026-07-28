@@ -1,9 +1,14 @@
 .git
 .next
 node_modules
+.pnpm-store
+**/dist
 apps/*/.next
 apps/*/generated
 apps/*/src/generated
+.artifacts
+apps/web/playwright-report
+apps/web/test-results
 uploads
 .env
 .env.*

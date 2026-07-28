@@ -1,3 +1,9 @@
+x-prisma-migrate: &prisma-migrate
+  build:
+    context: .
+    dockerfile: deploy/migrate/Dockerfile
+    target: runner
+
 services:
   veb-postgres:
     image: postgres:15-alpine
@@ -42,10 +48,12 @@ services:
       retries: 20
 
   veb-migrate:
-    build:
-      context: .
-      dockerfile: apps/veb-api/Dockerfile
-      target: migrate
+    <<: *prisma-migrate
+    command:
+      - migrate
+      - deploy
+      - --schema
+      - /app/apps/veb-api/prisma/schema.prisma
     depends_on:
       veb-postgres:
         condition: service_healthy
@@ -54,10 +62,12 @@ services:
     restart: 'no'
 
   blog-migrate:
-    build:
-      context: .
-      dockerfile: apps/blog-api/Dockerfile
-      target: migration
+    <<: *prisma-migrate
+    command:
+      - migrate
+      - deploy
+      - --schema
+      - /app/apps/blog-api/prisma/schema.prisma
     depends_on:
       blog-postgres:
         condition: service_healthy
