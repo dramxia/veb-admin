@@ -12,7 +12,6 @@ apps/web/test-results
 uploads
 .env
 .env.*
-!.env.example
 Dockerfile
 docker-compose.yml
 npm-debug.log*

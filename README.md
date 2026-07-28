@@ -42,13 +42,9 @@ pnpm build
 
 ## 本地开发
 
-复制各应用的环境变量示例并填写数据库和密钥：
-
-```bash
-cp apps/web/.env.example apps/web/.env
-cp apps/veb-api/.env.example apps/veb-api/.env
-cp apps/blog-api/.env.example apps/blog-api/.env
-```
+各应用的开发配置统一放在已纳入版本控制的 `.env.development` 中。`next dev`
+会自动读取该文件，Prisma 与 seed 脚本也已显式使用同一套开发配置。首次运行前请确认
+数据库连接和开发密钥符合本机环境。
 
 数据库准备完成后执行：
 
@@ -70,11 +66,14 @@ pnpm dev
 
 ## Docker Compose
 
-根 `.env.example` 包含 Compose 所需变量。`VEB_DATABASE_URL` 与 `BLOG_DATABASE_URL` 必须显式填写，URL 中的密码保留字符需要 percent-encode；PostgreSQL 的两个 `*_DB_PASSWORD` 则填写原始密码。RSA 私钥只配置给 VEB API，Blog API 通过 VEB 内部 JWKS 验签。
+根 `.env.development` 和 `.env.production` 分别包含开发、生产 Compose 配置。
+`VEB_DATABASE_URL` 与 `BLOG_DATABASE_URL` 必须显式填写，URL 中的密码保留字符需要
+percent-encode；PostgreSQL 的两个 `*_DB_PASSWORD` 则填写原始密码。RSA 私钥只配置给
+VEB API，Blog API 通过 VEB 内部 JWKS 验签。仓库中的生产值是部署占位符，发布前必须
+替换。
 
 ```bash
-cp .env.example .env
-docker compose up --build
+pnpm compose:up
 ```
 
 Compose 会依次执行 VEB 与 Blog 的 `prisma migrate deploy`，两套迁移成功后才启动 API；不会在应用启动时执行 `db push` 或 seed。对外只发布可信 Web 网关和经过路径白名单限制的 Blog public 网关；原始 Web、VEB API 与 Blog API 仅在 Compose 私网可达，两套数据库只提供 `127.0.0.1` 回环端口供本地开发进程使用。
@@ -84,6 +83,10 @@ Compose 会依次执行 VEB 与 Blog 的 `prisma migrate deploy`，两套迁移�
 ```bash
 pnpm compose:deploy
 ```
+
+`compose:deploy` 默认读取 `.env.production`；需要使用其他生产配置文件时可设置
+`COMPOSE_ENV_FILE=/path/to/file`。直接调用 Compose 时也必须明确指定环境文件，例如
+`docker compose --env-file .env.production up --build`。
 
 该命令只会在全部长期服务 ready 后删除已成功退出的 migration 容器，并清理悬挂镜像。BuildKit 缓存默认限制为 `8GB`；不会删除命名镜像、运行中镜像或任何 volume。可通过 `DOCKER_BUILD_CACHE_MAX_SIZE` 调整上限，或临时设置 `DOCKER_DEPLOY_PRUNE=0` 跳过回收。
 

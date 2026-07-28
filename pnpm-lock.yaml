@@ -89,9 +89,6 @@ importers:
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.6.1
       lru-cache:
         specifier: ^10.4.3
         version: 10.4.3
@@ -279,9 +276,6 @@ importers:
       '@veb/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.6.1
       pg:
         specifier: ^8.16.3
         version: 8.22.0

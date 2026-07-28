@@ -13,14 +13,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "migrate": "tsx src/cli.ts",
+    "migrate": "node --env-file=.env.development ./node_modules/tsx/dist/cli.mjs src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@veb/api-contracts": "workspace:*",
-    "dotenv": "^16.4.5",
     "pg": "^8.16.3"
   },
   "devDependencies": {

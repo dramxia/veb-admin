@@ -16,6 +16,8 @@ usernames, and publication state.
 
 ## Local development
 
-Copy `.env.example` to `.env` (the Prisma CLI reads this file), run
+Development uses the committed `.env.development`; production uses
+`.env.production`. Next.js selects the file from `NODE_ENV`, while the Prisma
+and seed scripts select it explicitly. Review the values, run
 `pnpm prisma:generate`, apply the database migrations, and then run `pnpm dev`.
 The service listens on port `1068`.

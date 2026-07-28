@@ -12,11 +12,12 @@
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "prisma:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:migrate": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate dev",
+    "db:deploy": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate deploy",
+    "prisma:migrate:dev": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate dev",
+    "prisma:migrate:deploy": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate deploy",
+    "prisma:migrate:deploy:production": "node --env-file=.env.production ./node_modules/prisma/build/index.js migrate deploy",
+    "db:seed": "node --env-file=.env.development ./node_modules/tsx/dist/cli.mjs prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

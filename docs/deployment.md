@@ -65,6 +65,11 @@ Blog public 网关只暴露 Blog 的两个健康路径；VEB 健康路径仅在 
 pnpm compose:deploy
 ```
 
+该命令默认使用根目录的 `.env.production`。仓库中的值仅用于描述生产配置结构，部署前
+必须替换所有 `replace-before-deploy`、示例域名和 PEM 占位符。若生产配置由部署系统
+生成到其他路径，可通过 `COMPOSE_ENV_FILE=/path/to/file pnpm compose:deploy` 指定，
+无需创建或覆盖通用 `.env`。
+
 脚本先构建并启动 Compose 项目，等待所有长期服务 ready，成功后才执行以下回收：
 
 - 删除已成功退出的 `veb-migrate` 与 `blog-migrate` 容器。
@@ -76,7 +81,7 @@ pnpm compose:deploy
 首次启用前可在部署成功后执行一次即时回收：
 
 ```bash
-docker compose rm --force veb-migrate blog-migrate
+docker compose --env-file .env.production rm --force veb-migrate blog-migrate
 docker image prune --force
 docker builder prune --force --max-used-space 8GB
 docker system df

@@ -1,6 +1,4 @@
 /.next/
 /node_modules/
 /src/generated/prisma/
-/.env
-/.env.local
 *.tsbuildinfo

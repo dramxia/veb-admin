@@ -11,16 +11,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "prisma:migrate:dev": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate dev",
+    "prisma:migrate:deploy": "node --env-file=.env.development ./node_modules/prisma/build/index.js migrate deploy",
+    "prisma:migrate:deploy:production": "node --env-file=.env.production ./node_modules/prisma/build/index.js migrate deploy",
+    "db:seed": "node --env-file=.env.development ./node_modules/tsx/dist/cli.mjs prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@veb/api-contracts": "workspace:*",
     "@veb/service-auth": "workspace:*",
     "bcryptjs": "^2.4.3",
-    "dotenv": "^16.4.5",
     "lru-cache": "^10.4.3",
     "next": "^14.2.30",
     "next-auth": "5.0.0-beta.25",
