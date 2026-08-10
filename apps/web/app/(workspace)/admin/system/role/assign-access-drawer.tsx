@@ -348,6 +348,14 @@ export function AssignAccessDrawer({
     } else if (menu.type === 'PAGE') {
       if (checked) {
         next.add(menu.id);
+        activeMenus
+          .filter(
+            (item) =>
+              item.type === 'BUTTON' &&
+              item.parentId === menu.id &&
+              effectiveMenuIds.has(item.id),
+          )
+          .forEach((item) => next.add(item.id));
       } else {
         next.delete(menu.id);
         activeMenus
@@ -703,7 +711,7 @@ export function AssignAccessDrawer({
                                 templateColumns="auto minmax(0, 1fr)"
                                 gap={3}
                                 alignItems="flex-start"
-                                ps={5 + Math.min(depth, 8) * 5}
+                                ps={`${20 + Math.min(depth, 8) * 20}px`}
                                 pe={5}
                                 py={3}
                                 borderBottomWidth="1px"
