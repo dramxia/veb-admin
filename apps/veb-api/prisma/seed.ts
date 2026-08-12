@@ -363,9 +363,9 @@ const menus = [
 
 async function main() {
   const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
-  if (!seedAdminPassword || seedAdminPassword.length < 12) {
+  if (!seedAdminPassword || seedAdminPassword.length < 6) {
     throw new Error(
-      'SEED_ADMIN_PASSWORD is required and must contain at least 12 characters',
+      'SEED_ADMIN_PASSWORD is required and must contain at least 6 characters',
     );
   }
   const passwordHash = await bcrypt.hash(seedAdminPassword, 12);
@@ -428,7 +428,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: { nickname: '超级管理员', status: 'ENABLED' },
+    update: { passwordHash, nickname: '超级管理员', status: 'ENABLED' },
     create: {
       username: 'admin',
       passwordHash,

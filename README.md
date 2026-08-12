@@ -62,7 +62,7 @@ pnpm dev
 - VEB API：`http://localhost:1067`
 - Blog API：`http://localhost:1068`
 
-种子用户名为 `admin`，初始密码必须通过 VEB API 的 `SEED_ADMIN_PASSWORD` 提供。重复执行 seed 不会覆盖已有管理员密码。
+本地开发的种子用户名为 `admin`，默认密码为 `123456`，可通过 VEB API 的 `SEED_ADMIN_PASSWORD` 覆盖。显式执行 seed 时会同步管理员密码。
 
 ## Docker Compose
 
