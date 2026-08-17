@@ -8,11 +8,13 @@ type WorkspaceData = {
   modules: WorkspaceAppModule[];
   activeModule?: WorkspaceAppModule;
   menus: MenuNode[];
+  showSidebar: boolean;
 };
 
 const WorkspaceDataContext = createContext<WorkspaceData>({
   modules: [],
   menus: [],
+  showSidebar: false,
 });
 
 export function WorkspaceDataProvider({
@@ -20,9 +22,12 @@ export function WorkspaceDataProvider({
   children,
   menus,
   modules,
+  showSidebar,
 }: WorkspaceData & { children: ReactNode }) {
   return (
-    <WorkspaceDataContext.Provider value={{ activeModule, menus, modules }}>
+    <WorkspaceDataContext.Provider
+      value={{ activeModule, menus, modules, showSidebar }}
+    >
       {children}
     </WorkspaceDataContext.Provider>
   );

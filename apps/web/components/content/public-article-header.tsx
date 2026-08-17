@@ -37,7 +37,7 @@ export function PublicArticleHeader() {
             </Box>
           </HStack>
         </NextLink>
-        <NextLink href="/admin">
+        <NextLink href="/dashboard">
           <Button as="span" size="sm" variant="ghost">
             <HStack spacing={2}>
               <LayoutDashboard size={16} aria-hidden />

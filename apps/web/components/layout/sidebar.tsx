@@ -76,7 +76,7 @@ function getMenuIcon(menu: MenuNode): LucideIcon {
   const configured = menu.icon?.toLowerCase();
   const path = normalizeMenuPath(menu.path);
   if (configured && iconMap[configured]) return iconMap[configured];
-  if (path === '/admin') return LayoutDashboard;
+  if (path === '/dashboard') return LayoutDashboard;
   if (path.startsWith('/admin/profile')) return User;
   if (path.includes('/article')) return FileText;
   if (path.includes('/tag')) return Tags;

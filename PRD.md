@@ -258,7 +258,8 @@ Content-Type: application/json
 
 - `/` 跳转到排序第一的可用模块 `landingPath`；没有模块时显示空状态，并保留个人中心和退出。
 - 模块切换器和首页操作统一使用 `landingPath`。
-- 所有模块共用当前工作区 Header、侧栏和内容布局。
+- 所有模块共用当前工作区 Header 和内容布局；只有一个可导航入口的模块隐藏侧栏及其切换按钮。
+- 内置仪表盘模块使用 `/dashboard`，后台管理模块移除仪表盘菜单并按首个可访问页面进入；旧 `/admin` 兼容跳转到后台管理首个页面。
 - `/profile` 是登录后全局页面，不属于模块或菜单；`/admin/profile` 永久重定向。
 - 外链只有在模块和节点授权有效时才展示并安全打开。
 
@@ -512,7 +513,7 @@ pnpm build
 
 | 父级       | 名称         | 类型   | 路径或权限码                                 |
 | ---------- | ------------ | ------ | -------------------------------------------- |
-| 根         | 仪表盘       | PAGE   | `/admin`、`dashboard:view`                   |
+| 仪表盘模块 | 仪表盘       | PAGE   | `/dashboard`、`dashboard:view`               |
 | 系统管理   | 模块管理     | PAGE   | `/admin/system/module`、`system:module:view` |
 | 模块管理   | 新增模块     | BUTTON | `system:module:create`                       |
 | 系统管理   | 用户管理     | PAGE   | `/admin/system/user`、`system:user:view`     |

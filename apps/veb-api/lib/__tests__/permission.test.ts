@@ -23,7 +23,7 @@ vi.mock('../menu', () => ({
     };
   }),
   getMenuByPath: vi.fn(async (pathname: string) => {
-    if (pathname === '/admin') {
+    if (pathname === '/dashboard') {
       return {
         moduleId: 'm1',
         type: 'PAGE',
@@ -81,8 +81,8 @@ describe('permission helpers', () => {
   });
 
   it('treats the module landing page as an ordinary authorized PAGE', async () => {
-    await expect(permission.canAccess('u1', '/admin/')).resolves.toBe(true);
-    await expect(permission.canAccess('no-module', '/admin')).resolves.toBe(
+    await expect(permission.canAccess('u1', '/dashboard')).resolves.toBe(true);
+    await expect(permission.canAccess('no-module', '/dashboard')).resolves.toBe(
       false,
     );
   });

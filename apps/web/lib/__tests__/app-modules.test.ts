@@ -3,6 +3,9 @@ import type { MenuDto, MenuNode } from '@veb/api-contracts';
 import { getMenuPageLoader } from '@/app/_modules/admin-page-manifest';
 import {
   isModulePath,
+  findFirstPagePath,
+  resolveFirstModuleLandingPath,
+  resolveModuleLandingPath,
   resolveAppModule,
   sortWorkspaceModules,
   type WorkspaceAppModule,
@@ -52,7 +55,7 @@ function createWorkspaceModule(
 }
 
 describe('app module routing', () => {
-  it('loads the former dashboard module home through the PAGE manifest', () => {
+  it('loads the dashboard module home through the PAGE manifest', () => {
     expect(getMenuPageLoader('dashboard/page')).toBeTypeOf('function');
   });
 
@@ -62,6 +65,39 @@ describe('app module routing', () => {
     expect(isModulePath('/admin', admin)).toBe(true);
     expect(isModulePath('/admin/', admin)).toBe(true);
     expect(isModulePath('/admin/settings/', admin)).toBe(false);
+  });
+
+  it('falls back to the first non-legacy PAGE when the module landing is stale', () => {
+    const admin = createWorkspaceModule({
+      menus: [
+        createMenu('legacy-dashboard', '/admin'),
+        createMenu('article', '/admin/content/article'),
+      ],
+    });
+
+    expect(findFirstPagePath(admin.menus, '/admin')).toBe(
+      '/admin/content/article',
+    );
+  });
+
+  it('returns no fallback when the legacy module has no other PAGE', () => {
+    const admin = createWorkspaceModule();
+
+    expect(findFirstPagePath(admin.menus, '/admin')).toBeUndefined();
+  });
+
+  it('resolves module landings from authorized menus and avoids self-redirects', () => {
+    const admin = createWorkspaceModule({
+      menus: [
+        createMenu('legacy-dashboard', '/admin'),
+        createMenu('article', '/admin/content/article'),
+      ],
+    });
+
+    expect(resolveModuleLandingPath(admin, '/admin')).toBe(
+      '/admin/content/article',
+    );
+    expect(resolveFirstModuleLandingPath([admin], '/')).toBe('/admin');
   });
 
   it('matches dynamic descendants from a multi-segment PAGE path', () => {

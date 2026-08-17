@@ -38,7 +38,7 @@ Compose 要求显式提供 `VEB_DATABASE_URL` 和 `BLOG_DATABASE_URL`，并分�
 - `SERVICE_AUTH_PUBLIC_KEY` 用于 VEB 的 JWKS 输出。
 - Blog API 通过 `SERVICE_AUTH_JWKS_URL` 获取并缓存公钥。
 - `BLOG_VISITOR_HASH_SECRET` 独立管理；首次拆分时沿用旧 NextAuth secret 的值。
-- `SEED_ADMIN_PASSWORD` 只在显式初始化 VEB 种子数据时提供；seed 会将管理员密码同步为该值。
+- `SEED_ADMIN_PASSWORD` 只在显式初始化 VEB 种子数据时提供；当前项目初始化密码为 `123456`，显式执行 seed 会同步 `admin` 管理员密码。
 
 RSA 密钥应由密钥管理服务注入。当前 VEB JWKS 端点只发布 `SERVICE_AUTH_PUBLIC_KEY` 对应的单个 key，不支持同时发布新旧 key，因此不能无中断轮换。轮换必须安排短暂维护窗口，同时替换公私钥与 `SERVICE_AUTH_KEY_ID`，并重启 VEB API 和 Blog API；在实现多 key JWKS 前不要使用“先发布双 key”的轮换流程。
 

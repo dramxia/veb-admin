@@ -4,6 +4,7 @@ import { PrismaClient } from '@/generated/client';
 const prisma = new PrismaClient();
 
 const adminModuleId = 'module-admin';
+const dashboardModuleId = 'module-dashboard';
 
 const menus = [
   {
@@ -11,10 +12,11 @@ const menus = [
     parentId: null,
     name: '仪表盘',
     type: 'PAGE',
-    path: '/admin',
+    path: '/dashboard',
     component: 'dashboard/page',
     permissionCode: 'dashboard:view',
     sort: 0,
+    moduleId: dashboardModuleId,
   },
   {
     id: 'content-root',
@@ -370,6 +372,28 @@ async function main() {
   }
   const passwordHash = await bcrypt.hash(seedAdminPassword, 12);
 
+  const dashboardModule = await prisma.appModule.upsert({
+    where: { code: 'dashboard' },
+    update: {
+      name: '仪表盘',
+      description: '系统内置仪表盘模块',
+      icon: 'LayoutDashboard',
+      sort: -1,
+      status: 'ENABLED',
+      isSystem: true,
+    },
+    create: {
+      id: dashboardModuleId,
+      code: 'dashboard',
+      name: '仪表盘',
+      description: '系统内置仪表盘模块',
+      icon: 'LayoutDashboard',
+      sort: -1,
+      status: 'ENABLED',
+      isSystem: true,
+    },
+  });
+
   const adminModule = await prisma.appModule.upsert({
     where: { code: 'admin' },
     update: {
@@ -428,7 +452,11 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: { passwordHash, nickname: '超级管理员', status: 'ENABLED' },
+    update: {
+      nickname: '超级管理员',
+      status: 'ENABLED',
+      passwordHash,
+    },
     create: {
       username: 'admin',
       passwordHash,
@@ -449,7 +477,10 @@ async function main() {
       'permissionCode' in menu ? menu.permissionCode : null;
     const data = {
       parentId: menu.parentId,
-      moduleId: adminModule.id,
+      moduleId:
+        'moduleId' in menu && menu.moduleId === dashboardModuleId
+          ? dashboardModule.id
+          : adminModule.id,
       name: menu.name,
       description: null,
       path: 'path' in menu ? menu.path : null,

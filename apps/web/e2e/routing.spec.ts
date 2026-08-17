@@ -46,7 +46,8 @@ test('the root redirects to the first authorized module home', async ({
   page,
 }) => {
   await login(page);
-  await expectRedirect(page, '/', '/admin', 307);
+  await expectRedirect(page, '/', '/dashboard', 307);
+  await expectRedirect(page, '/admin', '/admin/content/article', 307);
 });
 
 test('the profile compatibility URL redirects before authentication', async ({

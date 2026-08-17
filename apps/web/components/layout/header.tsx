@@ -29,7 +29,6 @@ import {
 import {
   ChevronDown,
   ExternalLink,
-  Home,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -43,7 +42,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrandMark } from '@/components/common/brand-mark';
 import type { AuthUser } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
-import type { WorkspaceAppModule } from './app-modules';
+import {
+  resolveModuleLandingPath,
+  type WorkspaceAppModule,
+} from './app-modules';
 import {
   flattenNavigableMenus,
   getCurrentMenu,
@@ -86,11 +88,16 @@ function ModuleSwitcher({
       >
         {modules.map((module) => {
           const current = module.id === activeModule?.id;
+          const href = resolveModuleLandingPath(
+            module,
+            module.code === 'admin' ? '/admin' : undefined,
+          );
+          if (!href) return null;
           return (
             <Button
               key={module.id}
               as={Link}
-              href={module.landingPath}
+              href={href}
               aria-current={current ? 'page' : undefined}
               variant="ghost"
               size="sm"
@@ -133,21 +140,28 @@ function ModuleSwitcher({
             overflowY="auto"
             zIndex="popover"
           >
-            {modules.map((module) => (
-              <MenuItem
-                key={module.id}
-                as={Link}
-                href={module.landingPath}
-                aria-current={
-                  module.id === activeModule?.id ? 'page' : undefined
-                }
-                onClick={closeMobileSidebar}
-                whiteSpace="normal"
-                overflowWrap="anywhere"
-              >
-                {module.name}
-              </MenuItem>
-            ))}
+            {modules.map((module) => {
+              const href = resolveModuleLandingPath(
+                module,
+                module.code === 'admin' ? '/admin' : undefined,
+              );
+              if (!href) return null;
+              return (
+                <MenuItem
+                  key={module.id}
+                  as={Link}
+                  href={href}
+                  aria-current={
+                    module.id === activeModule?.id ? 'page' : undefined
+                  }
+                  onClick={closeMobileSidebar}
+                  whiteSpace="normal"
+                  overflowWrap="anywhere"
+                >
+                  {module.name}
+                </MenuItem>
+              );
+            })}
           </MenuList>
         </Portal>
       </Menu>
@@ -158,7 +172,7 @@ function ModuleSwitcher({
 export function Header({ user }: HeaderProps) {
   const displayName = user.nickname ?? user.username;
   const pathname = usePathname();
-  const { activeModule, menus, modules } = useWorkspaceData();
+  const { activeModule, menus, modules, showSidebar } = useWorkspaceData();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSidebarToggleRef = useRef<HTMLButtonElement>(null);
   const searchPopover = useDisclosure();
@@ -196,10 +210,8 @@ export function Header({ user }: HeaderProps) {
     () => getCurrentMenu(pathname, menus),
     [menus, pathname],
   );
-  const canToggleSidebar = Boolean(activeModule);
+  const canToggleSidebar = Boolean(activeModule && showSidebar);
   const canSearchMenus = Boolean(activeModule);
-  const moduleLandingPath =
-    activeModule?.landingPath ?? modules[0]?.landingPath;
   const restoreMobileSidebarToggleFocus = useCallback(() => {
     window.requestAnimationFrame(() => {
       mobileSidebarToggleRef.current?.focus({ preventScroll: true });
@@ -327,19 +339,6 @@ export function Header({ user }: HeaderProps) {
           minW={0}
         >
           <ModuleSwitcher activeModule={activeModule} modules={modules} />
-
-          {moduleLandingPath ? (
-            <IconButton
-              as={Link}
-              href={moduleLandingPath}
-              aria-label={`返回${activeModule?.name ?? '应用模块'}首个菜单`}
-              aria-current={pathname === moduleLandingPath ? 'page' : undefined}
-              icon={<Icon as={Home} boxSize={5} aria-hidden />}
-              variant="ghost"
-              size="sm"
-              flexShrink={0}
-            />
-          ) : null}
 
           {canSearchMenus ? (
             <Popover

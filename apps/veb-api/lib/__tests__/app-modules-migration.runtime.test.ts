@@ -158,7 +158,7 @@ function runSeed(schema: string) {
       ...process.env,
       CI: '1',
       DATABASE_URL: databaseUrlForSchema(schema),
-      SEED_ADMIN_PASSWORD: 'MigrationTest@123',
+      SEED_ADMIN_PASSWORD: '123456',
     },
     maxBuffer: 10 * 1024 * 1024,
   });

@@ -16,7 +16,7 @@ export async function login(
     timeout: 30_000,
   });
   const destination =
-    options.destination === undefined ? '/admin' : options.destination;
+    options.destination === undefined ? '/dashboard' : options.destination;
   if (!destination) return;
 
   await page.goto(destination);

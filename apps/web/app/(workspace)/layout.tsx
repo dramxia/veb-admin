@@ -18,6 +18,7 @@ import {
 const GLOBAL_OR_LEGACY_PATHS = new Set([
   '/',
   '/profile',
+  '/admin',
   '/admin/profile',
   '/admin/system/permission',
 ]);

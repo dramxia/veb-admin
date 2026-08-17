@@ -3,7 +3,7 @@ import type { ComponentType } from 'react';
 type MenuPageLoader = () => Promise<{ default: ComponentType }>;
 
 export const menuPageManifest: Record<string, MenuPageLoader> = {
-  'dashboard/page': () => import('../(workspace)/admin/page'),
+  'dashboard/page': () => import('../(workspace)/dashboard/page'),
   'example/page': () => import('./example/page'),
   'system/user/page': () => import('../(workspace)/admin/system/user/page'),
   'system/role/page': () => import('../(workspace)/admin/system/role/page'),

@@ -1,4 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import type { MenuNode } from '@veb/api-contracts';
+import {
+  resolveFirstModuleLandingPath,
+  resolveModuleLandingPath,
+} from '@/components/layout/app-modules';
 
 type ApiEnvelope<T> = {
   code: number;
@@ -6,7 +11,10 @@ type ApiEnvelope<T> = {
 };
 
 type NavigationResponse = {
-  modules: Array<{ landingPath: string }>;
+  modules: Array<{
+    code: string;
+    menus: MenuNode[];
+  }>;
 };
 
 const VEB_API_INTERNAL_URL =
@@ -90,6 +98,31 @@ export async function middleware(request: NextRequest) {
     response = NextResponse.next({ request: { headers: requestHeaders } });
   } else if (pathname === '/admin/system/permission') {
     response = redirectResponse(request, '/admin/system/menu', 308);
+  } else if (pathname === '/admin') {
+    const navigationResponse = await requestVebApi(
+      request,
+      '/api/v1/navigation',
+      requestId,
+    );
+    if (navigationResponse?.status === 401) {
+      response = redirectResponse(request, '/login');
+    } else if (navigationResponse?.ok) {
+      const payload = (await navigationResponse
+        .json()
+        .catch(() => null)) as ApiEnvelope<NavigationResponse> | null;
+      const modules = Array.isArray(payload?.data?.modules)
+        ? payload.data.modules
+        : [];
+      const adminModule = modules.find((module) => module.code === 'admin');
+      const destination = adminModule
+        ? resolveModuleLandingPath(adminModule, pathname)
+        : undefined;
+      response = destination
+        ? redirectResponse(request, destination)
+        : rewriteResponse(request, '/403', 403, requestHeaders);
+    } else {
+      response = NextResponse.next({ request: { headers: requestHeaders } });
+    }
   } else if (pathname === '/') {
     const navigationResponse = await requestVebApi(
       request,
@@ -102,9 +135,12 @@ export async function middleware(request: NextRequest) {
       const payload = (await navigationResponse
         .json()
         .catch(() => null)) as ApiEnvelope<NavigationResponse> | null;
-      const landingPath = payload?.data?.modules[0]?.landingPath;
-      response = landingPath
-        ? redirectResponse(request, landingPath)
+      const modules = Array.isArray(payload?.data?.modules)
+        ? payload.data.modules
+        : [];
+      const destination = resolveFirstModuleLandingPath(modules, pathname);
+      response = destination
+        ? redirectResponse(request, destination)
         : NextResponse.next({ request: { headers: requestHeaders } });
     } else {
       response = NextResponse.next({ request: { headers: requestHeaders } });

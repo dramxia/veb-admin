@@ -2,6 +2,10 @@ import { createElement, type ElementType, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+const { workspaceData } = vi.hoisted(() => ({
+  workspaceData: { showSidebar: true },
+}));
+
 vi.mock('@chakra-ui/react', () => ({
   Box: ({
     as,
@@ -22,8 +26,16 @@ vi.mock('@/components/layout/sidebar', () => ({
 
 vi.mock('@/stores/ui-store', () => ({
   useUiStore: (
-    selector: (state: { desktopSidebarCollapsed: boolean }) => unknown,
-  ) => selector({ desktopSidebarCollapsed: false }),
+    selector: (state: {
+      desktopSidebarCollapsed: boolean;
+      closeMobileSidebar: () => void;
+    }) => unknown,
+  ) =>
+    selector({ desktopSidebarCollapsed: false, closeMobileSidebar: vi.fn() }),
+}));
+
+vi.mock('@/components/layout/workspace-data-context', () => ({
+  useWorkspaceData: () => workspaceData,
 }));
 
 const { AdminShell } = await import('@/components/layout/admin-shell');
@@ -58,5 +70,21 @@ describe('module shells', () => {
     expect(markup).toContain('plain content');
     expect(markup).not.toContain('<aside');
     expect(markup).not.toContain('dashboard-main');
+  });
+
+  it('omits the admin sidebar infrastructure for single-page modules', () => {
+    workspaceData.showSidebar = false;
+    const markup = renderToStaticMarkup(
+      createElement(
+        AdminShell,
+        null,
+        createElement('p', null, 'single page content'),
+      ),
+    );
+
+    expect(markup).not.toContain('<aside');
+    expect(markup).toContain('<main id="dashboard-main">');
+    expect(markup).toContain('single page content');
+    workspaceData.showSidebar = true;
   });
 });

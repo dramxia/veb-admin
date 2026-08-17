@@ -10,6 +10,7 @@ import { getWorkspacePage } from '@/lib/workspace-navigation';
 const GLOBAL_WORKSPACE_PATHS = new Set([
   '/',
   '/profile',
+  '/admin',
   '/admin/profile',
   // The middleware performs the permanent redirect to the unified menu page.
   '/admin/system/permission',

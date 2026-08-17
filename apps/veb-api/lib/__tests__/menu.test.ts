@@ -7,7 +7,7 @@ const menuRows = [
     parentId: null,
     name: 'Dashboard',
     description: null,
-    path: '/admin',
+    path: '/dashboard',
     component: 'dashboard/page',
     icon: null,
     sort: 0,
@@ -172,7 +172,7 @@ describe('menu aggregation', () => {
       'system:user:view',
     ]);
     expect(result.modules).toHaveLength(1);
-    expect(result.modules[0]?.landingPath).toBe('/admin');
+    expect(result.modules[0]?.landingPath).toBe('/dashboard');
     expect(result.menus.map((item) => item.id)).toEqual(['dashboard', 'root']);
     expect(
       result.menus
@@ -185,10 +185,10 @@ describe('menu aggregation', () => {
     await expect(
       menu.getMenuByPath('/admin/system/user/detail'),
     ).resolves.toMatchObject({ id: 'user' });
-    await expect(menu.getMenuByPath('/admin/')).resolves.toMatchObject({
+    await expect(menu.getMenuByPath('/dashboard/')).resolves.toMatchObject({
       id: 'dashboard',
     });
-    await expect(menu.getMenuByPath('/admin/unknown')).resolves.toBeNull();
+    await expect(menu.getMenuByPath('/dashboard/unknown')).resolves.toBeNull();
     await expect(
       menu.getMenuByPath('/admin/system/audit/detail'),
     ).resolves.toMatchObject({ id: 'audit' });

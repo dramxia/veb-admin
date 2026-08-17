@@ -124,7 +124,7 @@ function LoadingPanel() {
 export function PageLoading() {
   const pathname = usePathname();
   const showMetrics =
-    pathname === '/admin' ||
+    pathname === '/dashboard' ||
     pathname === '/admin/system' ||
     pathname === '/admin/content/like';
 

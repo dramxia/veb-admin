@@ -9,7 +9,10 @@ import { Header } from './header';
 import { resolveAppModule, sortWorkspaceModules } from './app-modules';
 import { DASHBOARD_HEADER_HEIGHT } from './layout-constants';
 import { MenuStoreInitializer } from './menu-store-initializer';
-import { filterNavigableMenuTree } from './navigation-utils';
+import {
+  filterNavigableMenuTree,
+  flattenNavigableMenus,
+} from './navigation-utils';
 import { UiStoreInitializer } from './ui-store-initializer';
 import { WorkspaceDataProvider } from './workspace-data-context';
 
@@ -47,12 +50,14 @@ export function WorkspaceShell({
     [activeModuleId, modules, pathname],
   );
   const menus = activeModule?.menus ?? [];
+  const showSidebar = flattenNavigableMenus(menus).length > 1;
 
   return (
     <WorkspaceDataProvider
       activeModule={activeModule}
       menus={menus}
       modules={modules}
+      showSidebar={showSidebar}
     >
       <Box
         h="100dvh"

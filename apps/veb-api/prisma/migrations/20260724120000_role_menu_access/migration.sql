@@ -21,7 +21,7 @@ INSERT INTO "_BuiltinMenuSeed" (
     "id", "parentId", "name", "path", "component", "sort", "type",
     "permissionCode", "visible"
 ) VALUES
-    ('menu-dashboard', NULL, '仪表盘', '/admin', 'dashboard/page', 0, 'PAGE', 'dashboard:view', true),
+    ('menu-dashboard', NULL, '仪表盘', '/dashboard', 'dashboard/page', 0, 'PAGE', 'dashboard:view', true),
     ('content-root', NULL, '内容管理', NULL, NULL, 5, 'DIR', NULL, true),
     ('menu-content-article', 'content-root', '文章管理', '/admin/content/article', 'content/article/page', 6, 'PAGE', 'content:article:view', true),
     ('button-content-article-create', 'menu-content-article', '新增文章', NULL, NULL, 1001, 'BUTTON', 'content:article:create', false),
@@ -674,6 +674,23 @@ ON CONFLICT ("id") DO UPDATE SET
     "isSystem" = true,
     "updatedAt" = CURRENT_TIMESTAMP;
 
+INSERT INTO "AppModule" (
+    "id", "code", "name", "description", "icon", "sort", "status",
+    "isSystem", "createdAt", "updatedAt"
+) VALUES (
+    'module-dashboard', 'dashboard', '仪表盘', '系统内置仪表盘模块',
+    'LayoutDashboard', -1, 'ENABLED', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO UPDATE SET
+    "code" = EXCLUDED."code",
+    "name" = EXCLUDED."name",
+    "description" = EXCLUDED."description",
+    "icon" = EXCLUDED."icon",
+    "sort" = EXCLUDED."sort",
+    "status" = EXCLUDED."status",
+    "isSystem" = true,
+    "updatedAt" = CURRENT_TIMESTAMP;
+
 ALTER TABLE "Menu" DROP CONSTRAINT "Menu_permissionCode_fkey";
 ALTER TABLE "Menu" ADD COLUMN "description" TEXT;
 ALTER TABLE "Menu" ALTER COLUMN "path" DROP NOT NULL;
@@ -693,6 +710,7 @@ WHERE "id" = 'menu-system-menu';
 
 UPDATE "Menu"
 SET "permissionCode" = 'dashboard:view',
+    "path" = '/dashboard',
     "component" = 'dashboard/page',
     "description" = '后台仪表盘',
     "updatedAt" = CURRENT_TIMESTAMP
@@ -760,6 +778,12 @@ ON CONFLICT ("id") DO UPDATE SET
     "externalUrl" = EXCLUDED."externalUrl",
     "isSystem" = EXCLUDED."isSystem",
     "updatedAt" = CURRENT_TIMESTAMP;
+
+UPDATE "Menu"
+SET "moduleId" = 'module-dashboard',
+    "path" = '/dashboard',
+    "updatedAt" = CURRENT_TIMESTAMP
+WHERE "id" = 'menu-dashboard';
 
 INSERT INTO "Menu" (
     "id", "parentId", "moduleId", "name", "description", "path", "component",
@@ -955,7 +979,7 @@ WHERE m."type" = 'PAGE'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "RoleModule" ("roleId", "moduleId")
-SELECT dashboard_role."roleId", 'module-admin'
+SELECT dashboard_role."roleId", 'module-dashboard'
 FROM "_LegacyOpenDashboardRole" dashboard_role
 ON CONFLICT DO NOTHING;
 

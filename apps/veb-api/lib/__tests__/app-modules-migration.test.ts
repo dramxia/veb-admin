@@ -64,6 +64,8 @@ describe('app modules migration', () => {
       `DELETE FROM "Menu" WHERE "id" = 'menu-system-permission';`,
     );
     expect(migrationSql).toContain(`"permissionCode" = 'dashboard:view'`);
+    expect(migrationSql).toContain(`"path" = '/dashboard'`);
+    expect(migrationSql).toContain(`'module-dashboard', 'dashboard'`);
     expect(migrationSql).toContain(
       "'/admin/profile', '/admin/system/permission'",
     );
