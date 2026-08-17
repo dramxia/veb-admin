@@ -37,7 +37,6 @@ import {
   flattenNavigableMenus,
   getCurrentMenu,
   getHref,
-  isButtonMenu,
   isExternalHref,
   normalizeMenuPath,
 } from './navigation-utils';
@@ -316,7 +315,6 @@ export function Sidebar() {
   const sidebarMenus = useMemo(
     () =>
       menus.filter((menu) => {
-        if (isButtonMenu(menu)) return false;
         const href = getHref(menu);
         return !href || (href !== '/profile' && href !== '/admin/profile');
       }),

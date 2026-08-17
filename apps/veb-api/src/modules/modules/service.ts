@@ -25,7 +25,7 @@ const moduleSelect = {
   isSystem: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { menus: true, roles: true } },
+  _count: { select: { roles: true } },
 } satisfies Prisma.AppModuleSelect;
 
 type SelectedAppModule = Prisma.AppModuleGetPayload<{
@@ -33,6 +33,11 @@ type SelectedAppModule = Prisma.AppModuleGetPayload<{
 }>;
 
 type MenuCounts = { menus: number; buttons: number };
+
+const moduleDeleteSelect = {
+  isSystem: true,
+  _count: { select: { menus: true, roles: true } },
+} satisfies Prisma.AppModuleSelect;
 
 async function getMenuCounts(moduleIds: string[]) {
   const counts = new Map<string, MenuCounts>();
@@ -114,12 +119,9 @@ export async function listAppModules({
 
 export async function createAppModule(data: AppModuleCreateData) {
   try {
-    const record = await withSerializableRetry(async (tx) => {
-      const exists = await tx.appModule.findUnique({
-        where: { code: data.code },
-      });
-      if (exists) throw new ConflictError('模块编码已存在');
-      return tx.appModule.create({ data, select: moduleSelect });
+    const record = await prisma.appModule.create({
+      data,
+      select: moduleSelect,
     });
     invalidatePermissionCache();
     return resolveModule(record);
@@ -177,7 +179,7 @@ export async function deleteAppModule(id: string) {
     await withSerializableRetry(async (tx) => {
       const record = await tx.appModule.findUnique({
         where: { id },
-        select: moduleSelect,
+        select: moduleDeleteSelect,
       });
       if (!record) throw new NotFoundError('模块不存在');
       if (record.isSystem) throw new ConflictError('内置模块不可删除');

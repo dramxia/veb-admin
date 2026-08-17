@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MenuDto, MenuNode } from '@veb/api-contracts';
 import { getMenuPageLoader } from '@/app/_modules/admin-page-manifest';
 import {
-  isModulePath,
-  findFirstPagePath,
-  resolveFirstModuleLandingPath,
-  resolveModuleLandingPath,
   resolveAppModule,
-  sortWorkspaceModules,
   type WorkspaceAppModule,
 } from '@/components/layout/app-modules';
 
@@ -62,42 +57,9 @@ describe('app module routing', () => {
   it('matches a single-segment PAGE only by its exact path', () => {
     const admin = createWorkspaceModule();
 
-    expect(isModulePath('/admin', admin)).toBe(true);
-    expect(isModulePath('/admin/', admin)).toBe(true);
-    expect(isModulePath('/admin/settings/', admin)).toBe(false);
-  });
-
-  it('falls back to the first non-legacy PAGE when the module landing is stale', () => {
-    const admin = createWorkspaceModule({
-      menus: [
-        createMenu('legacy-dashboard', '/admin'),
-        createMenu('article', '/admin/content/article'),
-      ],
-    });
-
-    expect(findFirstPagePath(admin.menus, '/admin')).toBe(
-      '/admin/content/article',
-    );
-  });
-
-  it('returns no fallback when the legacy module has no other PAGE', () => {
-    const admin = createWorkspaceModule();
-
-    expect(findFirstPagePath(admin.menus, '/admin')).toBeUndefined();
-  });
-
-  it('resolves module landings from authorized menus and avoids self-redirects', () => {
-    const admin = createWorkspaceModule({
-      menus: [
-        createMenu('legacy-dashboard', '/admin'),
-        createMenu('article', '/admin/content/article'),
-      ],
-    });
-
-    expect(resolveModuleLandingPath(admin, '/admin')).toBe(
-      '/admin/content/article',
-    );
-    expect(resolveFirstModuleLandingPath([admin], '/')).toBe('/admin');
+    expect(resolveAppModule('/admin', [admin])?.id).toBe(admin.id);
+    expect(resolveAppModule('/admin/', [admin])?.id).toBe(admin.id);
+    expect(resolveAppModule('/admin/settings/', [admin])).toBeUndefined();
   });
 
   it('matches dynamic descendants from a multi-segment PAGE path', () => {
@@ -105,8 +67,10 @@ describe('app module routing', () => {
       menus: [createMenu('settings', '/admin/settings')],
     });
 
-    expect(isModulePath('/admin/settings', admin)).toBe(true);
-    expect(isModulePath('/admin/settings/profile/', admin)).toBe(true);
+    expect(resolveAppModule('/admin/settings', [admin])?.id).toBe(admin.id);
+    expect(resolveAppModule('/admin/settings/profile/', [admin])?.id).toBe(
+      admin.id,
+    );
   });
 
   it('does not infer module ownership from its code or landing path', () => {
@@ -114,7 +78,6 @@ describe('app module routing', () => {
       menus: [createMenu('example', '/example')],
     });
 
-    expect(isModulePath('/admin', admin)).toBe(false);
     expect(resolveAppModule('/admin', [admin])).toBeUndefined();
   });
 
@@ -172,41 +135,5 @@ describe('app module routing', () => {
         }),
       ])?.code,
     ).toBe('admin');
-  });
-
-  it('orders authorized modules by sort, name, then id', () => {
-    const later = createWorkspaceModule({
-      id: 'later',
-      code: 'later',
-      sort: 20,
-    });
-    const first = createWorkspaceModule({
-      id: 'first',
-      code: 'first',
-      name: '首个模块',
-      sort: 10,
-    });
-
-    expect(sortWorkspaceModules([later, first]).map(({ id }) => id)).toEqual([
-      'first',
-      'later',
-    ]);
-  });
-
-  it('uses the module id instead of code as the final ordering tie-breaker', () => {
-    const moduleZ = createWorkspaceModule({
-      id: 'module-z',
-      code: 'aaa',
-      name: '同名模块',
-    });
-    const moduleA = createWorkspaceModule({
-      id: 'module-a',
-      code: 'zzz',
-      name: '同名模块',
-    });
-
-    expect(
-      sortWorkspaceModules([moduleZ, moduleA]).map(({ id }) => id),
-    ).toEqual(['module-a', 'module-z']);
   });
 });

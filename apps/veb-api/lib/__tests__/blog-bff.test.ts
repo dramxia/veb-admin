@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  fetchBlogApi,
   injectArticleAuthor,
   needsPublishPermission,
   resolveBlogAuthorization,
 } from '../blog-bff';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('blog BFF authorization', () => {
   it('maps management operations to existing content permissions', () => {
@@ -52,5 +57,47 @@ describe('blog BFF authorization', () => {
     expect(
       needsPublishPermission('PATCH', ['articles', 'a1'], '{"status":"DRAFT"}'),
     ).toBe(false);
+  });
+
+  it('preserves the final upstream 503 response after retrying a GET', async () => {
+    const payload = {
+      code: 50301,
+      data: null,
+      message: '博客数据库连接失败，请启动 blog-postgres',
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(payload), { status: 503 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(payload), { status: 503 }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await fetchBlogApi(
+      new URL('http://blog-api:1068/api/internal/v1/articles'),
+      { method: 'GET' },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual(payload);
+  });
+
+  it('describes how to recover when Blog API cannot be reached', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+    );
+
+    await expect(
+      fetchBlogApi(new URL('http://blog-api:1068/api/internal/v1/articles'), {
+        method: 'GET',
+      }),
+    ).rejects.toMatchObject({
+      status: 503,
+      message: '无法连接 Blog API。请确认 blog-api 服务已启动。',
+    });
   });
 });

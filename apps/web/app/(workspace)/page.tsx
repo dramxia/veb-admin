@@ -1,19 +1,11 @@
 import { Center, Heading, Stack, Text } from '@chakra-ui/react';
 import { redirect } from 'next/navigation';
-import {
-  resolveFirstModuleLandingPath,
-  sortWorkspaceModules,
-} from '@/components/layout/app-modules';
 import { PlainModuleShell } from '@/components/layout/plain-module-shell';
 import { getWorkspaceNavigation } from '@/lib/workspace-navigation';
 
 export default async function WorkspaceIndexPage() {
   const navigation = await getWorkspaceNavigation();
-  const modules = sortWorkspaceModules(
-    navigation.modules.filter((module) => module.status === 'ENABLED'),
-  );
-
-  const landingPath = resolveFirstModuleLandingPath(modules, '/');
+  const landingPath = navigation.modules[0]?.landingPath;
   if (landingPath) redirect(landingPath);
 
   return (

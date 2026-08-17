@@ -6,13 +6,10 @@ import { type ReactNode, useMemo } from 'react';
 import type { UserNavigation } from '@veb/api-contracts';
 import type { AuthUser } from '@/stores/auth-store';
 import { Header } from './header';
-import { resolveAppModule, sortWorkspaceModules } from './app-modules';
+import { resolveAppModule } from './app-modules';
 import { DASHBOARD_HEADER_HEIGHT } from './layout-constants';
 import { MenuStoreInitializer } from './menu-store-initializer';
-import {
-  filterNavigableMenuTree,
-  flattenNavigableMenus,
-} from './navigation-utils';
+import { flattenNavigableMenus } from './navigation-utils';
 import { UiStoreInitializer } from './ui-store-initializer';
 import { WorkspaceDataProvider } from './workspace-data-context';
 
@@ -27,21 +24,11 @@ type WorkspaceShellProps = {
 export function WorkspaceShell({
   children,
   user,
-  modules: unsortedModules,
+  modules,
   permissionCodes,
   activeModuleId,
 }: WorkspaceShellProps) {
   const pathname = usePathname();
-  const modules = useMemo(
-    () =>
-      sortWorkspaceModules(
-        unsortedModules.map((module) => ({
-          ...module,
-          menus: filterNavigableMenuTree(module.menus),
-        })),
-      ),
-    [unsortedModules],
-  );
   const activeModule = useMemo(
     () =>
       pathname === '/profile' || pathname === '/admin/profile'
@@ -69,7 +56,6 @@ export function WorkspaceShell({
       >
         <MenuStoreInitializer
           menus={menus}
-          modules={modules}
           permissionCodes={permissionCodes}
           user={user}
         />

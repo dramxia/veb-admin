@@ -9,7 +9,6 @@ declare module 'next-auth' {
       avatar?: string | null;
       roles: string[];
       permissionCodes: string[];
-      menuPaths: string[];
     } & DefaultSession['user'];
   }
 
@@ -19,7 +18,6 @@ declare module 'next-auth' {
     avatar?: string | null;
     roles?: string[];
     permissionCodes?: string[];
-    menuPaths?: string[];
     disabled?: boolean;
   }
 }
@@ -32,7 +30,6 @@ declare module 'next-auth/jwt' {
     avatar?: string | null;
     roles?: string[];
     permissionCodes?: string[];
-    menuPaths?: string[];
     disabled?: boolean;
   }
 }

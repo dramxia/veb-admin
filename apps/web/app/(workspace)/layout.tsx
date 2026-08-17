@@ -4,10 +4,7 @@ import type { ReactNode } from 'react';
 import type { ProfileDto } from '@veb/api-contracts';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import {
-  normalizePathname,
-  sortWorkspaceModules,
-} from '@/components/layout/app-modules';
+import { normalizePathname } from '@/components/layout/app-modules';
 import { WorkspaceShell } from '@/components/layout/workspace-shell';
 import { requestVebPage } from '@/lib/server-api';
 import {
@@ -39,16 +36,12 @@ export default async function WorkspaceLayout({
   ]);
   if (!GLOBAL_OR_LEGACY_PATHS.has(pathname) && !page) notFound();
 
-  const modules = sortWorkspaceModules(
-    navigation.modules.filter((module) => module.status === 'ENABLED'),
-  );
-
   const user = { ...profile, roles: navigation.roleCodes };
 
   return (
     <WorkspaceShell
       user={user}
-      modules={modules}
+      modules={navigation.modules}
       permissionCodes={navigation.permissionCodes}
       activeModuleId={page?.moduleId}
     >

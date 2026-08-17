@@ -1,60 +1,15 @@
-import {
-  CommonStatus,
-  UserStatus,
-  type AppModule,
-  type Menu,
-} from '@/generated/client';
+import { CommonStatus, UserStatus, type Menu } from '@/generated/client';
+import type {
+  LegacyUserNavigation,
+  MenuNode,
+  UserNavigation,
+} from '@veb/api-contracts';
 import { createMenuHierarchy } from '@/lib/menu-hierarchy';
 import type { PermissionSnapshot } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { NotFoundError, PermissionError } from '@/lib/errors';
 
-type NavigationMenuType = 'DIR' | 'PAGE' | 'LINK';
-
-export type MenuNode = Omit<
-  Pick<
-    Menu,
-    | 'id'
-    | 'moduleId'
-    | 'parentId'
-    | 'name'
-    | 'description'
-    | 'path'
-    | 'component'
-    | 'icon'
-    | 'sort'
-    | 'permissionCode'
-    | 'visible'
-    | 'status'
-    | 'externalUrl'
-  >,
-  never
-> & {
-  type: NavigationMenuType;
-  children: MenuNode[];
-};
-
-export type UserMenuAndPermissions = {
-  menus: MenuNode[];
-  modules: Array<
-    Pick<
-      AppModule,
-      | 'id'
-      | 'code'
-      | 'name'
-      | 'description'
-      | 'icon'
-      | 'sort'
-      | 'status'
-      | 'isSystem'
-    > & {
-      landingPath: string;
-      menus: MenuNode[];
-    }
-  >;
-  permissionCodes: string[];
-  roleCodes: string[];
-};
+const LEGACY_ADMIN_PATH = '/admin';
 
 function compareText(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -116,7 +71,13 @@ function pruneEmptyDirs(nodes: MenuNode[]): MenuNode[] {
 
 function findLandingPath(nodes: MenuNode[]): string | null {
   for (const node of nodes) {
-    if (node.type === 'PAGE' && node.path) return node.path;
+    if (
+      node.type === 'PAGE' &&
+      node.path &&
+      normalizeRequestedPath(node.path) !== LEGACY_ADMIN_PATH
+    ) {
+      return node.path;
+    }
     const childPath = findLandingPath(node.children);
     if (childPath) return childPath;
   }
@@ -225,15 +186,12 @@ export async function getUserPermissionSnapshot(
   };
 }
 
-export const getUserAuthorizationSnapshot = getUserPermissionSnapshot;
-
-export async function getUserMenuAndPermissions(
+export async function getUserNavigation(
   userId: string,
-): Promise<UserMenuAndPermissions> {
+): Promise<UserNavigation> {
   const snapshot = await getUserPermissionSnapshot(userId);
   if (!snapshot.moduleIds.length) {
     return {
-      menus: [],
       modules: [],
       permissionCodes: snapshot.permissionCodes,
       roleCodes: snapshot.roleCodes,
@@ -279,15 +237,21 @@ export async function getUserMenuAndPermissions(
     ];
   });
 
-  const primaryModule =
-    resolvedModules.find((module) => module.code === 'admin') ??
-    resolvedModules[0];
   return {
-    menus: primaryModule?.menus ?? [],
     modules: resolvedModules,
     permissionCodes: snapshot.permissionCodes,
     roleCodes: snapshot.roleCodes,
   };
+}
+
+export async function getUserMenuAndPermissions(
+  userId: string,
+): Promise<LegacyUserNavigation> {
+  const navigation = await getUserNavigation(userId);
+  const primaryModule =
+    navigation.modules.find((module) => module.code === 'admin') ??
+    navigation.modules[0];
+  return { ...navigation, menus: primaryModule?.menus ?? [] };
 }
 
 export async function getMenuByPath(pathname: string) {
@@ -337,14 +301,4 @@ export async function resolveUserPage(userId: string, pathname: string) {
     path: page.path,
     component: page.component,
   };
-}
-
-/** @deprecated Resolve the owning module through the matching PAGE instead. */
-export async function getModuleByPath(pathname: string) {
-  const menu = await getMenuByPath(pathname);
-  if (!menu) return null;
-  const appModule = await prisma.appModule.findUnique({
-    where: { id: menu.moduleId },
-  });
-  return appModule ? { module: appModule, menu } : null;
 }

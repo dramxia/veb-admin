@@ -1,9 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import type { MenuNode } from '@veb/api-contracts';
-import {
-  resolveFirstModuleLandingPath,
-  resolveModuleLandingPath,
-} from '@/components/layout/app-modules';
 
 type ApiEnvelope<T> = {
   code: number;
@@ -13,7 +8,7 @@ type ApiEnvelope<T> = {
 type NavigationResponse = {
   modules: Array<{
     code: string;
-    menus: MenuNode[];
+    landingPath: string;
   }>;
 };
 
@@ -114,9 +109,7 @@ export async function middleware(request: NextRequest) {
         ? payload.data.modules
         : [];
       const adminModule = modules.find((module) => module.code === 'admin');
-      const destination = adminModule
-        ? resolveModuleLandingPath(adminModule, pathname)
-        : undefined;
+      const destination = adminModule?.landingPath;
       response = destination
         ? redirectResponse(request, destination)
         : rewriteResponse(request, '/403', 403, requestHeaders);
@@ -138,7 +131,7 @@ export async function middleware(request: NextRequest) {
       const modules = Array.isArray(payload?.data?.modules)
         ? payload.data.modules
         : [];
-      const destination = resolveFirstModuleLandingPath(modules, pathname);
+      const destination = modules[0]?.landingPath;
       response = destination
         ? redirectResponse(request, destination)
         : NextResponse.next({ request: { headers: requestHeaders } });

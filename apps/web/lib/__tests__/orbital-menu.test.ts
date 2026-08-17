@@ -79,13 +79,6 @@ describe('orbital menu helpers', () => {
     });
   });
 
-  it('excludes BUTTON nodes from wheel entries and trails', () => {
-    const button = createMenu('edit', null, { type: 'BUTTON' });
-
-    expect(buildOrbitalMenuEntries([button])).toEqual([]);
-    expect(getOrbitalMenuTrail([button], button.id)).toEqual([]);
-  });
-
   it('finds the complete menu trail for restoring nested wheels', () => {
     const operation = createMenu('operation', '/admin/system/log/operation');
     const logs = createMenu('logs', '/admin/system/log', {

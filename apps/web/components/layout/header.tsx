@@ -42,10 +42,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrandMark } from '@/components/common/brand-mark';
 import type { AuthUser } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
-import {
-  resolveModuleLandingPath,
-  type WorkspaceAppModule,
-} from './app-modules';
+import type { WorkspaceAppModule } from './app-modules';
 import {
   flattenNavigableMenus,
   getCurrentMenu,
@@ -88,16 +85,11 @@ function ModuleSwitcher({
       >
         {modules.map((module) => {
           const current = module.id === activeModule?.id;
-          const href = resolveModuleLandingPath(
-            module,
-            module.code === 'admin' ? '/admin' : undefined,
-          );
-          if (!href) return null;
           return (
             <Button
               key={module.id}
               as={Link}
-              href={href}
+              href={module.landingPath}
               aria-current={current ? 'page' : undefined}
               variant="ghost"
               size="sm"
@@ -141,16 +133,11 @@ function ModuleSwitcher({
             zIndex="popover"
           >
             {modules.map((module) => {
-              const href = resolveModuleLandingPath(
-                module,
-                module.code === 'admin' ? '/admin' : undefined,
-              );
-              if (!href) return null;
               return (
                 <MenuItem
                   key={module.id}
                   as={Link}
-                  href={href}
+                  href={module.landingPath}
                   aria-current={
                     module.id === activeModule?.id ? 'page' : undefined
                   }

@@ -2,6 +2,22 @@ import { describe, expect, it, vi } from 'vitest';
 
 const menuRows = [
   {
+    id: 'legacy-admin',
+    moduleId: 'admin-module',
+    parentId: null,
+    name: 'Legacy admin landing',
+    description: null,
+    path: '/admin',
+    component: 'dashboard/page',
+    icon: null,
+    sort: -1,
+    type: 'PAGE',
+    permissionCode: 'dashboard:view',
+    visible: true,
+    status: 'ENABLED',
+    externalUrl: null,
+  },
+  {
     id: 'dashboard',
     moduleId: 'admin-module',
     parentId: null,
@@ -173,7 +189,11 @@ describe('menu aggregation', () => {
     ]);
     expect(result.modules).toHaveLength(1);
     expect(result.modules[0]?.landingPath).toBe('/dashboard');
-    expect(result.menus.map((item) => item.id)).toEqual(['dashboard', 'root']);
+    expect(result.menus.map((item) => item.id)).toEqual([
+      'legacy-admin',
+      'dashboard',
+      'root',
+    ]);
     expect(
       result.menus
         .find((item) => item.id === 'root')

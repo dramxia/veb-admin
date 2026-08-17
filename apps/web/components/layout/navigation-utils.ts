@@ -53,20 +53,6 @@ export function flattenNavigableMenus(menus: readonly MenuNode[]) {
   );
 }
 
-export function isButtonMenu(menu: { type: string }) {
-  return menu.type === 'BUTTON';
-}
-
-export function filterNavigableMenuTree(
-  menus: readonly MenuNode[],
-): MenuNode[] {
-  return menus.flatMap((menu) =>
-    isButtonMenu(menu)
-      ? []
-      : [{ ...menu, children: filterNavigableMenuTree(menu.children) }],
-  );
-}
-
 export function getCurrentMenu(pathname: string, menus: readonly MenuNode[]) {
   return flattenNavigableMenus(menus)
     .filter((menu) => isMenuActive(pathname, menu))

@@ -5,6 +5,7 @@ import {
 import { LogStatus } from '@/generated/client';
 import { fail, handleApiError } from '@/lib/api';
 import {
+  fetchBlogApi,
   injectArticleAuthor,
   needsPublishPermission,
   resolveBlogAuthorization,
@@ -28,28 +29,6 @@ const passthroughResponseHeaders = [
 
 function createUpstreamUrl(baseUrl: string, pathname: string, search: string) {
   return new URL(`${pathname}${search}`, `${baseUrl}/`);
-}
-
-async function fetchBlogApi(url: URL, init: RequestInit) {
-  const attempts = init.method === 'GET' ? 2 : 1;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        ...init,
-        cache: 'no-store',
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (![502, 503, 504].includes(response.status)) return response;
-      await response.body?.cancel();
-      lastError = new Error(`blog-api responded with ${response.status}`);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw new ServiceUnavailableError('博客服务暂时不可用', lastError);
 }
 
 export async function proxyBlogAdminRequest(request: Request, path: string[]) {

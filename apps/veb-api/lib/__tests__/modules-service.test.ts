@@ -75,7 +75,6 @@ describe('app module service', () => {
       icon: 'Boxes',
       sort: 10,
     });
-    mocks.findUnique.mockResolvedValue(null);
     mocks.create.mockResolvedValue({
       ...baseModule,
       description: data.description ?? null,
@@ -113,25 +112,11 @@ describe('app module service', () => {
     ).toBe(false);
   });
 
-  it('rejects a duplicate module code', async () => {
+  it('maps a module code uniqueness violation to a conflict', async () => {
     const data = appModuleCreateInputSchema.parse({
       code: 'example',
       name: '示例模块',
     });
-    mocks.findUnique.mockResolvedValue({ id: 'other-module' });
-
-    await expect(createAppModule(data)).rejects.toMatchObject({
-      message: '模块编码已存在',
-    });
-    expect(mocks.create).not.toHaveBeenCalled();
-  });
-
-  it('maps a concurrent code uniqueness violation to a conflict', async () => {
-    const data = appModuleCreateInputSchema.parse({
-      code: 'example',
-      name: '示例模块',
-    });
-    mocks.findUnique.mockResolvedValue(null);
     mocks.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('unique constraint', {
         code: 'P2002',

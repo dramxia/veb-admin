@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MenuDto, MenuNode } from '@veb/api-contracts';
 import {
-  filterNavigableMenuTree,
   flattenNavigableMenus,
   getCurrentMenu,
   getHref,
@@ -101,7 +100,7 @@ describe('workspace navigation', () => {
     expect(isMenuBranchActive('/admin/docs', menus[0]!)).toBe(false);
   });
 
-  it('excludes BUTTON nodes from flattened and tree navigation data', () => {
+  it('excludes BUTTON nodes from flattened navigation data', () => {
     const button = createMenu('edit', null, { type: 'BUTTON' });
     const page = createMenu('users', '/admin/system/user', {
       children: [button],
@@ -114,8 +113,5 @@ describe('workspace navigation', () => {
     expect(flattenNavigableMenus([directory]).map(({ id }) => id)).toEqual([
       'users',
     ]);
-    expect(
-      filterNavigableMenuTree([directory])[0]?.children[0]?.children,
-    ).toEqual([]);
   });
 });

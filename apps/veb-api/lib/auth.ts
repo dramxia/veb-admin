@@ -2,10 +2,7 @@ import bcrypt from 'bcryptjs';
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { UserStatus } from '@/generated/client';
-import {
-  getUserMenuAndPermissions,
-  type MenuNode,
-} from '@/src/modules/navigation/service';
+import { getUserPermissionSnapshot } from '@/src/modules/navigation/service';
 import { prisma } from './prisma';
 import { assertRateLimit, getClientIp } from './rate-limit';
 
@@ -16,14 +13,8 @@ type AuthTokenPayload = {
   avatar?: string | null;
   roles?: string[];
   permissionCodes?: string[];
-  menuPaths?: string[];
   disabled?: boolean;
 };
-
-function normalizeMenuPath(path: string) {
-  if (!path || path === '/') return '/';
-  return path.replace(/\/+$/, '') || '/';
-}
 
 async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
   const user = await prisma.user.findUnique({
@@ -42,36 +33,19 @@ async function loadAuthTokenPayload(userId: string): Promise<AuthTokenPayload> {
       userId,
       roles: [],
       permissionCodes: [],
-      menuPaths: [],
       disabled: true,
     };
   }
 
-  const navigation = await getUserMenuAndPermissions(userId);
-  const flattenPaths = (menus: MenuNode[]): string[] =>
-    menus.flatMap((menu) => [
-      ...(menu.type === 'PAGE' && menu.path
-        ? [normalizeMenuPath(menu.path)]
-        : []),
-      ...flattenPaths(menu.children),
-    ]);
-  const menuPaths = [
-    ...new Set(
-      navigation.modules.flatMap((module) => [
-        normalizeMenuPath(module.landingPath),
-        ...flattenPaths(module.menus),
-      ]),
-    ),
-  ];
+  const snapshot = await getUserPermissionSnapshot(userId);
 
   return {
     userId: user.id,
     username: user.username,
     nickname: user.nickname,
     avatar: user.avatar,
-    roles: navigation.roleCodes,
-    permissionCodes: navigation.permissionCodes,
-    menuPaths,
+    roles: snapshot.roleCodes,
+    permissionCodes: snapshot.permissionCodes,
     disabled: false,
   };
 }
@@ -135,7 +109,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.avatar = payload.avatar;
         token.roles = payload.roles ?? [];
         token.permissionCodes = payload.permissionCodes ?? [];
-        token.menuPaths = payload.menuPaths ?? [];
         token.disabled = payload.disabled ?? false;
       }
       return token;
@@ -148,7 +121,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.avatar = null;
         session.user.roles = [];
         session.user.permissionCodes = [];
-        session.user.menuPaths = [];
         return session;
       }
 
@@ -160,7 +132,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.roles = (token.roles as string[] | undefined) ?? [];
       session.user.permissionCodes =
         (token.permissionCodes as string[] | undefined) ?? [];
-      session.user.menuPaths = (token.menuPaths as string[] | undefined) ?? [];
       return session;
     },
   },

@@ -8,6 +8,7 @@ import {
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { ServiceAuthError, verifyServiceRequest } from '@veb/service-auth';
+import { Prisma } from '@/generated/prisma';
 import { logApiAccess } from './access-log';
 import { AppError, AuthError, ParamError } from './errors';
 
@@ -30,6 +31,38 @@ function requestIdFor(request: Request) {
   return request.headers.get('x-request-id')?.trim() || randomUUID();
 }
 
+type DatabaseConnectionError = {
+  name?: string;
+  code?: string;
+  errorCode?: string;
+  message?: string;
+};
+
+const databaseConnectionCodes = new Set([
+  'P1000',
+  'P1001',
+  'P1002',
+  'P1003',
+  'P1017',
+]);
+
+const databaseConnectionMessage =
+  /can't reach database server|server has closed the connection|connection refused|error connecting to the database/i;
+
+function isDatabaseConnectionError(
+  error: unknown,
+): error is DatabaseConnectionError {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as DatabaseConnectionError;
+  return (
+    error instanceof Prisma.PrismaClientInitializationError ||
+    candidate.name === 'PrismaClientInitializationError' ||
+    databaseConnectionCodes.has(candidate.errorCode ?? candidate.code ?? '') ||
+    (candidate.name?.startsWith('PrismaClient') === true &&
+      databaseConnectionMessage.test(candidate.message ?? ''))
+  );
+}
+
 function errorResponse(error: unknown, requestId: string) {
   if (error instanceof ZodError) {
     return fail(
@@ -49,6 +82,18 @@ function errorResponse(error: unknown, requestId: string) {
       return fail(ERROR_CODES.FORBIDDEN, '服务令牌权限不足', 403);
     }
     return fail(ERROR_CODES.UNAUTHORIZED, '服务身份验证失败', 401);
+  }
+  if (isDatabaseConnectionError(error)) {
+    console.error('[blog-api:database-unavailable]', {
+      requestId,
+      errorCode: error.errorCode ?? error.code ?? null,
+      message: error.message ?? null,
+    });
+    return fail(
+      ERROR_CODES.SERVICE_UNAVAILABLE,
+      '博客数据库连接失败。请确认 blog-postgres 已启动；本地开发还需启动 Docker Desktop。',
+      503,
+    );
   }
   console.error('[blog-api:error]', {
     requestId,

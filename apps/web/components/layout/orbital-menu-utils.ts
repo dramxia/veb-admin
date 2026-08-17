@@ -1,5 +1,5 @@
 import type { MenuNode } from '@veb/api-contracts';
-import { getHref, isButtonMenu, isExternalHref } from './navigation-utils';
+import { getHref, isExternalHref } from './navigation-utils';
 
 export type Point = { x: number; y: number };
 
@@ -143,12 +143,11 @@ function stableHash(value: string) {
 }
 
 export function buildOrbitalMenuEntries(menus: MenuNode[]): OrbitalMenuEntry[] {
-  const navigableMenus = menus.filter((menu) => !isButtonMenu(menu));
   const assignedStyles = new Map<string, OrbitalMenuStyle>();
   const claimedStyleIndexes = new Set<number>();
 
   // 排序后再做开放寻址，既不受菜单展示顺序影响，也避免同一转盘内样式碰撞。
-  [...new Set(navigableMenus.map((menu) => menu.id))]
+  [...new Set(menus.map((menu) => menu.id))]
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
     .forEach((menuId) => {
       const preferredIndex = stableHash(menuId) % ORBITAL_STYLES.length;
@@ -169,7 +168,7 @@ export function buildOrbitalMenuEntries(menus: MenuNode[]): OrbitalMenuEntry[] {
       assignedStyles.set(menuId, ORBITAL_STYLES[styleIndex]!);
     });
 
-  return navigableMenus.map((menu) => {
+  return menus.map((menu) => {
     const href = getHref(menu);
     return {
       menu,
@@ -186,7 +185,6 @@ export function getOrbitalMenuTrail(
   targetId: string,
 ): MenuNode[] {
   for (const menu of menus) {
-    if (isButtonMenu(menu)) continue;
     if (menu.id === targetId) return [menu];
 
     const childTrail = getOrbitalMenuTrail(menu.children, targetId);

@@ -1,3 +1,5 @@
+import { ServiceUnavailableError } from './errors';
+
 export type BlogActor = {
   id: string;
   username: string;
@@ -8,6 +10,32 @@ export type BlogAuthorization = {
   action: string;
   permission: string;
 };
+
+export async function fetchBlogApi(url: URL, init: RequestInit) {
+  const attempts = init.method === 'GET' ? 2 : 1;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        ...init,
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (![502, 503, 504].includes(response.status)) return response;
+      if (attempt === attempts - 1) return response;
+      await response.body?.cancel();
+      lastError = new Error(`blog-api responded with ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new ServiceUnavailableError(
+    '无法连接 Blog API。请确认 blog-api 服务已启动。',
+    lastError,
+  );
+}
 
 const articleMethods = {
   GET: { action: 'article.view', permission: 'content:article:view' },

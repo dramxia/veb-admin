@@ -11,6 +11,7 @@ import {
   paginationQuerySchema,
   publicArticleDetailSchema,
   likeListQuerySchema,
+  legacyUserNavigationSchema,
   menuCreateInputSchema,
   menuManagementListSchema,
   menuUpdateInputSchema,
@@ -21,6 +22,7 @@ import {
   roleListQuerySchema,
   roleUserAssignmentDetailDtoSchema,
   userCreateInputSchema,
+  userNavigationSchema,
   vebUserSchema,
 } from './index';
 
@@ -91,6 +93,52 @@ describe('pagination', () => {
 });
 
 describe('service DTO boundaries', () => {
+  it('keeps canonical and legacy navigation response shapes separate', () => {
+    const menu = {
+      id: 'menu-dashboard',
+      moduleId: 'module-dashboard',
+      parentId: null,
+      name: '仪表盘',
+      description: null,
+      path: '/dashboard',
+      component: 'dashboard/page',
+      icon: null,
+      sort: 0,
+      type: 'PAGE' as const,
+      permissionCode: 'dashboard:view',
+      visible: true,
+      status: 'ENABLED' as const,
+      externalUrl: null,
+      children: [],
+    };
+    const navigation = {
+      modules: [
+        {
+          id: 'module-dashboard',
+          code: 'dashboard',
+          name: '仪表盘',
+          description: null,
+          icon: null,
+          sort: 0,
+          status: 'ENABLED' as const,
+          isSystem: true,
+          landingPath: '/dashboard',
+          menus: [menu],
+        },
+      ],
+      permissionCodes: ['dashboard:view'],
+      roleCodes: ['user'],
+    };
+
+    expect(userNavigationSchema.parse(navigation)).toEqual(navigation);
+    expect(
+      userNavigationSchema.safeParse({ ...navigation, menus: [menu] }).success,
+    ).toBe(false);
+    expect(
+      legacyUserNavigationSchema.parse({ ...navigation, menus: [menu] }),
+    ).toEqual({ ...navigation, menus: [menu] });
+  });
+
   it('does not accept a password hash in a VEB user DTO', () => {
     const result = vebUserSchema.safeParse({
       id: 'user-1',

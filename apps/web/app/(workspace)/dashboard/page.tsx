@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { Boxes, KeyRound, ListTree, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
-import type { DashboardStats, MenuNode } from '@veb/api-contracts';
+import type { DashboardStats } from '@veb/api-contracts';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { MetricIsland } from '@/components/common/metric-island';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
@@ -60,7 +60,7 @@ async function DashboardContent() {
   ];
   const total = values.reduce((sum, value) => sum + value, 0);
   const menuByPath = new Map(
-    flattenNavigableMenus(adminMenus as MenuNode[]).flatMap((menu) =>
+    flattenNavigableMenus(adminMenus).flatMap((menu) =>
       menu.type === 'PAGE' && menu.path ? [[menu.path, menu] as const] : [],
     ),
   );

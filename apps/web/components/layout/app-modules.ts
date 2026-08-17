@@ -1,66 +1,11 @@
 import type { MenuNode, UserNavigation } from '@veb/api-contracts';
 
 export type WorkspaceAppModule = UserNavigation['modules'][number];
-export type AppModuleRouteDefinition = Pick<WorkspaceAppModule, 'menus'>;
+type AppModuleRouteDefinition = Pick<WorkspaceAppModule, 'menus'>;
 
 export function normalizePathname(pathname: string) {
   if (!pathname || pathname === '/') return '/';
   return pathname.replace(/\/+$/, '') || '/';
-}
-
-/**
- * Finds the first routable PAGE in the server-sorted navigation tree. The
- * legacy /admin landing route is intentionally excluded from this fallback so
- * stale navigation data cannot redirect /admin back to itself forever.
- */
-export function findFirstPagePath(
-  menus: readonly MenuNode[],
-  excludedPath?: string,
-): string | undefined {
-  const excluded = excludedPath ? normalizePathname(excludedPath) : undefined;
-
-  const visit = (items: readonly MenuNode[]): string | undefined => {
-    for (const menu of items) {
-      if (menu.type === 'PAGE' && menu.path) {
-        const path = normalizePathname(menu.path);
-        if (path !== excluded) return path;
-      }
-
-      const childPath = visit(menu.children);
-      if (childPath) return childPath;
-    }
-
-    return undefined;
-  };
-
-  return visit(menus);
-}
-
-/**
- * Resolves a module landing route from its current authorized menu snapshot.
- * The persisted landingPath is deliberately not used for redirects: a bad
- * value can only be repaired by a deployment, while a menu snapshot always
- * gives us a route that the current user can navigate to.
- */
-export function resolveModuleLandingPath(
-  appModule: { menus: readonly MenuNode[] },
-  currentPath?: string,
-) {
-  return findFirstPagePath(
-    Array.isArray(appModule.menus) ? appModule.menus : [],
-    currentPath,
-  );
-}
-
-export function resolveFirstModuleLandingPath<
-  T extends { menus: readonly MenuNode[] },
->(modules: readonly T[], currentPath?: string) {
-  for (const appModule of modules) {
-    const landingPath = resolveModuleLandingPath(appModule, currentPath);
-    if (landingPath) return landingPath;
-  }
-
-  return undefined;
 }
 
 function isPagePathMatch(pathname: string, menu: MenuNode) {
@@ -82,8 +27,6 @@ function getLongestMatchingPagePath(
   let match: string | undefined;
 
   for (const menu of menus) {
-    if ((menu.type as string) === 'BUTTON') continue;
-
     if (isPagePathMatch(pathname, menu)) {
       const pagePath = normalizePathname(menu.path!);
       if (!match || pagePath.length > match.length) match = pagePath;
@@ -96,13 +39,6 @@ function getLongestMatchingPagePath(
   }
 
   return match;
-}
-
-export function isModulePath(
-  pathname: string,
-  module: AppModuleRouteDefinition,
-) {
-  return Boolean(getLongestMatchingPagePath(pathname, module.menus));
 }
 
 /**
@@ -137,13 +73,4 @@ export function resolveAppModule<
   return moduleId
     ? modules.find((module) => module.id === moduleId)
     : undefined;
-}
-
-export function sortWorkspaceModules(modules: readonly WorkspaceAppModule[]) {
-  return [...modules].sort(
-    (left, right) =>
-      left.sort - right.sort ||
-      left.name.localeCompare(right.name, 'zh-CN') ||
-      left.id.localeCompare(right.id),
-  );
 }

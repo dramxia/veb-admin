@@ -352,27 +352,30 @@ export const menuNodeSchema: z.ZodType<MenuNode> = menuNodeBaseSchema.extend({
 export const navigationItemSchema = menuNodeSchema;
 export const navigationSchema = z.array(menuNodeSchema);
 
+export const appModuleNavigationSchema = appModuleBaseSchema
+  .pick({
+    id: true,
+    code: true,
+    name: true,
+    description: true,
+    icon: true,
+    sort: true,
+    status: true,
+    isSystem: true,
+  })
+  .extend({ landingPath: pagePathSchema, menus: navigationSchema })
+  .strict();
+
 export const userNavigationSchema = z
   .object({
-    menus: navigationSchema,
-    modules: z.array(
-      appModuleBaseSchema
-        .pick({
-          id: true,
-          code: true,
-          name: true,
-          description: true,
-          icon: true,
-          sort: true,
-          status: true,
-          isSystem: true,
-        })
-        .extend({ landingPath: pagePathSchema, menus: navigationSchema })
-        .strict(),
-    ),
+    modules: z.array(appModuleNavigationSchema),
     permissionCodes: z.array(z.string()),
     roleCodes: z.array(z.string()),
   })
+  .strict();
+
+export const legacyUserNavigationSchema = userNavigationSchema
+  .extend({ menus: navigationSchema })
   .strict();
 
 export const pageAccessQuerySchema = z
@@ -676,6 +679,7 @@ export type RoleUserAssignmentDetailDto = z.infer<
 export type FileDto = z.infer<typeof fileDtoSchema>;
 export type OperationLogDto = z.infer<typeof operationLogDtoSchema>;
 export type UserNavigation = z.infer<typeof userNavigationSchema>;
+export type LegacyUserNavigation = z.infer<typeof legacyUserNavigationSchema>;
 export type AppModuleNavigation = UserNavigation['modules'][number];
 export type PageAccessDto = z.infer<typeof pageAccessDtoSchema>;
 export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
