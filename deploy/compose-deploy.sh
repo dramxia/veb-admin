@@ -4,7 +4,7 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$script_dir/.."
 
-compose_wait_timeout=${COMPOSE_WAIT_TIMEOUT:-180}
+compose_wait_timeout=${COMPOSE_WAIT_TIMEOUT:-300}
 image_prune_until=${DOCKER_IMAGE_PRUNE_UNTIL:-24h}
 build_cache_max_size=${DOCKER_BUILD_CACHE_MAX_SIZE:-8GB}
 build_cache_max_age=${DOCKER_BUILD_CACHE_MAX_AGE:-168h}

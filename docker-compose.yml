@@ -166,23 +166,46 @@ services:
       dockerfile: apps/web/Dockerfile
       target: runner
     restart: unless-stopped
+    depends_on:
+      veb-api:
+        condition: service_healthy
     environment:
       VEB_API_INTERNAL_URL: ${VEB_API_INTERNAL_URL:-http://veb-api:1067}
       BLOG_API_INTERNAL_URL: ${BLOG_API_INTERNAL_URL:-http://blog-api:1068}
       WEB_TRUST_PROXY_HEADERS: 'true'
     expose:
       - '1066'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:1066/api/health/ready >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   web-public:
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
       web:
-        condition: service_started
+        condition: service_healthy
     ports:
       - '${WEB_PORT:-1066}:1066'
     volumes:
       - ./deploy/nginx/web-public.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:1066/api/health/ready >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
 volumes:
   veb-postgres-data:
