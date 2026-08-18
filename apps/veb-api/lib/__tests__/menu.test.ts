@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 const menuRows = [
   {
-    id: 'legacy-admin',
+    id: 'admin-root',
     moduleId: 'admin-module',
     parentId: null,
-    name: 'Legacy admin landing',
+    name: 'Admin module root',
     description: null,
     path: '/admin',
     component: 'dashboard/page',
@@ -131,11 +131,6 @@ const menuRows = [
   },
 ];
 
-vi.mock('../permission-cache', () => ({
-  getCachedPermissions: vi.fn(() => null),
-  setCachedPermissions: vi.fn((_userId, snapshot) => snapshot),
-}));
-
 vi.mock('../prisma', () => ({
   prisma: {
     user: {
@@ -182,20 +177,20 @@ const menu = await import('../menu');
 
 describe('menu aggregation', () => {
   it('prunes inaccessible pages and empty dirs and resolves a module landing page', async () => {
-    const result = await menu.getUserMenuAndPermissions('u1');
+    const result = await menu.getUserNavigation('u1');
     expect(result.permissionCodes).toEqual([
       'dashboard:view',
       'system:user:view',
     ]);
     expect(result.modules).toHaveLength(1);
     expect(result.modules[0]?.landingPath).toBe('/dashboard');
-    expect(result.menus.map((item) => item.id)).toEqual([
-      'legacy-admin',
+    expect(result.modules[0]?.menus.map((item) => item.id)).toEqual([
+      'admin-root',
       'dashboard',
       'root',
     ]);
     expect(
-      result.menus
+      result.modules[0]?.menus
         .find((item) => item.id === 'root')
         ?.children.map((item) => item.id),
     ).toEqual(['user']);

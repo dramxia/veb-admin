@@ -11,7 +11,7 @@ export default async function AdminLayout({
   children: ReactNode;
 }) {
   const pathname = normalizePathname(headers().get('x-veb-pathname') ?? '');
-  if (pathname === '/admin' || pathname === '/admin/profile') return children;
+  if (pathname === '/admin') return children;
 
   return <AdminShell>{children}</AdminShell>;
 }

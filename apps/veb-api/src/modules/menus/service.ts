@@ -1,7 +1,6 @@
 import type { z } from 'zod';
 import { Prisma, type Menu, type MenuType } from '@/generated/client';
 import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
-import { invalidatePermissionCache } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { withSerializableRetry } from '@/lib/prisma-transaction';
 import { menuSchema, menuUpdateSchema } from '@/lib/validation';
@@ -369,7 +368,6 @@ export async function createMenu(data: MenuCreateData) {
       await validateMenuState(tx, state);
       return tx.menu.create({ data: createData });
     });
-    invalidatePermissionCache();
     return menu;
   } catch (error) {
     rethrowMenuWriteError(error);
@@ -425,7 +423,6 @@ export async function updateMenu(id: string, data: MenuUpdateData) {
           };
       return tx.menu.update({ where: { id }, data: safeData });
     });
-    invalidatePermissionCache();
     return menu;
   } catch (error) {
     rethrowMenuWriteError(error);
@@ -446,7 +443,6 @@ export async function deleteMenu(id: string) {
       await tx.menu.delete({ where: { id } });
       return { id };
     });
-    invalidatePermissionCache();
     return result;
   } catch (error) {
     rethrowMenuWriteError(error);

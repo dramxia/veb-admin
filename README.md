@@ -17,12 +17,11 @@ apps/veb-api
   -> signed internal request -> apps/blog-api
 ```
 
-- `apps/web`：后台 UI 与兼容 `/articles` 页面，只通过 HTTP 获取数据。
+- `apps/web`：后台 UI 与公开 `/articles` 页面，只通过 HTTP 获取数据。
 - `apps/veb-api`：Auth.js、用户、RBAC、菜单、文件、操作日志，以及博客管理 BFF。
 - `apps/blog-api`：文章、标签、点赞、公开博客 API 和私网管理 API。
 - `packages/api-contracts`：Zod 请求、响应、分页和错误码契约。
 - `packages/service-auth`：请求绑定的 RS256 服务令牌与 JWKS。
-- `tools/migrate-blog-data`：从旧单库拆分博客数据的迁移工具。
 
 ## 环境要求
 
@@ -96,28 +95,7 @@ pnpm compose:deploy
 - VEB Blog management BFF：`/api/v1/blog/**`。
 - Blog public API：`/api/v1/public/**`。
 - Blog internal API：`/api/internal/v1/**`，仅接受 VEB API 签发的请求绑定令牌。
-- 原 `/api/system`、`/api/profile`、`/api/files`、`/api/menu`、`/api/admin`、`/api/public` 在兼容期继续可用。公开兼容路径只保证路径与 HTTP method，响应改用安全公开 DTO，不再暴露数据库 ID、作者账号或草稿状态。
 
 所有业务响应使用 `{ code, data, message }`，链路请求 ID 位于 `X-Request-Id`。
-
-## 数据拆分
-
-旧单库迁移前必须停止内容写入并完成备份：
-
-```bash
-SOURCE_DATABASE_URL=postgresql://... \
-BLOG_DATABASE_URL=postgresql://... \
-pnpm db:migrate:blog-data
-
-SOURCE_DATABASE_URL=postgresql://... \
-BLOG_DATABASE_URL=postgresql://... \
-pnpm db:migrate:blog-data:apply
-
-SOURCE_DATABASE_URL=postgresql://... \
-BLOG_DATABASE_URL=postgresql://... \
-pnpm db:verify:blog-data
-```
-
-首次切换时，`BLOG_VISITOR_HASH_SECRET` 必须使用旧 `NEXTAUTH_SECRET` 的值以维持点赞识别；VEB 的 `AUTH_SECRET` 应同时轮换。
 
 更多细节见 `docs/architecture.md` 和 `docs/deployment.md`。

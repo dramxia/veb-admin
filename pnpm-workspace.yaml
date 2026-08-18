@@ -2,7 +2,6 @@ packages:
   - 'apps/*'
   - 'deploy/migrate'
   - 'packages/*'
-  - 'tools/*'
 
 onlyBuiltDependencies:
   - '@prisma/client'

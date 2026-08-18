@@ -7,14 +7,7 @@ import { getMenuPageLoader } from '@/app/_modules/admin-page-manifest';
 import { normalizePathname } from '@/components/layout/app-modules';
 import { getWorkspacePage } from '@/lib/workspace-navigation';
 
-const GLOBAL_WORKSPACE_PATHS = new Set([
-  '/',
-  '/profile',
-  '/admin',
-  '/admin/profile',
-  // The middleware performs the permanent redirect to the unified menu page.
-  '/admin/system/permission',
-]);
+const GLOBAL_WORKSPACE_PATHS = new Set(['/', '/profile', '/admin']);
 
 export default async function WorkspaceTemplate({
   children,

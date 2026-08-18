@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import type { UserListQuery as UserListContractQuery } from '@veb/api-contracts';
 import { Prisma } from '@/generated/client';
 import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
-import { invalidatePermissionCache } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { userCreateSchema, userUpdateSchema } from '@/lib/validation';
 
@@ -101,7 +100,6 @@ export async function updateUser(id: string, data: UserUpdateData) {
       data,
       select: userSelect,
     });
-    invalidatePermissionCache(id);
     return user;
   } catch (error) {
     if (
@@ -122,7 +120,6 @@ export async function updateUser(id: string, data: UserUpdateData) {
 
 export async function deleteUser(id: string) {
   await prisma.user.delete({ where: { id } });
-  invalidatePermissionCache(id);
   return { id };
 }
 
@@ -146,7 +143,6 @@ export async function assignUserRoles(id: string, requestedRoleIds: string[]) {
       });
     }
   });
-  invalidatePermissionCache(id);
   return { id, roleIds };
 }
 
@@ -159,6 +155,5 @@ export async function resetUserPassword(id: string, password: string) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.user.update({ where: { id }, data: { passwordHash } });
-  invalidatePermissionCache(id);
   return { id };
 }

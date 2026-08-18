@@ -20,11 +20,11 @@ function locationPattern(marker: string) {
 
 describe('Blog public gateway contract', () => {
   it('allows only public and health paths while internal routes fall through', () => {
-    const publicPath = locationPattern('^/(?:api/v1/public|api/public)');
+    const publicPath = locationPattern('^/api/v1/public');
     const healthPath = locationPattern('^/api/health/');
 
     expect(publicPath.test('/api/v1/public/articles')).toBe(true);
-    expect(publicPath.test('/api/public/tags')).toBe(true);
+    expect(publicPath.test('/api/public/tags')).toBe(false);
     expect(healthPath.test('/api/health/ready')).toBe(true);
     expect(healthPath.test('/api/health/live')).toBe(true);
 

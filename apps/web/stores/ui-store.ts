@@ -12,18 +12,7 @@ type UiState = {
   closeMobileSidebar: () => void;
 };
 
-type LegacyUiState = Partial<UiState> & { sidebarCollapsed?: boolean };
 type PersistedUiState = Pick<UiState, 'desktopSidebarCollapsed'>;
-
-export function migrateUiState(persistedState: unknown, version: number) {
-  const state = (persistedState ?? {}) as LegacyUiState;
-  if (version < 2 && typeof state.sidebarCollapsed === 'boolean') {
-    return { desktopSidebarCollapsed: state.sidebarCollapsed };
-  }
-  return {
-    desktopSidebarCollapsed: Boolean(state.desktopSidebarCollapsed),
-  };
-}
 
 export function partializeUiState(state: UiState): PersistedUiState {
   return {
@@ -47,9 +36,7 @@ export const useUiStore = create<UiState>()(
     }),
     {
       name: 'veb-ui',
-      version: 2,
       skipHydration: true,
-      migrate: migrateUiState,
       partialize: partializeUiState,
     },
   ),

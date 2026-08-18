@@ -24,10 +24,6 @@ export function fail(code: ApiErrorCode, message: string, status = 400) {
   );
 }
 
-export function gone(message = '接口已废弃') {
-  return fail(ERROR_CODES.NOT_FOUND, message, 410);
-}
-
 export function handleApiError(error: unknown, requestId?: string) {
   let response: Response;
   if (error instanceof ZodError) {

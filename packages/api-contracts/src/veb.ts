@@ -42,8 +42,6 @@ const reservedWorkspacePaths = new Set([
   '/',
   '/403',
   '/404',
-  '/admin/profile',
-  '/admin/system/permission',
   '/login',
   '/profile',
 ]);
@@ -374,10 +372,6 @@ export const userNavigationSchema = z
   })
   .strict();
 
-export const legacyUserNavigationSchema = userNavigationSchema
-  .extend({ menus: navigationSchema })
-  .strict();
-
 export const pageAccessQuerySchema = z
   .object({ path: pagePathSchema })
   .strict();
@@ -679,7 +673,6 @@ export type RoleUserAssignmentDetailDto = z.infer<
 export type FileDto = z.infer<typeof fileDtoSchema>;
 export type OperationLogDto = z.infer<typeof operationLogDtoSchema>;
 export type UserNavigation = z.infer<typeof userNavigationSchema>;
-export type LegacyUserNavigation = z.infer<typeof legacyUserNavigationSchema>;
 export type AppModuleNavigation = UserNavigation['modules'][number];
 export type PageAccessDto = z.infer<typeof pageAccessDtoSchema>;
 export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
@@ -689,19 +682,3 @@ export type MenuListQuery = z.infer<typeof menuListQuerySchema>;
 export type FileListQuery = z.infer<typeof fileListQuerySchema>;
 export type FileReadQuery = z.infer<typeof fileReadQuerySchema>;
 export type OperationLogQuery = z.infer<typeof operationLogQuerySchema>;
-
-// Compatibility aliases for the existing API handlers during the transition release.
-export const userCreateSchema = userCreateInputSchema;
-export const userUpdateSchema = userUpdateInputSchema;
-export const resetPasswordSchema = resetPasswordInputSchema;
-export const assignRolesSchema = assignRolesInputSchema;
-export const roleSchema = roleCreateInputSchema;
-export const roleUpdateSchema = roleUpdateInputSchema;
-export const assignAccessSchema = roleAccessUpdateInputSchema;
-export const assignUsersSchema = assignUsersInputSchema;
-export const appModuleSchema = appModuleCreateInputSchema;
-export const appModuleUpdateSchema = appModuleUpdateInputSchema;
-export const menuSchema = menuCreateInputSchema;
-export const menuUpdateSchema = menuUpdateInputSchema;
-export const profileSchema = profileUpdateInputSchema;
-export const changePasswordSchema = changePasswordInputSchema;

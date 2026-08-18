@@ -26,7 +26,6 @@ const mocks = vi.hoisted(() => {
     menuFindMany,
     userFindMany,
     transaction: vi.fn(),
-    invalidatePermissionCache: vi.fn(),
   };
 });
 
@@ -40,15 +39,9 @@ vi.mock('../prisma', () => ({
   },
 }));
 
-vi.mock('../permission-cache', () => ({
-  invalidatePermissionCache: mocks.invalidatePermissionCache,
-}));
-
 const {
   assignRoleAccess,
   assignRoleAccessWithAudit,
-  assignRoleModules,
-  assignRolePermissions,
   getRole,
   getRoleAccessDetail,
   getRoleUserAssignmentDetail,
@@ -143,7 +136,6 @@ describe('role access authorization service', () => {
     expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
     });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('rejects a menu from another module without writing partial access', async () => {
@@ -160,7 +152,6 @@ describe('role access authorization service', () => {
     ).rejects.toMatchObject({ message: '菜单或按钮不属于指定模块' });
     expect(mocks.tx.roleMenu.deleteMany).not.toHaveBeenCalled();
     expect(mocks.tx.roleModule.deleteMany).not.toHaveBeenCalled();
-    expect(mocks.invalidatePermissionCache).not.toHaveBeenCalled();
   });
 
   it('rejects assigning a directory directly', async () => {
@@ -251,7 +242,6 @@ describe('role access authorization service', () => {
     });
     expect(mocks.tx.roleMenu.createMany).not.toHaveBeenCalled();
     expect(mocks.tx.roleModule.createMany).not.toHaveBeenCalled();
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('keeps superadmin access immutable', async () => {
@@ -493,15 +483,5 @@ describe('role access authorization service', () => {
       },
       orderBy: [{ username: 'asc' }, { id: 'asc' }],
     });
-  });
-
-  it('keeps both split assignment methods retired with 410 Gone', async () => {
-    await expect(
-      assignRoleModules('role-1', ['module-a']),
-    ).rejects.toMatchObject({ status: 410 });
-    await expect(
-      assignRolePermissions('role-1', ['permission-a']),
-    ).rejects.toMatchObject({ status: 410 });
-    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });

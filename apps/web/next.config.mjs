@@ -14,15 +14,6 @@ const nextConfig = {
     outputFileTracingRoot: path.join(appDirectory, '../..'),
   },
   transpilePackages: ['@veb/api-contracts'],
-  async redirects() {
-    return [
-      {
-        source: '/admin/profile',
-        destination: '/profile',
-        permanent: true,
-      },
-    ];
-  },
   webpack(config) {
     if (xrayPlugin) {
       config.plugins = config.plugins || [];

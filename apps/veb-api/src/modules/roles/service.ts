@@ -4,14 +4,8 @@ import type {
   RoleListQuery as RoleListContractQuery,
 } from '@veb/api-contracts';
 import { Prisma } from '@/generated/client';
-import {
-  ConflictError,
-  GoneError,
-  NotFoundError,
-  ParamError,
-} from '@/lib/errors';
+import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
 import { createMenuHierarchy } from '@/lib/menu-hierarchy';
-import { invalidatePermissionCache } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { withSerializableRetry } from '@/lib/prisma-transaction';
 import { roleSchema, roleUpdateSchema } from '@/lib/validation';
@@ -232,7 +226,6 @@ export async function updateRole(id: string, data: RoleUpdateData) {
   if (!old) throw new NotFoundError('角色不存在');
   const safeData = old.isSystem ? { ...data, code: undefined } : data;
   const role = await prisma.role.update({ where: { id }, data: safeData });
-  invalidatePermissionCache();
   return role;
 }
 
@@ -247,7 +240,6 @@ export async function deleteRole(id: string) {
   if (role._count.users > 0)
     throw new ConflictError('角色已关联用户，不能删除');
   await prisma.role.delete({ where: { id } });
-  invalidatePermissionCache();
   return { id };
 }
 
@@ -403,7 +395,6 @@ async function replaceRoleAccess(
     return previousModules;
   });
 
-  invalidatePermissionCache();
   return {
     result: { id, modules },
     audit: { before, after: modules },
@@ -422,26 +413,6 @@ export async function assignRoleAccessWithAudit(
   requestedModules: RoleAccessUpdateInput['modules'],
 ) {
   return replaceRoleAccess(id, requestedModules);
-}
-
-/** @deprecated The split role assignment endpoints are retired. */
-export async function assignRolePermissions(
-  id: string,
-  permissionIds: string[],
-): Promise<never> {
-  void id;
-  void permissionIds;
-  throw new GoneError('角色权限分配接口已合并到访问权限接口');
-}
-
-/** @deprecated The split role assignment endpoints are retired. */
-export async function assignRoleModules(
-  id: string,
-  moduleIds: string[],
-): Promise<never> {
-  void id;
-  void moduleIds;
-  throw new GoneError('角色模块分配接口已合并到访问权限接口');
 }
 
 export async function assignRoleUsers(id: string, requestedUserIds: string[]) {
@@ -464,6 +435,5 @@ export async function assignRoleUsers(id: string, requestedUserIds: string[]) {
       });
     }
   });
-  invalidatePermissionCache();
   return { id, userIds };
 }

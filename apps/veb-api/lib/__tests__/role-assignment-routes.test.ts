@@ -26,9 +26,9 @@ vi.mock('../../src/modules/roles/service', () => ({
 }));
 
 const { GET: getAccess } =
-  await import('../../app/api/system/roles/[id]/access/route');
+  await import('../../app/api/v1/system/roles/[id]/access/route');
 const { GET: getUsers } =
-  await import('../../app/api/system/roles/[id]/users/route');
+  await import('../../app/api/v1/system/roles/[id]/users/route');
 
 describe('role assignment detail route permissions', () => {
   beforeEach(() => {

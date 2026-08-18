@@ -31,7 +31,7 @@ export function WorkspaceShell({
   const pathname = usePathname();
   const activeModule = useMemo(
     () =>
-      pathname === '/profile' || pathname === '/admin/profile'
+      pathname === '/profile'
         ? undefined
         : resolveAppModule(pathname, modules, activeModuleId),
     [activeModuleId, modules, pathname],

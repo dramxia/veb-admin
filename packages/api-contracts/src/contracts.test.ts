@@ -11,7 +11,6 @@ import {
   paginationQuerySchema,
   publicArticleDetailSchema,
   likeListQuerySchema,
-  legacyUserNavigationSchema,
   menuCreateInputSchema,
   menuManagementListSchema,
   menuUpdateInputSchema,
@@ -93,7 +92,7 @@ describe('pagination', () => {
 });
 
 describe('service DTO boundaries', () => {
-  it('keeps canonical and legacy navigation response shapes separate', () => {
+  it('keeps the canonical navigation response shape', () => {
     const menu = {
       id: 'menu-dashboard',
       moduleId: 'module-dashboard',
@@ -134,9 +133,6 @@ describe('service DTO boundaries', () => {
     expect(
       userNavigationSchema.safeParse({ ...navigation, menus: [menu] }).success,
     ).toBe(false);
-    expect(
-      legacyUserNavigationSchema.parse({ ...navigation, menus: [menu] }),
-    ).toEqual({ ...navigation, menus: [menu] });
   });
 
   it('does not accept a password hash in a VEB user DTO', () => {
@@ -364,15 +360,6 @@ describe('menu inputs', () => {
         path,
       ).toBe(false);
     }
-  });
-
-  it('rejects the permanently redirected legacy permission page path', () => {
-    expect(
-      menuCreateInputSchema.safeParse({
-        ...pageMenu,
-        path: '/admin/system/permission',
-      }).success,
-    ).toBe(false);
   });
 
   it('keeps LINK and BUTTON fields separate from page routing', () => {

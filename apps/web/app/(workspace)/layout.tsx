@@ -12,13 +12,7 @@ import {
   getWorkspacePage,
 } from '@/lib/workspace-navigation';
 
-const GLOBAL_OR_LEGACY_PATHS = new Set([
-  '/',
-  '/profile',
-  '/admin',
-  '/admin/profile',
-  '/admin/system/permission',
-]);
+const GLOBAL_PATHS = new Set(['/', '/profile', '/admin']);
 
 export default async function WorkspaceLayout({
   children,
@@ -26,7 +20,7 @@ export default async function WorkspaceLayout({
   children: ReactNode;
 }) {
   const pathname = normalizePathname(headers().get('x-veb-pathname') ?? '/');
-  const pagePromise = GLOBAL_OR_LEGACY_PATHS.has(pathname)
+  const pagePromise = GLOBAL_PATHS.has(pathname)
     ? Promise.resolve(null)
     : getWorkspacePage(pathname);
   const [profile, navigation, page] = await Promise.all([
@@ -34,7 +28,7 @@ export default async function WorkspaceLayout({
     getWorkspaceNavigation(),
     pagePromise,
   ]);
-  if (!GLOBAL_OR_LEGACY_PATHS.has(pathname) && !page) notFound();
+  if (!GLOBAL_PATHS.has(pathname) && !page) notFound();
 
   const user = { ...profile, roles: navigation.roleCodes };
 

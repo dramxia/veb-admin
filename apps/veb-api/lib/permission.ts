@@ -30,12 +30,7 @@ export async function assertPermission(
 export async function canAccess(userId: string, pathname: string) {
   const normalized =
     pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-  if (
-    normalized === '/' ||
-    normalized === '/profile' ||
-    normalized === '/admin/profile'
-  )
-    return true;
+  if (normalized === '/' || normalized === '/profile') return true;
 
   const snapshot = await getUserPermissionSnapshot(userId);
   const menu = await getMenuByPath(normalized);

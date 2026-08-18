@@ -50,8 +50,6 @@ export const listTags = withApi(async () =>
   ok({ items: await listPublicTags() }),
 );
 
-export const listTagsLegacy = withApi(async () => ok(await listPublicTags()));
-
 export const getTag = withApi<SlugContext>(async (_request, context) => {
   return ok(await getPublicTag(context.params.slug));
 });

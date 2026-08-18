@@ -23,9 +23,6 @@
     "db:seed:veb": "pnpm --filter @veb/veb-api db:seed",
     "db:seed:blog": "pnpm --filter @veb/blog-api db:seed",
     "db:seed": "pnpm db:seed:veb && pnpm db:seed:blog",
-    "db:migrate:blog-data": "pnpm --filter @veb/migrate-blog-data migrate --dry-run",
-    "db:migrate:blog-data:apply": "pnpm --filter @veb/migrate-blog-data migrate --apply",
-    "db:verify:blog-data": "pnpm --filter @veb/migrate-blog-data migrate --verify",
     "compose:up": "docker compose --env-file .env.development up --build",
     "compose:deploy": "./deploy/compose-deploy.sh",
     "prepare": "husky"

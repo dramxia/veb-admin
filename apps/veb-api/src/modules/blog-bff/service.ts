@@ -31,7 +31,7 @@ function createUpstreamUrl(baseUrl: string, pathname: string, search: string) {
   return new URL(`${pathname}${search}`, `${baseUrl}/`);
 }
 
-export async function proxyBlogAdminRequest(request: Request, path: string[]) {
+export async function proxyBlogRequest(request: Request, path: string[]) {
   const requestId = getRequestId(request);
   const authorization = resolveBlogAuthorization(request.method, path);
   if (!authorization) {

@@ -179,7 +179,7 @@ export function Header({ user }: HeaderProps) {
     () =>
       flattenNavigableMenus(menus).filter((menu) => {
         const href = getHref(menu);
-        return href !== '/profile' && href !== '/admin/profile';
+        return href !== '/profile';
       }),
     [menus],
   );

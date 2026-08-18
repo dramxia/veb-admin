@@ -4,8 +4,6 @@ const mocks = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
   moduleFindMany: vi.fn(),
   menuFindMany: vi.fn(),
-  getCachedPermissions: vi.fn(),
-  setCachedPermissions: vi.fn((_userId: string, snapshot: unknown) => snapshot),
 }));
 
 vi.mock('../prisma', () => ({
@@ -14,11 +12,6 @@ vi.mock('../prisma', () => ({
     appModule: { findMany: mocks.moduleFindMany },
     menu: { findMany: mocks.menuFindMany },
   },
-}));
-
-vi.mock('../permission-cache', () => ({
-  getCachedPermissions: mocks.getCachedPermissions,
-  setCachedPermissions: mocks.setCachedPermissions,
 }));
 
 const { getUserPermissionSnapshot } =
@@ -45,7 +38,6 @@ function menu(
 describe('authorization snapshot', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getCachedPermissions.mockReturnValue(undefined);
     mocks.menuFindMany.mockResolvedValue([]);
   });
 
@@ -142,11 +134,6 @@ describe('authorization snapshot', () => {
   });
 
   it('recomputes from the database so the next request observes revocation', async () => {
-    mocks.getCachedPermissions.mockReturnValue({
-      roleCodes: ['editor'],
-      moduleIds: ['module-a'],
-      permissionCodes: ['module-a:read'],
-    });
     mocks.userFindUnique
       .mockResolvedValueOnce({
         status: 'ENABLED',
@@ -184,8 +171,6 @@ describe('authorization snapshot', () => {
     });
 
     expect(mocks.userFindUnique).toHaveBeenCalledTimes(2);
-    expect(mocks.getCachedPermissions).not.toHaveBeenCalled();
-    expect(mocks.setCachedPermissions).not.toHaveBeenCalled();
   });
 
   it('expands superadmin to effective nodes in enabled modules', async () => {

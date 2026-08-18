@@ -6,7 +6,6 @@ article likes. It never reads the VEB identity database.
 ## Endpoints
 
 - Public API: `/api/v1/public/**`
-- One-release compatibility aliases: `/api/public/**`
 - VEB-only management API: `/api/internal/v1/**`
 - Health checks: `/api/health/live` and `/api/health/ready`
 

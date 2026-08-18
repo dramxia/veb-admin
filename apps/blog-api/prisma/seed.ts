@@ -1,2 +1,2 @@
-// Blog content is migrated from the legacy database. No bootstrap rows are required.
+// Blog has no bootstrap rows; content is managed through the admin UI.
 console.info('blog-api: no seed data required');

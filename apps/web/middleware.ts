@@ -15,14 +15,7 @@ type NavigationResponse = {
 const VEB_API_INTERNAL_URL =
   process.env.VEB_API_INTERNAL_URL || 'http://127.0.0.1:1067';
 
-const GLOBAL_PATHS = new Set([
-  '/login',
-  '/profile',
-  '/admin/profile',
-  '/admin/system/permission',
-  '/403',
-  '/404',
-]);
+const GLOBAL_PATHS = new Set(['/login', '/profile', '/403', '/404']);
 
 function isPublicOrGlobalPath(pathname: string) {
   return (
@@ -91,8 +84,6 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
     response = NextResponse.next({ request: { headers: requestHeaders } });
-  } else if (pathname === '/admin/system/permission') {
-    response = redirectResponse(request, '/admin/system/menu', 308);
   } else if (pathname === '/admin') {
     const navigationResponse = await requestVebApi(
       request,

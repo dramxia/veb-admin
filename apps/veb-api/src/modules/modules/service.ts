@@ -2,7 +2,6 @@ import type { z } from 'zod';
 import type { AppModuleListQuery as AppModuleListContractQuery } from '@veb/api-contracts';
 import { Prisma } from '@/generated/client';
 import { ConflictError, NotFoundError } from '@/lib/errors';
-import { invalidatePermissionCache } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { withSerializableRetry } from '@/lib/prisma-transaction';
 import { appModuleSchema, appModuleUpdateSchema } from '@/lib/validation';
@@ -123,7 +122,6 @@ export async function createAppModule(data: AppModuleCreateData) {
       data,
       select: moduleSelect,
     });
-    invalidatePermissionCache();
     return resolveModule(record);
   } catch (error) {
     rethrowModuleWriteError(error);
@@ -166,7 +164,6 @@ export async function updateAppModule(id: string, data: AppModuleUpdateData) {
         select: moduleSelect,
       });
     });
-    invalidatePermissionCache();
     const counts = await getMenuCounts([id]);
     return resolveModule(record, counts.get(id));
   } catch (error) {
@@ -187,7 +184,6 @@ export async function deleteAppModule(id: string) {
         throw new ConflictError('模块已关联角色或菜单，不能删除');
       await tx.appModule.delete({ where: { id } });
     });
-    invalidatePermissionCache();
     return { id };
   } catch (error) {
     rethrowModuleWriteError(error);

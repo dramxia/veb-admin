@@ -21,7 +21,6 @@ const mocks = vi.hoisted(() => {
       async (callback: (tx: { appModule: typeof appModule }) => unknown) =>
         callback({ appModule }),
     ),
-    invalidatePermissionCache: vi.fn(),
   };
 });
 
@@ -38,10 +37,6 @@ vi.mock('../prisma', () => ({
     menu: { groupBy: mocks.menuGroupBy },
     $transaction: mocks.transaction,
   },
-}));
-
-vi.mock('../permission-cache', () => ({
-  invalidatePermissionCache: mocks.invalidatePermissionCache,
 }));
 
 const { createAppModule, deleteAppModule, listAppModules, updateAppModule } =
@@ -92,7 +87,6 @@ describe('app module service', () => {
       data,
       select: expect.any(Object),
     });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('rejects retired module component and route fields at the contract boundary', () => {
@@ -128,7 +122,6 @@ describe('app module service', () => {
     await expect(createAppModule(data)).rejects.toMatchObject({
       message: '模块编码已存在',
     });
-    expect(mocks.invalidatePermissionCache).not.toHaveBeenCalled();
   });
 
   it('reports navigation, button, and role counts separately', async () => {
@@ -200,7 +193,6 @@ describe('app module service', () => {
       data,
       select: expect.any(Object),
     });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('rejects deletion while roles or menus are associated', async () => {
@@ -223,7 +215,6 @@ describe('app module service', () => {
       id: baseModule.id,
     });
     expect(mocks.delete).toHaveBeenCalledWith({ where: { id: baseModule.id } });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('maps a concurrent relation created during deletion to a conflict', async () => {
@@ -238,6 +229,5 @@ describe('app module service', () => {
     await expect(deleteAppModule(baseModule.id)).rejects.toMatchObject({
       message: '模块已关联角色或菜单，不能删除',
     });
-    expect(mocks.invalidatePermissionCache).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import {
 } from '@veb/api-contracts';
 import { randomUUID } from 'node:crypto';
 
-const PUBLIC_BLOG_PREFIXES = ['/api/v1/public', '/api/public'] as const;
+const PUBLIC_BLOG_PREFIXES = ['/api/v1/public'] as const;
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
   'content-encoding',

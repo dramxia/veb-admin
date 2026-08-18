@@ -41,6 +41,6 @@
     "vitest": "^4.1.7"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node --env-file=.env.development ./node_modules/tsx/dist/cli.mjs prisma/seed.ts"
   }
 }

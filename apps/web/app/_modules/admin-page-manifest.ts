@@ -7,8 +7,6 @@ export const menuPageManifest: Record<string, MenuPageLoader> = {
   'example/page': () => import('./example/page'),
   'system/user/page': () => import('../(workspace)/admin/system/user/page'),
   'system/role/page': () => import('../(workspace)/admin/system/role/page'),
-  'system/permission/page': () =>
-    import('../(workspace)/admin/system/permission/page'),
   'system/menu/page': () => import('../(workspace)/admin/system/menu/page'),
   'system/module/page': () => import('../(workspace)/admin/system/module/page'),
   'system/file/page': () => import('../(workspace)/admin/system/file/page'),

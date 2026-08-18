@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   findUniqueAppModule: vi.fn(),
   findManyAppModules: vi.fn(),
   transaction: vi.fn(),
-  invalidatePermissionCache: vi.fn(),
 }));
 
 vi.mock('../prisma', () => {
@@ -34,10 +33,6 @@ vi.mock('../prisma', () => {
     },
   };
 });
-
-vi.mock('../permission-cache', () => ({
-  invalidatePermissionCache: mocks.invalidatePermissionCache,
-}));
 
 const { createMenu, listMenus } =
   await import('../../src/modules/menus/service');
@@ -103,7 +98,6 @@ describe('menu service validation', () => {
         externalUrl: 'https://example.com/docs',
       },
     });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('creates a BUTTON directly under a PAGE and clears navigation fields', async () => {
@@ -131,7 +125,6 @@ describe('menu service validation', () => {
       visible: false,
       externalUrl: null,
     });
-    expect(mocks.invalidatePermissionCache).toHaveBeenCalledOnce();
   });
 
   it('rejects a BUTTON whose direct parent is not a PAGE', async () => {
@@ -152,7 +145,6 @@ describe('menu service validation', () => {
       message: '按钮必须直属页面',
     });
     expect(mocks.create).not.toHaveBeenCalled();
-    expect(mocks.invalidatePermissionCache).not.toHaveBeenCalled();
   });
 
   it('rejects a navigation node whose parent is a PAGE', async () => {

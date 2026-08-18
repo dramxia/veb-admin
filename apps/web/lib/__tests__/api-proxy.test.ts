@@ -11,9 +11,9 @@ const env = {
 };
 
 describe('runtime API proxy', () => {
-  it('routes only versioned and legacy public paths to Blog API', () => {
+  it('routes only versioned public paths to Blog API', () => {
     expect(isBlogPublicPath('/api/v1/public/articles')).toBe(true);
-    expect(isBlogPublicPath('/api/public/tags')).toBe(true);
+    expect(isBlogPublicPath('/api/public/tags')).toBe(false);
     expect(isBlogPublicPath('/api/publicity')).toBe(false);
     expect(resolveApiUpstream('/api/v1/blog/articles', env).origin).toBe(
       'http://veb-api:1067',

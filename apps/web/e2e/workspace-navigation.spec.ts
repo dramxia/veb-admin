@@ -286,7 +286,7 @@ test('the 375px module header and mobile sidebar stay within the viewport', asyn
   await expect(page.getByRole('button', { name: '打开侧边栏' })).toBeFocused();
 
   await page.getByRole('button', { name: '打开侧边栏' }).click();
-  await page.goto('/admin/profile');
+  await page.goto('/profile');
   await expect(page).toHaveURL(/\/profile$/);
   await expect(sidebar).toHaveCount(0);
 });

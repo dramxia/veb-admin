@@ -76,7 +76,7 @@ function getMenuIcon(menu: MenuNode): LucideIcon {
   const path = normalizeMenuPath(menu.path);
   if (configured && iconMap[configured]) return iconMap[configured];
   if (path === '/dashboard') return LayoutDashboard;
-  if (path.startsWith('/admin/profile')) return User;
+  if (path === '/profile') return User;
   if (path.includes('/article')) return FileText;
   if (path.includes('/tag')) return Tags;
   if (path.includes('/like')) return Heart;
@@ -316,7 +316,7 @@ export function Sidebar() {
     () =>
       menus.filter((menu) => {
         const href = getHref(menu);
-        return !href || (href !== '/profile' && href !== '/admin/profile');
+        return !href || href !== '/profile';
       }),
     [menus],
   );

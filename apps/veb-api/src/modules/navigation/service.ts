@@ -1,15 +1,10 @@
 import { CommonStatus, UserStatus, type Menu } from '@/generated/client';
-import type {
-  LegacyUserNavigation,
-  MenuNode,
-  UserNavigation,
-} from '@veb/api-contracts';
+import type { MenuNode, UserNavigation } from '@veb/api-contracts';
 import { createMenuHierarchy } from '@/lib/menu-hierarchy';
-import type { PermissionSnapshot } from '@/lib/permission-cache';
 import { prisma } from '@/lib/prisma';
 import { NotFoundError, PermissionError } from '@/lib/errors';
 
-const LEGACY_ADMIN_PATH = '/admin';
+const ADMIN_MODULE_ROOT_PATH = '/admin';
 
 function compareText(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -74,7 +69,7 @@ function findLandingPath(nodes: MenuNode[]): string | null {
     if (
       node.type === 'PAGE' &&
       node.path &&
-      normalizeRequestedPath(node.path) !== LEGACY_ADMIN_PATH
+      normalizeRequestedPath(node.path) !== ADMIN_MODULE_ROOT_PATH
     ) {
       return node.path;
     }
@@ -87,6 +82,12 @@ function findLandingPath(nodes: MenuNode[]): string | null {
 function normalizeRequestedPath(path: string) {
   return path.length > 1 ? path.replace(/\/+$/, '') : path;
 }
+
+export type PermissionSnapshot = {
+  roleCodes: string[];
+  moduleIds: string[];
+  permissionCodes: string[];
+};
 
 /**
  * Computes effective access role by role. A menu permission only survives when
@@ -242,16 +243,6 @@ export async function getUserNavigation(
     permissionCodes: snapshot.permissionCodes,
     roleCodes: snapshot.roleCodes,
   };
-}
-
-export async function getUserMenuAndPermissions(
-  userId: string,
-): Promise<LegacyUserNavigation> {
-  const navigation = await getUserNavigation(userId);
-  const primaryModule =
-    navigation.modules.find((module) => module.code === 'admin') ??
-    navigation.modules[0];
-  return { ...navigation, menus: primaryModule?.menus ?? [] };
 }
 
 export async function getMenuByPath(pathname: string) {

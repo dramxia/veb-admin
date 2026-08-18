@@ -5,8 +5,8 @@ import type { ProfileDto } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { PlainModuleShell } from '@/components/layout/plain-module-shell';
 import { requestVebPage } from '@/lib/server-api';
-import { ChangePasswordForm } from '../admin/profile/change-password-form';
-import { ProfileForm } from '../admin/profile/profile-form';
+import { ChangePasswordForm } from './change-password-form';
+import { ProfileForm } from './profile-form';
 
 export default async function ProfilePage() {
   const user = await requestVebPage<ProfileDto>('/api/v1/me');

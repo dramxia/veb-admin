@@ -90,9 +90,6 @@ describe('permission helpers', () => {
   it('keeps global pages public to authenticated users and rejects unknown paths', async () => {
     await expect(permission.canAccess('u1', '/')).resolves.toBe(true);
     await expect(permission.canAccess('u1', '/profile')).resolves.toBe(true);
-    await expect(permission.canAccess('u1', '/admin/profile')).resolves.toBe(
-      true,
-    );
     await expect(permission.canAccess('u1', '/admin/unknown')).resolves.toBe(
       false,
     );

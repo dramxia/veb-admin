@@ -12,7 +12,7 @@
 - Blog API：1068（仅 Compose 私网）
 - Blog public 网关：`${BLOG_API_PORT:-1068}`（宿主机）
 
-public 网关只转发 `/api/v1/public/**`、兼容路径 `/api/public/**` 以及 `/api/health/live`、`/api/health/ready`，其他路径直接返回 404。VEB API 通过 `blog-api:1068` 调用私网管理接口，不能经 public 网关访问。
+public 网关只转发 `/api/v1/public/**` 以及 `/api/health/live`、`/api/health/ready`，其他路径直接返回 404。VEB API 通过 `blog-api:1068` 调用私网管理接口，不能经 public 网关访问。
 
 两个 public 网关都会覆盖客户端提供的 IP 转发头并写入带 `requestId` 的结构化访问日志。Web 运行时代理默认丢弃浏览器自带的 `Forwarded`、`X-Forwarded-For`、`X-Real-IP` 和 `CF-Connecting-IP`；只有在 `WEB_TRUST_PROXY_HEADERS=true` 时才采用入口写入的 IP 和协议，因此该开关只能用于原始 Web 端口不对外开放、且入口明确覆盖这些头的部署。
 
@@ -37,7 +37,7 @@ Compose 要求显式提供 `VEB_DATABASE_URL` 和 `BLOG_DATABASE_URL`，并分�
 - `SERVICE_AUTH_PRIVATE_KEY` 只配置在 VEB API。
 - `SERVICE_AUTH_PUBLIC_KEY` 用于 VEB 的 JWKS 输出。
 - Blog API 通过 `SERVICE_AUTH_JWKS_URL` 获取并缓存公钥。
-- `BLOG_VISITOR_HASH_SECRET` 独立管理；首次拆分时沿用旧 NextAuth secret 的值。
+- `BLOG_VISITOR_HASH_SECRET` 独立管理。
 - `SEED_ADMIN_PASSWORD` 只在显式初始化 VEB 种子数据时提供；当前项目初始化密码为 `123456`，显式执行 seed 会同步 `admin` 管理员密码。
 
 RSA 密钥应由密钥管理服务注入。当前 VEB JWKS 端点只发布 `SERVICE_AUTH_PUBLIC_KEY` 对应的单个 key，不支持同时发布新旧 key，因此不能无中断轮换。轮换必须安排短暂维护窗口，同时替换公私钥与 `SERVICE_AUTH_KEY_ID`，并重启 VEB API 和 Blog API；在实现多 key JWKS 前不要使用“先发布双 key”的轮换流程。
@@ -55,7 +55,7 @@ Blog public 网关只暴露 Blog 的两个健康路径；VEB 健康路径仅在 
 
 ## 5. 回滚
 
-拆库切换后的一个发布周期内保留旧内容表只读。若 smoke test 失败，在重新开放写流量前恢复旧镜像和旧连接即可回滚。观察期结束后再提交删除旧内容表的 VEB migration。
+项目尚未上线，不存在需要回滚保护的历史数据。上线后若需回滚，恢复上一个镜像并还原部署前的数据库备份即可。
 
 ## 6. 部署与磁盘回收
 

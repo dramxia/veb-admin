@@ -5,10 +5,7 @@ CREATE TYPE "UserStatus" AS ENUM ('ENABLED', 'DISABLED');
 CREATE TYPE "CommonStatus" AS ENUM ('ENABLED', 'DISABLED');
 
 -- CreateEnum
-CREATE TYPE "PermissionType" AS ENUM ('MENU', 'BUTTON');
-
--- CreateEnum
-CREATE TYPE "MenuType" AS ENUM ('DIR', 'PAGE', 'LINK');
+CREATE TYPE "MenuType" AS ENUM ('DIR', 'PAGE', 'LINK', 'BUTTON');
 
 -- CreateEnum
 CREATE TYPE "LogStatus" AS ENUM ('SUCCESS', 'FAILURE');
@@ -45,26 +42,29 @@ CREATE TABLE "Role" (
 );
 
 -- CreateTable
-CREATE TABLE "Permission" (
+CREATE TABLE "AppModule" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "type" "PermissionType" NOT NULL,
     "description" TEXT,
-    "parentId" TEXT,
+    "icon" TEXT,
+    "sort" INTEGER NOT NULL DEFAULT 0,
+    "status" "CommonStatus" NOT NULL DEFAULT 'ENABLED',
     "isSystem" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Permission_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AppModule_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Menu" (
     "id" TEXT NOT NULL,
     "parentId" TEXT,
+    "moduleId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "path" TEXT NOT NULL,
+    "description" TEXT,
+    "path" TEXT,
     "component" TEXT,
     "icon" TEXT,
     "sort" INTEGER NOT NULL DEFAULT 0,
@@ -89,11 +89,20 @@ CREATE TABLE "UserRole" (
 );
 
 -- CreateTable
-CREATE TABLE "RolePermission" (
+CREATE TABLE "RoleModule" (
     "roleId" TEXT NOT NULL,
-    "permissionId" TEXT NOT NULL,
+    "moduleId" TEXT NOT NULL,
 
-    CONSTRAINT "RolePermission_pkey" PRIMARY KEY ("roleId","permissionId")
+    CONSTRAINT "RoleModule_pkey" PRIMARY KEY ("roleId","moduleId")
+);
+
+-- CreateTable
+CREATE TABLE "RoleMenu" (
+    "roleId" TEXT NOT NULL,
+    "moduleId" TEXT NOT NULL,
+    "menuId" TEXT NOT NULL,
+
+    CONSTRAINT "RoleMenu_pkey" PRIMARY KEY ("roleId","menuId")
 );
 
 -- CreateTable
@@ -171,7 +180,28 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Role_code_key" ON "Role"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Permission_code_key" ON "Permission"("code");
+CREATE UNIQUE INDEX "AppModule_code_key" ON "AppModule"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Menu_path_key" ON "Menu"("path");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Menu_permissionCode_key" ON "Menu"("permissionCode");
+
+-- CreateIndex
+CREATE INDEX "Menu_moduleId_parentId_idx" ON "Menu"("moduleId", "parentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Menu_id_moduleId_key" ON "Menu"("id", "moduleId");
+
+-- CreateIndex
+CREATE INDEX "RoleModule_moduleId_idx" ON "RoleModule"("moduleId");
+
+-- CreateIndex
+CREATE INDEX "RoleMenu_roleId_moduleId_idx" ON "RoleMenu"("roleId", "moduleId");
+
+-- CreateIndex
+CREATE INDEX "RoleMenu_menuId_moduleId_idx" ON "RoleMenu"("menuId", "moduleId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
@@ -186,7 +216,10 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- AddForeignKey
-ALTER TABLE "Menu" ADD CONSTRAINT "Menu_permissionCode_fkey" FOREIGN KEY ("permissionCode") REFERENCES "Permission"("code") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Menu" ADD CONSTRAINT "Menu_moduleId_fkey" FOREIGN KEY ("moduleId") REFERENCES "AppModule"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Menu" ADD CONSTRAINT "Menu_parentId_moduleId_fkey" FOREIGN KEY ("parentId", "moduleId") REFERENCES "Menu"("id", "moduleId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -195,10 +228,19 @@ ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userI
 ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RoleModule" ADD CONSTRAINT "RoleModule_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "RoleModule" ADD CONSTRAINT "RoleModule_moduleId_fkey" FOREIGN KEY ("moduleId") REFERENCES "AppModule"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RoleMenu" ADD CONSTRAINT "RoleMenu_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RoleMenu" ADD CONSTRAINT "RoleMenu_roleId_moduleId_fkey" FOREIGN KEY ("roleId", "moduleId") REFERENCES "RoleModule"("roleId", "moduleId") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RoleMenu" ADD CONSTRAINT "RoleMenu_menuId_moduleId_fkey" FOREIGN KEY ("menuId", "moduleId") REFERENCES "Menu"("id", "moduleId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OperationLog" ADD CONSTRAINT "OperationLog_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

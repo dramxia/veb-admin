@@ -80,12 +80,6 @@ jobs:
       - run: pnpm --filter @veb/veb-api exec prisma migrate status
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/veb_test?schema=public
-      - name: Test VEB migrations against PostgreSQL
-        run: |
-          psql --version
-          pnpm --filter @veb/veb-api exec vitest run lib/__tests__/app-modules-migration.runtime.test.ts
-        env:
-          MIGRATION_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/veb_test
       - name: Deploy Blog migrations with production image
         run: >-
           docker run --rm --network host

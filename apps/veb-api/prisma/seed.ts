@@ -495,7 +495,6 @@ async function main() {
       isSystem: true,
     };
     await prisma.menu.upsert({
-      // Upgraded databases keep legacy Permission IDs for button menu nodes.
       // Permission codes are the stable identity shared by migration and seed.
       where: permissionCode ? { permissionCode } : { id: menu.id },
       update: data,
