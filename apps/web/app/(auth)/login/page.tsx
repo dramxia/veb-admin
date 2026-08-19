@@ -47,7 +47,9 @@ export default function LoginPage() {
                   VEB 管理后台
                 </Badge>
                 <Heading as="h2" size="xl" color="ink.900" lineHeight="1.25">
-                  清晰、可靠的管理工作区
+                  清晰、可靠的
+                  <br />
+                  管理工作区
                 </Heading>
                 <Text mt={4} color="ink.600" lineHeight="1.75">
                   统一管理账号、角色、权限、菜单与审计信息，重要操作均受权限控制。

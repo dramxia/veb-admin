@@ -225,7 +225,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
                             <Auth code="system:role:delete">
                               <MenuItem
                                 icon={<Icon as={Trash2} boxSize={4} />}
-                                color="red.600"
+                                color="statusDanger"
                                 isDisabled={loading || role.isSystem}
                                 onClick={() => {
                                   clearError();

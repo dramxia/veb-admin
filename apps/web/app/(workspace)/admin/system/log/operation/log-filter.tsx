@@ -7,13 +7,13 @@ import {
   FormLabel,
   HStack,
   Input,
-  Select,
   SimpleGrid,
   Stack,
 } from '@chakra-ui/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { AppSelect } from '@/components/common/app-select';
 import { toIsoDateTime, toLocalDateTimeInput } from '@/lib/date-time';
 import { t } from '@/lib/i18n';
 
@@ -112,14 +112,14 @@ export function OperationLogFilter() {
           </FormControl>
           <FormControl>
             <FormLabel fontSize="xs">状态</FormLabel>
-            <Select
+            <AppSelect
               value={status}
               onChange={(event) => setStatus(event.target.value)}
               placeholder="全部状态"
             >
               <option value="SUCCESS">成功</option>
               <option value="FAILURE">失败</option>
-            </Select>
+            </AppSelect>
           </FormControl>
         </SimpleGrid>
 

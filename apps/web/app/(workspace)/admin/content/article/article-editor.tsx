@@ -19,7 +19,6 @@ import {
   HStack,
   Icon,
   Input,
-  Select,
   SimpleGrid,
   Stack,
   Text,
@@ -46,6 +45,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useRef, useState } from 'react';
 import { useHasPermission } from '@/components/auth/use-has-permission';
+import { AppSelect } from '@/components/common/app-select';
 import { MarkdownContent } from '@/components/content/markdown-content';
 import type {
   ArticleDetail,
@@ -333,7 +333,7 @@ export function ArticleEditor({
             </Box>
             <FormControl w={{ base: 'full', md: '180px' }} flexShrink={0}>
               <FormLabel>发布状态</FormLabel>
-              <Select
+              <AppSelect
                 value={state.status}
                 onChange={(event) =>
                   update('status', event.target.value as EditorState['status'])
@@ -344,7 +344,7 @@ export function ArticleEditor({
                 {canPublish || article?.status === 'PUBLISHED' ? (
                   <option value="PUBLISHED">已发布</option>
                 ) : null}
-              </Select>
+              </AppSelect>
             </FormControl>
           </Flex>
 
@@ -417,7 +417,7 @@ export function ArticleEditor({
                           py={2}
                           borderWidth="1px"
                           borderColor={selected ? 'brand.300' : 'borderDefault'}
-                          borderRadius="12px"
+                          borderRadius="control"
                           bg={selected ? 'brand.50' : 'controlBg'}
                           color={selected ? 'brand.700' : 'ink.700'}
                         >

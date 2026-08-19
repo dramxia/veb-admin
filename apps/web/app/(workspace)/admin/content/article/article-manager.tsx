@@ -11,7 +11,6 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Select,
   Stack,
   Table,
   Tbody,
@@ -27,6 +26,7 @@ import NextLink from 'next/link';
 import { useEffect, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
 import { Auth } from '@/components/auth/auth';
+import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -142,25 +142,25 @@ export function ArticleManager({
                   pl={10}
                 />
               </InputGroup>
-              <Select
+              <AppSelect
                 value={status}
                 onChange={(event) => {
                   setStatus(event.target.value);
                   setPage(1);
                 }}
-                maxW={{ lg: '160px' }}
+                sx={{ maxW: { lg: '160px' } }}
               >
                 <option value="">全部状态</option>
                 <option value="DRAFT">草稿</option>
                 <option value="PUBLISHED">已发布</option>
-              </Select>
-              <Select
+              </AppSelect>
+              <AppSelect
                 value={tagId}
                 onChange={(event) => {
                   setTagId(event.target.value);
                   setPage(1);
                 }}
-                maxW={{ lg: '180px' }}
+                sx={{ maxW: { lg: '180px' } }}
               >
                 <option value="">全部标签</option>
                 {tags.map((tag) => (
@@ -168,14 +168,14 @@ export function ArticleManager({
                     {tag.name}
                   </option>
                 ))}
-              </Select>
-              <Select
+              </AppSelect>
+              <AppSelect
                 value={authorId}
                 onChange={(event) => {
                   setAuthorId(event.target.value);
                   setPage(1);
                 }}
-                maxW={{ lg: '180px' }}
+                sx={{ maxW: { lg: '180px' } }}
               >
                 <option value="">全部作者</option>
                 {authors.map((author) => (
@@ -183,7 +183,7 @@ export function ArticleManager({
                     {author.nickname || author.username}
                   </option>
                 ))}
-              </Select>
+              </AppSelect>
             </Stack>
           </Stack>
         }

@@ -347,10 +347,8 @@ export function Header({ user }: HeaderProps) {
               </PopoverTrigger>
               <Portal>
                 <PopoverContent
-                  layerStyle="glassFloating"
                   w={{ base: 'calc(100vw - 24px)', sm: '320px' }}
                   maxW="calc(100vw - 24px)"
-                  rounded="2xl"
                   zIndex="popover"
                 >
                   <PopoverBody p={2} role="search">

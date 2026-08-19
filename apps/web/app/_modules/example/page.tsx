@@ -7,7 +7,7 @@ export default function ExampleModulePage() {
         <Heading size="md" mb={2}>
           动态模块示例
         </Heading>
-        <Text color="gray.500">
+        <Text color="ink.500">
           这是由代码注册并通过数据库授权启用的模块首页。
         </Text>
       </CardBody>

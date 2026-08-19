@@ -86,7 +86,7 @@ export function LoginForm() {
                 aria-hidden
                 boxSize={8}
                 p={1.5}
-                borderRadius="10px"
+                borderRadius="control"
                 bg="brand.50"
                 color="brand.600"
               />
@@ -116,7 +116,7 @@ export function LoginForm() {
                 aria-hidden
                 boxSize={8}
                 p={1.5}
-                borderRadius="10px"
+                borderRadius="control"
                 bg="brand.50"
                 color="brand.600"
               />

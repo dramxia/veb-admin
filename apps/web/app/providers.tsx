@@ -56,7 +56,6 @@ const badgeSubtleStyles = ({ colorScheme }: StyleFunctionProps) => {
   return {
     bg: palette.bg,
     borderColor: palette.border,
-    boxShadow: 'insetHairline',
     color: palette.fg,
   };
 };
@@ -82,18 +81,13 @@ const solidButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
     return {
       bg: 'statusDanger',
       color: 'white',
-      boxShadow: 'buttonDanger',
       _hover: {
         bg: 'statusDangerHover',
-        boxShadow: 'buttonDangerHover',
-        transform: 'translateY(-1px)',
         _disabled: {
           bg: 'statusDanger',
-          boxShadow: 'none',
-          transform: 'none',
         },
       },
-      _active: { bg: 'statusDangerActive', transform: 'translateY(0)' },
+      _active: { bg: 'statusDangerActive' },
       _focusVisible: { boxShadow: 'focusRingDanger' },
     };
   }
@@ -102,18 +96,13 @@ const solidButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
     return {
       bg: 'statusSuccess',
       color: 'white',
-      boxShadow: 'buttonSuccess',
       _hover: {
         bg: 'statusSuccessHover',
-        boxShadow: 'buttonSuccessHover',
-        transform: 'translateY(-1px)',
         _disabled: {
           bg: 'statusSuccess',
-          boxShadow: 'none',
-          transform: 'none',
         },
       },
-      _active: { bg: 'statusSuccessActive', transform: 'translateY(0)' },
+      _active: { bg: 'statusSuccessActive' },
     };
   }
 
@@ -121,36 +110,26 @@ const solidButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
     return {
       bg: 'statusWarning',
       color: 'white',
-      boxShadow: 'buttonWarning',
       _hover: {
         bg: 'statusWarningHover',
-        boxShadow: 'buttonWarningHover',
-        transform: 'translateY(-1px)',
         _disabled: {
           bg: 'statusWarning',
-          boxShadow: 'none',
-          transform: 'none',
         },
       },
-      _active: { bg: 'statusWarningActive', transform: 'translateY(0)' },
+      _active: { bg: 'statusWarningActive' },
     };
   }
 
   return {
-    bg: 'linear-gradient(135deg, #1677ff 0%, #48a8ff 54%, #6d5dfc 100%)',
+    bg: 'brand.500',
     color: 'white',
-    boxShadow: 'button',
     _hover: {
-      bg: 'linear-gradient(135deg, #0f5ed7 0%, #318fe8 54%, #5b4be5 100%)',
-      boxShadow: 'buttonHover',
-      transform: 'translateY(-1px)',
+      bg: 'brand.600',
       _disabled: {
         bg: 'brand.500',
-        boxShadow: 'none',
-        transform: 'none',
       },
     },
-    _active: { bg: 'brand.700', transform: 'translateY(0)' },
+    _active: { bg: 'brand.700' },
   };
 };
 
@@ -166,12 +145,9 @@ const outlineButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
       bg: isDanger ? 'statusDangerBg' : 'brand.50',
       borderColor: isDanger ? 'statusDanger' : 'brand.300',
       color: isDanger ? 'statusDangerHover' : 'ink.900',
-      transform: 'translateY(-1px)',
-      _disabled: { transform: 'none' },
     },
     _active: {
       bg: isDanger ? 'statusDangerBg' : 'brand.100',
-      transform: 'translateY(0)',
     },
     _focusVisible: {
       boxShadow: isDanger ? 'focusRingDanger' : 'focusRing',
@@ -187,12 +163,9 @@ const ghostButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
     _hover: {
       bg: isDanger ? 'statusDangerBg' : 'brand.50',
       color: isDanger ? 'statusDangerHover' : 'ink.900',
-      transform: 'translateY(-1px)',
-      _disabled: { transform: 'none' },
     },
     _active: {
       bg: isDanger ? 'statusDangerBg' : 'brand.100',
-      transform: 'translateY(0)',
     },
     _focusVisible: {
       boxShadow: isDanger ? 'focusRingDanger' : 'focusRing',
@@ -203,19 +176,93 @@ const ghostButtonVariant = ({ colorScheme }: StyleFunctionProps) => {
 const inputFieldStyles = {
   bg: 'controlBg',
   borderColor: 'borderDefault',
-  borderRadius: '14px',
+  borderRadius: 'control',
   color: 'ink.800',
-  _hover: { borderColor: 'brand.300' },
+  transitionDuration: '160ms',
+  transitionProperty: 'common',
+  _hover: { borderColor: 'ink.300' },
   _focusVisible: {
     borderColor: 'brand.500',
     boxShadow: 'focusRing',
+    outline: 'none',
   },
   _invalid: {
     bg: 'statusDangerBg',
     borderColor: 'statusDanger',
     boxShadow: 'focusRingDanger',
   },
+  _disabled: {
+    bg: 'controlDisabledBg',
+    borderColor: 'borderSubtle',
+    color: 'ink.500',
+    cursor: 'not-allowed',
+    opacity: 1,
+  },
+  _readOnly: {
+    bg: 'controlReadOnlyBg',
+    borderColor: 'borderSubtle',
+    color: 'ink.600',
+  },
   _placeholder: { color: 'ink.400' },
+};
+
+const selectFieldStyles = {
+  ...inputFieldStyles,
+  appearance: 'none',
+  cursor: 'pointer',
+  fontWeight: 500,
+  pe: 10,
+  _hover: {
+    bg: 'surfaceSolidBg',
+    borderColor: 'brand.300',
+  },
+  _focus: {
+    borderColor: 'brand.500',
+    boxShadow: 'focusRing',
+    outline: 'none',
+  },
+  _disabled: {
+    ...inputFieldStyles._disabled,
+    cursor: 'not-allowed',
+  },
+  '& option': {
+    backgroundColor: '#ffffff',
+    color: '#1e293b',
+    fontWeight: 500,
+  },
+  '& optgroup': {
+    backgroundColor: '#f8fafc',
+    color: '#475569',
+    fontWeight: 700,
+  },
+};
+
+const buttonSizes = {
+  xs: { h: 7, minH: 7, minW: 7, px: 2.5, fontSize: 'xs' },
+  sm: { h: 8, minH: 8, minW: 8, px: 3, fontSize: 'sm' },
+  md: { h: 9, minH: 9, minW: 9, px: 3.5, fontSize: 'sm' },
+  lg: { h: 10, minH: 10, minW: 10, px: 4, fontSize: 'md' },
+};
+
+const inputSizes = {
+  sm: {
+    addon: { h: 8, px: 3, fontSize: 'sm' },
+    field: { h: 8, px: 3, fontSize: 'sm' },
+  },
+  md: {
+    addon: { h: 9, px: 3.5, fontSize: 'sm' },
+    field: { h: 9, px: 3.5, fontSize: 'sm' },
+  },
+  lg: {
+    addon: { h: 10, px: 4, fontSize: 'md' },
+    field: { h: 10, px: 4, fontSize: 'md' },
+  },
+};
+
+const textareaSizes = {
+  sm: { minH: 20, px: 3, py: 2, fontSize: 'sm' },
+  md: { minH: 24, px: 3.5, py: 2.5, fontSize: 'sm' },
+  lg: { minH: 28, px: 4, py: 3, fontSize: 'md' },
 };
 
 const glassBaseLayerStyle = {
@@ -281,36 +328,40 @@ const dialogTheme = {
     },
     dialog: {
       bg: 'dialogBg',
-      borderColor: 'glassBorderStrong',
-      borderRadius: '2xl',
+      borderColor: 'borderDefault',
+      borderRadius: 'dialog',
       borderWidth: '1px',
       boxShadow: 'dialog',
       color: 'ink.800',
       overflow: 'hidden',
-      backdropFilter: floatingGlassBlur,
-      WebkitBackdropFilter: floatingGlassBlur,
     },
     header: {
       borderBottomColor: 'borderSubtle',
+      borderBottomWidth: '1px',
       color: 'ink.900',
       fontSize: 'lg',
-      fontWeight: 800,
-      pb: 3,
+      fontWeight: 700,
+      lineHeight: '1.4',
+      px: 5,
+      py: 4,
     },
     body: {
       color: 'ink.600',
-      lineHeight: '1.75',
-      py: 4,
+      lineHeight: '1.7',
+      px: 5,
+      py: 5,
     },
     footer: {
       borderTopColor: 'borderSubtle',
+      borderTopWidth: '1px',
       gap: 3,
-      pt: 3,
+      px: 5,
+      py: 4,
     },
     closeButton: {
       color: 'ink.500',
-      top: 3,
-      insetEnd: 3,
+      top: 3.5,
+      insetEnd: 4,
     },
   },
 };
@@ -362,7 +413,9 @@ export const theme = extendTheme({
     colors: {
       canvasBg: '#f8fbff',
       controlBg: 'rgba(255, 255, 255, 0.92)',
-      dialogBg: 'rgba(255, 255, 255, 0.94)',
+      controlDisabledBg: '#f1f5f9',
+      controlReadOnlyBg: '#f8fafc',
+      dialogBg: '#ffffff',
       glassFloatingBg: 'rgba(255, 255, 255, 0.76)',
       glassSoftBg: 'rgba(255, 255, 255, 0.68)',
       glassSolidBg: 'rgba(255, 255, 255, 0.86)',
@@ -404,10 +457,12 @@ export const theme = extendTheme({
     body: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   radii: {
-    md: '12px',
-    lg: '16px',
-    xl: '20px',
-    '2xl': '24px',
+    control: '8px',
+    dialog: '12px',
+    md: '8px',
+    lg: '10px',
+    xl: '12px',
+    '2xl': '16px',
   },
   shadows: {
     avatar: '0 0 0 1px rgba(255, 255, 255, 0.9)',
@@ -435,6 +490,8 @@ export const theme = extendTheme({
   },
   transition: {
     property: {
+      common:
+        'background-color, border-color, color, opacity, box-shadow, transform',
       liquid:
         'transform, opacity, background, border-color, box-shadow, filter',
     },
@@ -526,15 +583,16 @@ export const theme = extendTheme({
   components: {
     Button: {
       baseStyle: {
-        borderRadius: '14px',
-        fontWeight: 700,
+        borderRadius: 'control',
+        fontWeight: 600,
         letterSpacing: '0',
-        transitionDuration: '180ms',
-        transitionProperty: 'liquid',
+        lineHeight: '1.2',
+        transitionDuration: '160ms',
+        transitionProperty: 'common',
         _disabled: {
           boxShadow: 'none',
           cursor: 'not-allowed',
-          opacity: 0.56,
+          opacity: 0.5,
           transform: 'none',
         },
         _focusVisible: {
@@ -542,8 +600,11 @@ export const theme = extendTheme({
           outline: 'none',
         },
       },
+      sizes: buttonSizes,
       defaultProps: {
         colorScheme: 'brand',
+        size: 'md',
+        variant: 'solid',
       },
       variants: {
         ghost: ghostButtonVariant,
@@ -551,42 +612,30 @@ export const theme = extendTheme({
         solid: solidButtonVariant,
       },
     },
-    IconButton: {
-      baseStyle: {
-        borderRadius: '12px',
-        h: '36px',
-        minH: '36px',
-        minW: '36px',
-        p: 0,
-        w: '36px',
-        _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
-      },
-      defaultProps: {
-        colorScheme: 'brand',
-        variant: 'ghost',
-      },
-    },
     CloseButton: {
       baseStyle: {
-        borderRadius: '12px',
+        borderRadius: 'control',
         color: 'ink.500',
-        h: '36px',
-        minH: '36px',
-        minW: '36px',
-        w: '36px',
         _hover: { bg: 'brand.50', color: 'ink.800' },
         _active: { bg: 'brand.100' },
         _focusVisible: { boxShadow: 'focusRing', outline: 'none' },
       },
+      sizes: {
+        sm: { h: 7, w: 7, fontSize: '8px' },
+        md: { h: 8, w: 8, fontSize: '10px' },
+        lg: { h: 9, w: 9, fontSize: '12px' },
+      },
+      defaultProps: { size: 'md' },
     },
     Badge: {
       baseStyle: {
-        borderRadius: 'full',
+        borderRadius: '6px',
         borderWidth: '1px',
         fontSize: 'xs',
-        fontWeight: 700,
+        fontWeight: 600,
         letterSpacing: '0',
-        px: 2.25,
+        lineHeight: '1.35',
+        px: 2,
         py: 0.5,
         textTransform: 'none',
       },
@@ -599,28 +648,59 @@ export const theme = extendTheme({
     },
     Card: {
       baseStyle: {
-        container: glassSolidLayerStyle,
+        container: {
+          bg: 'surfaceSolidBg',
+          borderColor: 'borderSubtle',
+          borderRadius: 'lg',
+          borderWidth: '1px',
+          boxShadow: 'none',
+          color: 'ink.800',
+          overflow: 'hidden',
+        },
       },
     },
     Input: {
+      sizes: inputSizes,
       variants: {
         outline: {
           field: inputFieldStyles,
         },
       },
+      defaultProps: { size: 'md', variant: 'outline' },
     },
     Select: {
-      variants: {
-        outline: {
-          field: inputFieldStyles,
-          icon: { color: 'ink.500' },
+      baseStyle: {
+        field: {
+          lineHeight: '1.2',
+          transitionDuration: '160ms',
+          transitionProperty: 'common',
+        },
+        icon: {
+          color: 'ink.500',
+          insetEnd: 3,
+          pointerEvents: 'none',
+          transition: 'color 160ms ease, transform 160ms ease',
+          w: 4,
         },
       },
+      sizes: inputSizes,
+      variants: {
+        outline: {
+          field: selectFieldStyles,
+          icon: {
+            color: 'brand.600',
+            _disabled: { color: 'ink.400' },
+          },
+        },
+      },
+      defaultProps: { size: 'md', variant: 'outline' },
     },
     Textarea: {
+      sizes: textareaSizes,
       variants: {
         outline: inputFieldStyles,
       },
+      defaultProps: { size: 'md', variant: 'outline' },
     },
     NumberInput: {
       baseStyle: {
@@ -640,14 +720,19 @@ export const theme = extendTheme({
           field: inputFieldStyles,
         },
       },
+      sizes: inputSizes,
       defaultProps: {
+        size: 'md',
         variant: 'outline',
       },
     },
     FormLabel: {
       baseStyle: {
         color: 'ink.700',
+        fontSize: 'sm',
         fontWeight: 600,
+        lineHeight: '1.4',
+        mb: 1.5,
       },
     },
     FormHelperText: {
@@ -667,12 +752,12 @@ export const theme = extendTheme({
     Progress: {
       baseStyle: {
         track: {
-          bg: 'brand.50',
+          bg: 'ink.100',
           borderRadius: 'full',
           overflow: 'hidden',
         },
         filledTrack: {
-          bg: 'linear-gradient(90deg, #1677ff, #63b3ed, #6d5dfc)',
+          bg: 'brand.500',
         },
       },
     },
@@ -694,20 +779,27 @@ export const theme = extendTheme({
     Tooltip: {
       baseStyle: {
         bg: 'tooltipBg',
-        borderRadius: '12px',
-        boxShadow: 'card',
+        borderRadius: '6px',
+        boxShadow: 'sm',
         color: 'white',
+        fontSize: 'xs',
         fontWeight: 600,
+        lineHeight: '1.5',
+        px: 2.5,
+        py: 1.5,
       },
     },
     Alert: {
       baseStyle: {
         container: {
-          borderRadius: '18px',
+          borderRadius: 'control',
           borderWidth: '1px',
-          boxShadow: 'insetHairline',
+          fontSize: 'sm',
+          lineHeight: '1.6',
+          px: 3.5,
+          py: 3,
         },
-        title: { fontWeight: 700 },
+        title: { fontWeight: 600 },
       },
       defaultProps: {
         variant: 'subtle',
@@ -728,22 +820,37 @@ export const theme = extendTheme({
         },
         dialog: {
           bg: 'dialogBg',
-          borderColor: 'glassBorderStrong',
+          borderColor: 'borderDefault',
           borderStartWidth: '1px',
           boxShadow: 'dialog',
           color: 'ink.800',
-          backdropFilter: floatingGlassBlur,
-          WebkitBackdropFilter: floatingGlassBlur,
         },
         header: {
+          borderBottomColor: 'borderSubtle',
+          borderBottomWidth: '1px',
           color: 'ink.900',
-          fontWeight: 800,
+          fontSize: 'lg',
+          fontWeight: 700,
+          lineHeight: '1.4',
+          px: 5,
+          py: 4,
         },
         body: {
           color: 'ink.700',
+          px: 5,
+          py: 5,
+        },
+        footer: {
+          borderTopColor: 'borderSubtle',
+          borderTopWidth: '1px',
+          gap: 3,
+          px: 5,
+          py: 4,
         },
         closeButton: {
           color: 'ink.500',
+          insetEnd: 4,
+          top: 3.5,
         },
       },
     },
@@ -773,16 +880,21 @@ export const theme = extendTheme({
       baseStyle: {
         control: {
           borderColor: 'borderDefault',
-          borderRadius: '8px',
+          borderRadius: '4px',
           _checked: {
             bg: 'brand.500',
             borderColor: 'brand.500',
+          },
+          _disabled: {
+            bg: 'controlDisabledBg',
+            borderColor: 'borderSubtle',
+            opacity: 1,
           },
           _focusVisible: {
             boxShadow: 'focusRing',
           },
         },
-        label: { color: 'ink.700' },
+        label: { color: 'ink.700', fontSize: 'sm' },
       },
       defaultProps: {
         colorScheme: 'brand',
@@ -831,9 +943,9 @@ export const theme = extendTheme({
       variants: {
         softRounded: {
           tab: {
-            borderRadius: 'full',
+            borderRadius: 'control',
             color: 'ink.500',
-            fontWeight: 700,
+            fontWeight: 600,
             _selected: {
               bg: 'brand.50',
               color: 'brand.700',
@@ -852,7 +964,7 @@ export const theme = extendTheme({
           letterSpacing: '0',
           lineHeight: '1.35',
           py: 3,
-          textTransform: 'uppercase',
+          textTransform: 'none',
         },
         td: {
           borderColor: 'borderSubtle',
@@ -862,26 +974,54 @@ export const theme = extendTheme({
           py: 3.5,
         },
       },
+      sizes: {
+        sm: {
+          th: { px: 3, py: 2.5 },
+          td: { px: 3, py: 3 },
+        },
+        md: {
+          th: { px: 4, py: 3 },
+          td: { px: 4, py: 3.5 },
+        },
+      },
+      defaultProps: { size: 'sm' },
     },
     Menu: {
       baseStyle: {
         list: {
           bg: 'glassFloatingBg',
           borderColor: 'glassBorderStrong',
-          borderRadius: '18px',
+          borderRadius: 'xl',
           boxShadow: 'floating',
-          p: 2,
+          p: 1.5,
           backdropFilter: floatingGlassBlur,
           WebkitBackdropFilter: floatingGlassBlur,
         },
         item: {
-          borderRadius: '12px',
+          borderRadius: 'control',
           color: 'ink.700',
-          fontWeight: 600,
+          fontSize: 'sm',
+          fontWeight: 500,
+          lineHeight: '1.35',
+          minH: 10,
+          px: 3,
+          py: 2,
+          transition: 'background 160ms ease, color 160ms ease',
           _active: { bg: 'brand.100', color: 'ink.900' },
           _focus: { bg: 'brand.50', color: 'ink.900' },
           _hover: { bg: 'brand.50', color: 'ink.900' },
+          _disabled: {
+            color: 'ink.400',
+            cursor: 'not-allowed',
+            opacity: 1,
+          },
         },
+        command: {
+          color: 'ink.400',
+          fontSize: 'xs',
+          fontWeight: 600,
+        },
+        divider: { borderColor: 'borderSubtle', my: 1 },
       },
     },
     Popover: {
@@ -889,7 +1029,7 @@ export const theme = extendTheme({
         content: {
           bg: 'glassFloatingBg',
           borderColor: 'glassBorderStrong',
-          borderRadius: '18px',
+          borderRadius: 'xl',
           boxShadow: 'floating',
           color: 'ink.700',
           backdropFilter: floatingGlassBlur,
@@ -910,7 +1050,7 @@ export const theme = extendTheme({
           py: 3,
         },
         closeButton: {
-          borderRadius: '12px',
+          borderRadius: 'control',
           insetEnd: 2,
           top: 2,
         },

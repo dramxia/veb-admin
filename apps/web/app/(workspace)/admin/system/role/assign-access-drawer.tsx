@@ -473,7 +473,7 @@ export function AssignAccessDrawer({
             aria-label="关闭访问权限抽屉"
             isDisabled={loading}
           />
-          <DrawerHeader borderBottomWidth="1px" borderColor="ink.100">
+          <DrawerHeader>
             <Stack spacing={2} pr={8}>
               <Text>{locked ? '查看访问权限' : '配置访问权限'}</Text>
               <HStack spacing={2} wrap="wrap">
@@ -802,7 +802,7 @@ export function AssignAccessDrawer({
               </Grid>
             ) : null}
           </DrawerBody>
-          <DrawerFooter gap={3} borderTopWidth="1px" borderColor="ink.100">
+          <DrawerFooter>
             <Button variant="ghost" onClick={handleClose} isDisabled={loading}>
               {locked ? '关闭' : '取消'}
             </Button>

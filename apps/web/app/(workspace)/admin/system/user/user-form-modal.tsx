@@ -20,13 +20,13 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Select,
   SimpleGrid,
   Stack,
 } from '@chakra-ui/react';
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AppSelect } from '@/components/common/app-select';
 
 type RoleSummary = Pick<RoleDto, 'id' | 'code' | 'name'>;
 
@@ -150,13 +150,13 @@ export function UserFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select
+                  <AppSelect
                     name="status"
                     defaultValue={user?.status ?? 'ENABLED'}
                   >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">禁用</option>
-                  </Select>
+                  </AppSelect>
                 </FormControl>
               </SimpleGrid>
 

@@ -11,7 +11,6 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Select,
   SimpleGrid,
   Stack,
   Table,
@@ -27,6 +26,7 @@ import type { ArticleLike, LikeStats } from '@veb/api-contracts';
 import { BarChart3, Heart, Search, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -203,13 +203,13 @@ export function LikeManager({
                   pl={10}
                 />
               </InputGroup>
-              <Select
+              <AppSelect
                 value={articleId}
                 onChange={(event) => {
                   setArticleId(event.target.value);
                   resetPage();
                 }}
-                maxW={{ lg: '220px' }}
+                sx={{ maxW: { lg: '220px' } }}
               >
                 <option value="">全部文章</option>
                 {articles.map((article) => (
@@ -217,7 +217,7 @@ export function LikeManager({
                     {article.title}
                   </option>
                 ))}
-              </Select>
+              </AppSelect>
               <Input
                 type="date"
                 value={from}

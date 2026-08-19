@@ -63,7 +63,7 @@ export function ErrorState({
       <Card w="full" maxW="640px">
         <CardBody p={{ base: 6, md: 8 }}>
           <Stack spacing={6}>
-            <Alert status={status} rounded="2xl" alignItems="flex-start">
+            <Alert status={status} alignItems="flex-start">
               <AlertIcon mt={1} />
               <Stack spacing={1}>
                 <AlertTitle>{eyebrow}</AlertTitle>

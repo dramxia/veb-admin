@@ -130,7 +130,7 @@ export function DataTableCard({
             fontSize: 'xs',
             fontWeight: 700,
             py: 3,
-            textTransform: 'uppercase',
+            textTransform: 'none',
             whiteSpace: 'nowrap',
           },
           '& thead th:first-of-type, & tbody td:first-of-type': {
@@ -175,14 +175,6 @@ export function TableActions({ children, ...props }: StackProps) {
       wrap="nowrap"
       w="fit-content"
       _empty={{ display: 'none' }}
-      sx={{
-        '& > .chakra-button, & > button, & > a': {
-          borderRadius: '12px',
-          h: '36px',
-          minH: '36px',
-          minW: '36px',
-        },
-      }}
       {...props}
     >
       {children}

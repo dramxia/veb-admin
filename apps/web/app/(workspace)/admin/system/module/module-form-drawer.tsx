@@ -18,12 +18,12 @@ import {
   Input,
   NumberInput,
   NumberInputField,
-  Select,
   SimpleGrid,
   Stack,
   Textarea,
 } from '@chakra-ui/react';
 import type { AppModuleDto } from '@veb/api-contracts';
+import { AppSelect } from '@/components/common/app-select';
 
 export type ModulePayload = {
   code?: string;
@@ -163,14 +163,14 @@ export function ModuleFormDrawer({
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select
+                  <AppSelect
                     name="status"
                     defaultValue={module?.status ?? 'ENABLED'}
                     isDisabled={locked || isLoading}
                   >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">停用</option>
-                  </Select>
+                  </AppSelect>
                 </FormControl>
               </SimpleGrid>
             </Stack>

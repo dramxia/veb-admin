@@ -23,7 +23,6 @@ import {
   Input,
   NumberInput,
   NumberInputField,
-  Select,
   SimpleGrid,
   Stack,
   Text,
@@ -31,6 +30,7 @@ import {
 } from '@chakra-ui/react';
 import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
+import { AppSelect } from '@/components/common/app-select';
 import {
   buildMenuHierarchy,
   collectDescendantIds,
@@ -300,7 +300,7 @@ export function MenuFormModal({
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl isRequired>
                     <FormLabel>所属模块</FormLabel>
-                    <Select
+                    <AppSelect
                       value={moduleId}
                       onChange={(event) => {
                         setModuleId(event.target.value);
@@ -314,11 +314,11 @@ export function MenuFormModal({
                           {module.name}
                         </option>
                       ))}
-                    </Select>
+                    </AppSelect>
                   </FormControl>
                   <FormControl isRequired>
                     <FormLabel>类型</FormLabel>
-                    <Select
+                    <AppSelect
                       value={type}
                       onChange={(event) => {
                         const nextType = event.target.value as MenuDto['type'];
@@ -340,7 +340,7 @@ export function MenuFormModal({
                       <option value="PAGE">页面</option>
                       <option value="LINK">外链</option>
                       <option value="BUTTON">按钮</option>
-                    </Select>
+                    </AppSelect>
                   </FormControl>
                   <FormControl isRequired>
                     <FormLabel>
@@ -358,7 +358,7 @@ export function MenuFormModal({
                     isRequired={type === 'BUTTON'}
                   >
                     <FormLabel>父节点</FormLabel>
-                    <Select
+                    <AppSelect
                       value={parentId}
                       onChange={(event) => {
                         setParentId(event.target.value);
@@ -376,7 +376,7 @@ export function MenuFormModal({
                           {getParentOptionLabel(row)}
                         </option>
                       ))}
-                    </Select>
+                    </AppSelect>
                     <FormHelperText>
                       {type === 'BUTTON'
                         ? '按钮只显示同模块页面。'
@@ -508,14 +508,14 @@ export function MenuFormModal({
                   </FormControl>
                   <FormControl>
                     <FormLabel>状态</FormLabel>
-                    <Select
+                    <AppSelect
                       name="status"
                       defaultValue={menu?.status ?? 'ENABLED'}
                       isDisabled={busy}
                     >
                       <option value="ENABLED">启用</option>
                       <option value="DISABLED">停用</option>
-                    </Select>
+                    </AppSelect>
                   </FormControl>
                 </SimpleGrid>
                 {type !== 'BUTTON' ? (

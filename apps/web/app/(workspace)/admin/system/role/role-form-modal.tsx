@@ -20,13 +20,13 @@ import {
   ModalOverlay,
   NumberInput,
   NumberInputField,
-  Select,
   SimpleGrid,
   Stack,
   Textarea,
 } from '@chakra-ui/react';
 import type { RoleDto } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
+import { AppSelect } from '@/components/common/app-select';
 
 type RoleFormPayload = {
   code?: string;
@@ -145,14 +145,14 @@ export function RoleFormModal({
                 </FormControl>
                 <FormControl>
                   <FormLabel>状态</FormLabel>
-                  <Select
+                  <AppSelect
                     name="status"
                     defaultValue={role?.status ?? 'ENABLED'}
                     isDisabled={busy}
                   >
                     <option value="ENABLED">启用</option>
                     <option value="DISABLED">停用</option>
-                  </Select>
+                  </AppSelect>
                 </FormControl>
                 <FormControl>
                   <FormLabel>排序</FormLabel>

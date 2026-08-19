@@ -11,6 +11,18 @@ body {
   background: #f8fbff;
 }
 
+/* Keep native option menus visually aligned with the Chakra control surface. */
+select option,
+select optgroup {
+  background: #ffffff;
+  color: #1e293b;
+}
+
+select option:checked {
+  background: #eef7ff;
+  color: #104cad;
+}
+
 * {
   box-sizing: border-box;
 }

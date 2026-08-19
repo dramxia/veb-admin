@@ -36,7 +36,9 @@ export function AuthButton({
   const resolvedColorScheme =
     colorScheme ?? (intent === 'danger' ? 'red' : 'brand');
   const resolvedColor =
-    intent === 'danger' && resolvedVariant !== 'solid' ? 'red.600' : undefined;
+    intent === 'danger' && resolvedVariant !== 'solid'
+      ? 'statusDanger'
+      : undefined;
   const resolvedAriaLabel = ariaLabel ?? tooltip;
 
   const button = children ? (

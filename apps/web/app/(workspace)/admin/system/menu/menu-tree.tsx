@@ -9,7 +9,6 @@ import {
   Flex,
   HStack,
   Icon,
-  Select,
   Stack,
   Table,
   Tbody,
@@ -35,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -138,10 +138,10 @@ export function MenuTree({
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
-            <Select
+            <AppSelect
               value={moduleFilter}
               onChange={(event) => setModuleFilter(event.target.value)}
-              maxW={{ base: 'full', md: '280px' }}
+              sx={{ maxW: { base: 'full', md: '280px' } }}
               aria-label="按模块筛选菜单和权限"
             >
               <option value="ALL">全部模块</option>
@@ -150,7 +150,7 @@ export function MenuTree({
                   {module.name}
                 </option>
               ))}
-            </Select>
+            </AppSelect>
           </Stack>
         }
         primaryAction={

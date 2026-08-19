@@ -302,7 +302,7 @@ export function UserTable({
                             <Auth code="system:user:delete">
                               <MenuItem
                                 icon={<Icon as={Trash2} boxSize={4} />}
-                                color="red.600"
+                                color="statusDanger"
                                 onClick={() => {
                                   clearError();
                                   setDeletingUser(user);
