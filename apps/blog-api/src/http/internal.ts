@@ -11,9 +11,9 @@ import {
   tagListQuerySchema,
   tagUpdateInputSchema,
 } from '@veb/api-contracts';
-import { ok, readJson, readQuery, withApi } from '@/lib/api';
+import { ParamError } from '@veb/api-kit';
+import { ok, pageOptions, readJson, readQuery, withApi } from '@/lib/api';
 import { parseOptionalDate } from '@/lib/content';
-import { ParamError } from '@/lib/errors';
 import {
   batchDeleteLikes,
   createArticle as createArticleRecord,
@@ -39,13 +39,6 @@ import {
 type IdContext = { params: { id: string } };
 
 const internal = (permission: string) => ({ internal: true, permission });
-
-function pageOptions(query: { page: number; pageSize: number }) {
-  return {
-    ...query,
-    skip: (query.page - 1) * query.pageSize,
-  };
-}
 
 export const listArticles = withApi(async (request) => {
   const query = readQuery(request, adminArticleListQuerySchema);

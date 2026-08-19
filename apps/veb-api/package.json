@@ -19,6 +19,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@veb/api-contracts": "workspace:*",
+    "@veb/api-kit": "workspace:*",
     "@veb/service-auth": "workspace:*",
     "bcryptjs": "^2.4.3",
     "lru-cache": "^10.4.3",

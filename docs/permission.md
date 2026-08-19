@@ -1,16 +1,18 @@
 # 权限体系说明
 
-VEB 使用以模块为分组、以菜单节点为权限资源的分层 RBAC。完整授权链固定为：
+VEB 使用以应用模块分组、以菜单节点承载权限码的 RBAC。当前没有独立的 `Permission`
+模型或权限表，权限资源统一由 `PAGE`、`LINK`、`BUTTON` 三类 `Menu` 表达。
 
 ```text
 创建 AppModule
   -> 在模块内创建 DIR / PAGE / LINK / BUTTON
-  -> 通过 RoleModule + RoleMenu 为角色配置访问权限
-  -> 通过 UserRole 将角色分配给用户
-  -> 用户获得模块入口、页面、按钮和 API 权限
+  -> 通过 RoleModule + RoleMenu 配置角色访问范围
+  -> 通过 UserRole 把角色分配给用户
+  -> 生成用户的模块、页面、按钮和 API 权限快照
 ```
 
-模块只保存稳定标识和展示元数据，不注册模块级入口组件、路径前缀或专属布局。菜单节点同时承担导航和权限资源职责，是唯一的权限资源。前端隐藏只用于改善体验；页面服务端守卫和 API 权限断言才是安全边界。
+前端菜单和按钮隐藏只改善使用体验。Web 服务端页面守卫、VEB API 权限断言，以及 Blog
+内部接口的服务令牌校验才是访问边界。
 
 ## 1. 数据模型
 
@@ -23,84 +25,109 @@ User --< UserRole >-- Role --< RoleModule >-- AppModule
                                    moduleId 一致
 ```
 
-- `AppModule` 保存唯一 `code`、名称、描述、图标、排序、状态和系统标记。
-- `RoleModule(roleId, moduleId)` 表示角色被分配了模块。
-- `Menu` 是模块内唯一的导航及权限资源，类型为 `DIR | PAGE | LINK | BUTTON`。
-- `RoleMenu(roleId, moduleId, menuId)` 只保存 `PAGE`、`LINK` 和 `BUTTON` 授权；目录选中状态由后代授权计算。
-- `RoleMenu(roleId, moduleId)` 复合外键关联 `RoleModule`，`RoleMenu(menuId, moduleId)` 复合外键关联 `Menu`，数据库因此拒绝未分配模块和跨模块节点授权。
-- 用户与角色的现有 `UserRole` 多对多关系保持不变。
+- `AppModule` 是权限和导航的一级分组，只保存稳定编码与展示元数据，不注册 URL 前缀、
+  入口组件或专属布局。
+- `RoleModule(roleId, moduleId)` 表示角色拥有一个模块。
+- `Menu` 是模块内的导航或操作节点，类型为 `DIR | PAGE | LINK | BUTTON`。
+- `RoleMenu(roleId, moduleId, menuId)` 保存角色的 `PAGE`、`LINK`、`BUTTON` 授权；`DIR`
+  不直接授权，其勾选状态和导航展示由后代节点派生。
+- `UserRole(userId, roleId)` 建立用户与角色的多对多关系。
+- `RoleMenu(roleId, moduleId)` 复合外键指向 `RoleModule`，
+  `RoleMenu(menuId, moduleId)` 复合外键指向 `Menu`。数据库会拒绝未分配模块或跨模块的
+  节点授权。
 
 ### 1.1 AppModule
 
-模块是权限和导航的一级分组，不决定 URL，也不加载模块级入口页面。
+| 字段                   | 当前规则                         |
+| ---------------------- | -------------------------------- |
+| `code`                 | 全局唯一，创建后不可修改         |
+| `name` / `description` | 展示名称和说明                   |
+| `icon` / `sort`        | 模块切换器图标和稳定排序         |
+| `status`               | 停用后不再产生有效模块或节点权限 |
+| `isSystem`             | 内置模块保护标记                 |
 
-| 字段                   | 规则                                         |
-| ---------------------- | -------------------------------------------- |
-| `code`                 | 创建时指定的全局唯一稳定标识，创建后不可修改 |
-| `name` / `description` | 展示名称和说明                               |
-| `icon` / `sort`        | 模块切换器的图标和稳定排序                   |
-| `status`               | 停用后模块、节点和权限立即失效               |
-| `isSystem`             | 内置模块保护标记                             |
-
-模块列表分别统计导航节点数（`DIR/PAGE/LINK`）、按钮数（`BUTTON`）和角色数。没有可配置入口页面的模块显示“待配置”；已授权但后来失去可用入口的模块显示“缺少可用入口”。
+模块管理列表分别统计导航节点数（`DIR/PAGE/LINK`）、按钮数和已关联角色数；导航节点数为
+零时显示“待配置菜单”。角色访问权限抽屉会对已选择但没有可用页面入口的模块显示“缺少可用
+入口”。内置模块只允许修改名称、图标和排序，不能停用或删除。
 
 ### 1.2 Menu 类型
 
-| 类型     | 允许父级        | 必填字段                                | 必须为空或固定的字段                                      | 行为                              |
-| -------- | --------------- | --------------------------------------- | --------------------------------------------------------- | --------------------------------- |
-| `DIR`    | 根节点或 `DIR`  | 名称                                    | `path`、`component`、`externalUrl`、`permissionCode` 为空 | 仅组织导航，不直接授权            |
-| `PAGE`   | 根节点或 `DIR`  | `path`、`component`、`permissionCode`   | `externalUrl` 为空                                        | 内部页面，可导航且可作为模块落点  |
-| `LINK`   | 根节点或 `DIR`  | HTTP(S) `externalUrl`、`permissionCode` | `path`、`component` 为空                                  | 外链导航，不作为模块落点          |
-| `BUTTON` | 必须直属 `PAGE` | `parentId`、`permissionCode`            | 路由、组件、图标、外链为空，`visible=false`               | 按钮、操作及 API 权限，不进入导航 |
+| 类型     | 允许父级        | 必填字段                                | 固定约束                                  | 作用                             |
+| -------- | --------------- | --------------------------------------- | ----------------------------------------- | -------------------------------- |
+| `DIR`    | 根节点或 `DIR`  | 名称                                    | 无路径、组件、外链和权限码                | 组织导航，不直接授权             |
+| `PAGE`   | 根节点或 `DIR`  | `path`、`component`、`permissionCode`   | 无外链                                    | 内部页面，可导航、可作为模块入口 |
+| `LINK`   | 根节点或 `DIR`  | HTTP(S) `externalUrl`、`permissionCode` | 无路径和组件                              | 外部导航，不作为模块入口         |
+| `BUTTON` | 必须直属 `PAGE` | `parentId`、`permissionCode`            | 无路径、组件、图标和外链，`visible=false` | UI 操作和 API 权限，不进入导航   |
 
-通用字段还包括 `moduleId`、`name`、`description`、`sort`、`status` 和 `isSystem`。导航类型可以配置图标和可见性。
+通用字段包括 `moduleId`、`name`、`description`、`sort`、`status` 和 `isSystem`；
+`DIR/PAGE/LINK` 还可以配置图标和导航可见性。
 
-### 1.3 菜单约束
+### 1.3 Menu 约束
 
 - `moduleId` 和 `type` 创建后不可修改。
-- 父级只能在同一模块内按类型规则移动；服务层检测循环。
-- `Menu(parentId, moduleId)` 到 `Menu(id, moduleId)` 使用复合自关联，数据库拒绝跨模块父子和孤儿。
-- 导航最多四级，`BUTTON` 不计入导航深度。
-- `PAGE.path` 是规范绝对路径且全局唯一。禁止查询串、片段、反斜杠、百分号编码、重复斜杠、尾斜杠和系统保留路径。
-- `PAGE/LINK/BUTTON.permissionCode` 必填且全局唯一；`DIR` 不设置权限码。
-- 权限码沿用 `域:对象:操作` 格式，例如 `system:user:view`、`system:user:delete` 和 `system:role:assign-access`。
-- 有子节点的菜单不能删除。删除叶子节点时，外键级联删除对应 `RoleMenu`；内置节点继续受保护。
+- 父级必须属于同一模块；`DIR/PAGE/LINK` 只能放在根节点或 `DIR` 下，`BUTTON` 必须直属
+  `PAGE`。服务层同时拒绝父级循环。
+- 导航深度最多四级，`BUTTON` 不计入导航深度。
+- `PAGE.path` 是全局唯一的规范绝对路径。查询串、片段、反斜杠、百分号编码、重复斜杠、
+  尾斜杠，以及 `/`、`/login`、`/profile`、`/api/**`、`/articles/**`、`/_next/**` 等
+  系统路径不可使用。
+- `PAGE/LINK/BUTTON.permissionCode` 必填且全局唯一。格式是两个或更多以冒号分隔的小写
+  段：首段只允许数字和小写字母，后续段还允许连字符，例如 `dashboard:view`、
+  `system:user:view`、`system:role:assign-access`。
+- 有子节点的菜单不能删除。删除自定义叶子节点时，数据库级联删除对应 `RoleMenu`；内置
+  菜单不可删除，且只允许修改名称和图标。
+- `PAGE.component` 是 Web 页面 manifest 的键。VEB API 保存菜单时只校验非空，不校验该
+  键是否已注册；授权页面的键未注册时，Web 在渲染阶段返回 404。
 
-页面组件仍由 `PAGE.component` 与 Web 页面 manifest 映射；模块本身不参与组件加载。
+## 2. 有效授权
 
-## 2. 有效授权计算
-
-普通用户的授权必须按角色独立计算，再对各角色结果取并集：
+普通用户按角色独立计算权限，再对各启用角色的结果取并集：
 
 ```text
-角色有效模块 = 该启用角色的 RoleModule 中仍处于 ENABLED 的模块
-角色有效节点 = 该角色 RoleMenu 中属于角色有效模块、且自身及祖先均 ENABLED 的节点
-用户有效模块/节点/权限码 = 各启用角色有效结果的并集
+角色有效模块 = 该角色 RoleModule 中仍为 ENABLED 的 AppModule
+角色有效节点 = 该角色 RoleMenu 中属于角色有效模块，且自身与祖先均为 ENABLED 的节点
+用户有效模块、角色码、权限码 = 各启用角色有效结果的并集
 ```
 
-只有同一个角色同时拥有 `RoleModule` 和对应 `RoleMenu`，节点权限才生效。不得用角色 A 的模块授权与角色 B 的节点授权拼接访问权；复合外键和逐角色快照计算共同维持这条规则。
+只有同一个角色同时拥有模块和对应节点时，节点权限才生效。角色 A 的 `RoleModule` 不能与
+角色 B 的 `RoleMenu` 拼接成权限；复合外键和逐角色快照计算共同保证这条规则。
 
-`permissionCodes` 是对外鉴权快照，不是独立数据源。系统从有效 `PAGE/LINK/BUTTON.permissionCode` 生成它，因此现有 `<Auth>`、`useHasPermission` 和 `requirePermission` 调用方式不变。
+`permissionCodes` 从有效的 `PAGE/LINK/BUTTON.permissionCode` 生成，不是独立数据源。
+用户、角色、模块、节点或节点任一祖先停用后，相关授权在下一次服务端权限计算时失效。
 
-### 2.1 状态与可见性
+### 2.1 可见性
 
-- 用户、角色或模块停用后，相关授权在下一次请求立即失效。
-- 节点自身或任一祖先 `status=DISABLED` 时，其页面、按钮和 API 权限全部失效。
-- `visible=false` 只影响导航和模块落点，不撤销已授权页面的直接访问和其有效权限码。
-- 若隐藏或停用导致模块没有启用、可见、已授权的 `PAGE`，导航临时移除该模块，不会回退到未授权页面；角色管理界面标记“缺少可用入口”。
+`visible` 不参与权限码计算，只参与导航和模块入口计算：
+
+- 已授权的 `PAGE` 设为 `visible=false` 后会从导航消失，但仍可直接访问，其权限码和有效
+  `BUTTON` 权限仍然生效。
+- 节点任一祖先不可见时，该节点也不进入导航。
+- 模块没有启用、可见、已授权且祖先有效的 `PAGE` 时，不进入用户导航，也不会回退到未
+  授权页面。
 
 ### 2.2 superadmin
 
-`role.code = 'superadmin'` 时，系统隐式授予全部启用模块及其全部有效节点，不依赖显式 `RoleModule` 或 `RoleMenu`。角色详情返回计算结果用于展示；访问权限抽屉只读，服务端也拒绝修改。
+启用的 `role.code = 'superadmin'` 会隐式获得全部启用模块，以及这些模块中自身和祖先均
+启用、带权限码的全部 `PAGE/LINK/BUTTON`，不依赖显式 `RoleModule` 或 `RoleMenu`。
+可见性仍只影响导航。角色访问详情返回这份计算结果用于展示，管理端为只读，服务端也拒绝
+修改其访问范围。
+
+### 2.3 一致性
+
+权限快照当前不做跨请求缓存。导航、页面门禁、Auth.js JWT 刷新和 API 权限检查都会重新从
+VEB PostgreSQL 计算有效授权；授权事务提交后，后续服务端请求会读取新结果。
 
 ## 3. 角色访问权限接口
 
-角色的模块和节点由一个接口、一个请求、一个事务全量替换：
+读取和全量替换角色访问范围使用同一路径：
 
 ```http
+GET /api/v1/system/roles/:id/access
 PUT /api/v1/system/roles/:id/access
 Content-Type: application/json
 ```
+
+`PUT` 请求示例：
 
 ```json
 {
@@ -113,30 +140,31 @@ Content-Type: application/json
 }
 ```
 
-`menuIds` 仅允许 `PAGE`、`LINK` 和 `BUTTON`。服务端先对模块和节点 ID 去重，再执行以下校验：
+请求中的重复模块和节点 ID 会先去重。服务端随后校验：
 
-- 角色、模块及节点存在，且节点属于请求中的模块。
-- 请求不包含 `DIR` 或缺少权限码的节点。
-- 每个 `BUTTON` 的直属父 `PAGE` 同时在该模块的 `menuIds` 中。
-- 每个已分配模块至少有一个已授权、启用、可见且祖先有效的 `PAGE`。
-- `superadmin` 不能被显式修改。
+- 角色、模块和节点存在，且节点属于声明的模块。
+- `menuIds` 只包含带权限码的 `PAGE`、`LINK` 和 `BUTTON`，不包含 `DIR`。
+- 每个 `BUTTON` 的直属父 `PAGE` 也在同一模块的 `menuIds` 中。
+- 每个已分配模块为启用状态，并至少包含一个已授权、自身及祖先启用且可见的 `PAGE`。
+- `superadmin` 的访问范围不能显式修改。
 
-任一校验失败时请求整体失败。校验通过后，服务端在 Serializable 事务中先删除该角色现有 `RoleMenu` 和 `RoleModule`，再写入完整新集合；并发序列化失败按有限次数重试。取消模块会在同一事务中撤销该模块的所有节点授权。
+空的 `modules` 会撤销该角色的全部模块和节点授权。校验成功后，服务端在 Serializable 事务
+中先删除旧 `RoleMenu`、`RoleModule`，再写入完整新集合；序列化冲突最多尝试三次。接口由
+`system:role:assign-access` 保护，并写入 `role.assign-access` 操作日志及变更前后的模块和
+节点 ID。
 
-接口使用 `system:role:assign-access`，写入 `role.assign-access` 审计事件，并记录变更前后的模块与节点 ID。
+### 3.1 管理端勾选规则
 
-### 3.1 勾选联动
+- 勾选 `BUTTON` 时自动补齐直属父 `PAGE`。
+- 勾选 `PAGE` 时自动选中该页面下当前有效的 `BUTTON`；取消 `PAGE` 时清除其全部按钮。
+- 勾选 `DIR` 只批量选择其有效后代 `PAGE` 和 `LINK`，不会批量选择 `BUTTON`；取消目录
+  会清除后代页面、外链及这些页面下的按钮。
+- 取消已经持久化的模块前需要确认，并清空该模块的节点草稿。
+- 切换模块会保留当前抽屉中的未保存草稿；保存前前端检查入口页面，服务端仍执行最终校验。
 
-- 勾选按钮时，管理端自动补齐直属父页面。
-- 取消页面时，管理端清除该页面下全部按钮。
-- 勾选页面不会自动授予按钮。
-- “全选本组菜单”只选择页面和外链，按钮必须逐项选择。
-- 取消已有授权的模块前二次确认，并清空该模块草稿。
-- 保存前逐模块提示缺少入口页面；服务端仍执行最终校验。
+## 4. 导航与页面路由
 
-## 4. 导航与路由
-
-`GET /api/v1/navigation` 返回用户级导航：
+`GET /api/v1/navigation` 返回当前用户的导航和鉴权快照：
 
 ```ts
 {
@@ -155,22 +183,33 @@ Content-Type: application/json
 }
 ```
 
-- 模块按 `sort -> name -> id` 排序，只返回启用且存在可用落点的模块。
-- 每个模块先按同样规则稳定排序菜单树，再做深度优先遍历；首个启用、可见、已授权的 `PAGE.path` 是 `landingPath`。
-- `LINK` 和 `BUTTON` 永远不能成为落点，`BUTTON` 永远不进入导航树。
-- `/` 跳转到排序第一的可用模块 `landingPath`。
-- 模块切换器和“首页”动作都使用目标模块的 `landingPath`。
-- 所有模块共用当前工作区 Header 和内容布局；只有一个可导航入口的模块隐藏侧栏及其切换按钮。
-- 内置仪表盘模块使用 `/dashboard`；后台管理移除仪表盘菜单，点击后台管理进入其首个可访问页面，`/admin` 直接跳转到该页面。
-- `/profile` 是登录后全局页面，不属于模块或菜单。
+- 模块和每级菜单均按 `sort -> name -> id` 排序。
+- 导航只保留自身及祖先启用、可见的授权节点，始终排除 `BUTTON`，并剪除没有后代的
+  `DIR`。
+- 模块树深度优先遇到的第一个有效 `PAGE.path` 是 `landingPath`；`LINK` 不参与落点计算，
+  固定入口 `/admin` 也不会被选为模块落点。
+- 没有 `landingPath` 的模块不进入导航。`/` 跳转到排序第一的模块落点，模块切换器跳转到
+  目标模块落点；`/admin` 跳转到 `code=admin` 模块的落点，无落点时返回 403。
+- `/profile` 是登录后的全局页面，不属于模块或菜单。
 
-页面请求先在全部已知 `PAGE.path` 中进行最长前缀匹配，再校验用户授权。没有已知页面返回 404；页面存在但用户未授权返回 403。已授权页面的 `component` 未在页面 manifest 中注册时返回 404。
+页面守卫通过 `GET /api/v1/navigation/page?path=...` 解析请求：
 
-## 5. 三层校验
+1. 先精确匹配 `PAGE.path`。
+2. 没有精确匹配时，只允许两段及以上的页面路径匹配详情子路径，并选择最长前缀；
+   `/dashboard` 这类单段路径只允许精确匹配。
+3. 页面不存在返回 404；页面存在但当前用户没有同角色模块和页面权限时返回 403。
+4. VEB API 返回已授权页面的 `component`，Web 找不到对应 manifest loader 时返回 404。
 
-### 5.1 前端按钮
+`/admin` 是固定重定向入口，不应作为模块唯一的 `PAGE`。当前角色访问接口的入口校验只检查
+页面是否启用、可见且已授权，并未单独排除 `/admin`；配置时必须至少提供另一个实际页面
+路径，否则该模块不会进入导航。
 
-前端基于有效权限码改善 UX，但不能作为安全边界：
+## 5. 权限执行边界
+
+### 5.1 前端控件
+
+`<Auth>`、`<AuthButton>` 和 `useHasPermission` 使用导航响应中的有效权限码控制展示。字符串
+数组采用“任一满足”语义：
 
 ```tsx
 <Auth code="system:user:create">
@@ -178,52 +217,41 @@ Content-Type: application/json
 </Auth>
 ```
 
-### 5.2 页面路由
+这些控件不是安全边界，不能替代服务端校验。
 
-工作区服务端路由先解析已知 `PAGE`，再检查用户是否通过同一角色获得模块和页面节点。直接粘贴 URL 不能绕过授权。
+### 5.2 Web 页面
 
-### 5.3 API
+Web middleware 会提前请求页面解析接口并把未登录、无权限和不存在分别处理为登录跳转、403
+和 404；服务端 layout/template 会再次获取页面授权与 manifest loader。早期探测失败时仍以
+服务端渲染结果为准，直接粘贴 URL 不能绕过权限。
 
-所有受控接口必须使用服务端权限断言：
+### 5.3 VEB API
+
+受控接口必须使用服务端权限断言：
 
 ```ts
 await requirePermission('system:user:create');
 await requirePermission(['system:user:update', 'system:user:delete']);
 ```
 
-`requirePermission` 读取按角色计算的有效 `permissionCodes`。按钮与写接口应使用同一权限码，保证 UI 和 API 行为一致。
+数组同样是 OR 语义。`requirePermission` 先要求有效 session，再根据用户 ID 重新计算权限
+快照；按钮和对应写接口应使用同一权限码。
 
-## 6. 管理流程
+### 5.4 Blog 管理接口
 
-### 6.1 创建模块
+浏览器只调用 VEB API 的 `/api/v1/blog/**`。VEB BFF 根据 method 和 path 映射 `content:*`
+权限并执行 `assertPermission`，再签发绑定 permission、method、内部 path、body hash、
+request ID 和用户身份的短期 RS256 服务令牌。Blog API 的 `/api/internal/v1/**` 会再次验证
+令牌及目标接口要求的权限，不读取浏览器 session，也不访问 VEB PostgreSQL。
 
-在 `/admin/system/module` 仅填写编码、名称、描述、图标、排序和状态。模块列表展示导航节点、按钮、角色数量和入口配置状态。模块编码创建后不可修改；内置模块受删除和停用保护。
+## 6. 管理入口
 
-### 6.2 配置菜单与权限
+- `/admin/system/module`：维护模块元数据。模块本身不配置 URL 或组件。
+- `/admin/system/menu`：按模块维护完整菜单树和权限码。页面组件标识是自由文本，保存前后
+  都应与 `apps/web/app/_modules/admin-page-manifest.ts` 同步。
+- `/admin/system/role`：通过“配置访问权限”全量维护角色的模块和节点，通过“分配用户”
+  全量维护该角色的用户。
+- 用户管理中的“分配角色”全量维护指定用户的 `UserRole`。
 
-在 `/admin/system/menu` 选择模块并维护完整树：
-
-1. 创建目录、页面或外链。
-2. 在页面行使用“新增按钮”，父页面自动锁定。
-3. 页面组件键必须已存在于 Web 页面 manifest。
-4. 为 `PAGE/LINK/BUTTON` 设置全局唯一权限码。
-
-菜单和权限在同一页面管理，不再维护权限列表、权限下拉绑定或独立权限页面。
-
-### 6.3 配置角色
-
-角色列表只有一个“配置访问权限”入口。抽屉左侧选择模块，右侧勾选当前模块的页面、外链和按钮；切换模块保留未保存草稿。目录的选中和半选状态由后代节点派生。保存使用单一访问权限接口。
-
-### 6.4 分配用户
-
-用户新增、编辑和“分配角色”流程保持不变。授权保存或撤销后刷新导航，下一次请求使用最新权限快照。
-
-## 7. 数据初始化与发布
-
-项目尚未上线，数据库由单一初始化迁移 `20260818000000_init` 建表，只描述当前最终 RBAC 模型，不包含历史数据搬迁逻辑。生产部署先运行 `prisma migrate deploy`，再按需显式执行 seed 写入内置模块、菜单与超级管理员授权。
-
-权限模型已统一为菜单节点（`DIR | PAGE | LINK | BUTTON`）：权限资源就是 `BUTTON Menu`，模块授权存 `RoleModule`，节点授权存 `RoleMenu`，不再有独立的权限资源表。
-
-## 8. 授权一致性
-
-授权快照当前不做跨请求缓存。导航、页面门禁、Auth.js JWT 和 API 权限检查每次从 PostgreSQL 主库重新计算，所以撤权事务提交后，任一实例的下一次请求都会使用新结果。后续如引入缓存，必须在数据库维护授权版本，并与用户角色、角色模块、角色节点、模块和菜单变更在同一事务递增；读取前校验版本，并用并发测试证明旧快照不会在失效后回填。
+修改授权模型时，应同步检查 Prisma Schema、`@veb/api-contracts`、VEB API 服务与路由、Web
+页面守卫和权限控件、seed 以及相关单元测试和 E2E 测试。

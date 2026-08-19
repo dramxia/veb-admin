@@ -1,90 +1,168 @@
-# 部署说明
+# 首次线上部署
 
-## 1. 服务
+> **当前状态：项目尚未上线。** 本文描述首次上线的目标流程，不代表已经存在生产实例、
+> 生产数据库、真实流量或自动发布链路。没有目标主机、域名、证书、密钥、备份和 smoke
+> test 记录时，不得将构建或 CI 通过描述为“已上线”。
 
-生产拓扑包含 Web、VEB API、Blog API、Web/Blog public Nginx 网关和两套 PostgreSQL。Compose 对外只发布两个入口网关；Web、VEB API 和原始 Blog API 不映射宿主机端口。为支持 `pnpm dev:infra` 后从宿主机运行开发进程，两套数据库仅绑定到 `127.0.0.1`，不会监听外部网卡；不需要宿主机运维入口的生产部署应通过 Compose override 删除这两个回环端口映射。
+生产发布由运维人员在目标主机手动执行 Docker Compose。CI 只负责依赖安装、Prisma
+Client 生成、lint、类型检查、测试、构建、迁移校验和镜像构建验证，不执行线上发布。
 
-固定应用端口：
+## 1. 部署边界与前置条件
 
-- Web：1066（仅 Compose 私网）
-- Web public 网关：`${WEB_PORT:-1066}`（宿主机）
-- VEB API：1067
-- Blog API：1068（仅 Compose 私网）
-- Blog public 网关：`${BLOG_API_PORT:-1068}`（宿主机）
+首次部署前必须准备：
 
-public 网关只转发 `/api/v1/public/**` 以及 `/api/health/live`、`/api/health/ready`，其他路径直接返回 404。VEB API 通过 `blog-api:1068` 调用私网管理接口，不能经 public 网关访问。
+1. 支持 Docker Compose 的目标主机、持久化磁盘，以及可恢复的数据库和上传文件备份位置。
+2. Web 与 Blog 的公网域名、DNS、TLS 证书和外层入口策略。仓库内的两个 Nginx gateway
+   只负责路径隔离和反向代理，不提供完整的公网 DNS 或 TLS 配置。
+3. 固定待发布的 Git commit，并为 Web、VEB API、Blog API 三个应用镜像建立可追踪的
+   tag 或 digest。`deploy/compose-deploy.sh` 只会现场构建并启动服务，不会创建发布版本或
+   自动回滚。
+4. 从安全的密钥来源生成独立的生产配置。仓库内 `.env.production` 只表达配置结构；
+   无论其中的值看起来是否完整，都不能视为已审核、可直接使用的生产配置，也不得把真实
+   生产密钥提交到仓库。
+5. 在空数据库上验证两套最新 init migration，并用最新 seed 验证初始化后的应用状态。
+   项目未上线，不维护旧结构升级、历史数据搬迁或兼容回填流程。
 
-两个 public 网关都会覆盖客户端提供的 IP 转发头并写入带 `requestId` 的结构化访问日志。Web 运行时代理默认丢弃浏览器自带的 `Forwarded`、`X-Forwarded-For`、`X-Real-IP` 和 `CF-Connecting-IP`；只有在 `WEB_TRUST_PROXY_HEADERS=true` 时才采用入口写入的 IP 和协议，因此该开关只能用于原始 Web 端口不对外开放、且入口明确覆盖这些头的部署。
+Compose 对外只应发布 `web-public` 和 `blog-public`：
 
-Web 使用运行时同源代理。`VEB_API_INTERNAL_URL` 和 `BLOG_API_INTERNAL_URL` 只需在容器运行时提供，可以在不重建 Web 镜像的情况下切换上游；公开博客路径发送到 Blog API，其余 `/api/**` 请求发送到 VEB API。
+- `web-public`：Web 页面与同源 API 入口。
+- `blog-public`：只放行 `/api/v1/public/**`、`/api/health/live` 和
+  `/api/health/ready`，其他路径返回 404。
+- `web`、`veb-api` 和原始 `blog-api`：只在 Compose 私网可达。
+- 两套 PostgreSQL：当前 Compose 为本地开发保留了 `127.0.0.1` 回环端口映射；生产主机
+  不需要宿主机数据库入口时，应通过经过审查的 Compose override 删除这些映射。
 
-Compose 要求显式提供 `VEB_DATABASE_URL` 和 `BLOG_DATABASE_URL`，并分别映射为各 API 与 migration job 的 `DATABASE_URL`。连接串必须使用容器服务名 `veb-postgres` 或 `blog-postgres`。若用户名或密码含 `@`、`:`、`/`、`?`、`#`、`%` 等 URI 保留字符，必须先进行 percent-encode；`VEB_DB_PASSWORD` 和 `BLOG_DB_PASSWORD` 仍填写 PostgreSQL 接收的原始密码，不能填写编码后的值。
+数据库和上传文件分别保存在命名 volume 中。删除本地或目标主机上的数据库 volume、上传
+volume 或上传目录前，必须先获得明确确认。
 
-## 2. 数据库迁移
+## 2. 生产配置
 
-每个 API 只管理自己的 Prisma schema 和 migration history。部署顺序为：
-
-1. 备份数据库与上传目录。
-2. 先执行 VEB、再执行 Blog 的 `prisma migrate deploy`；根脚本与 Compose 都按此顺序串行运行。
-3. 启动两个 API 并等待 ready health。
-4. 启动 Web 并执行 smoke test。
-
-禁止在生产使用 `prisma db push`。Seed 必须作为显式运维操作运行，不能随副本启动。
-
-## 3. 密钥
-
-- `AUTH_SECRET` 只供 VEB Auth.js 使用。
-- `SERVICE_AUTH_PRIVATE_KEY` 只配置在 VEB API。
-- `SERVICE_AUTH_PUBLIC_KEY` 用于 VEB 的 JWKS 输出。
-- Blog API 通过 `SERVICE_AUTH_JWKS_URL` 获取并缓存公钥。
-- `BLOG_VISITOR_HASH_SECRET` 独立管理。
-- `SEED_ADMIN_PASSWORD` 只在显式初始化 VEB 种子数据时提供；当前项目初始化密码为 `123456`，显式执行 seed 会同步 `admin` 管理员密码。
-
-RSA 密钥应由密钥管理服务注入。当前 VEB JWKS 端点只发布 `SERVICE_AUTH_PUBLIC_KEY` 对应的单个 key，不支持同时发布新旧 key，因此不能无中断轮换。轮换必须安排短暂维护窗口，同时替换公私钥与 `SERVICE_AUTH_KEY_ID`，并重启 VEB API 和 Blog API；在实现多 key JWKS 前不要使用“先发布双 key”的轮换流程。
-
-## 4. 健康检查
-
-两个 API 均提供：
-
-- `/api/health/live`：进程存活。
-- `/api/health/ready`：当前服务数据库及必要运行时配置可用。
-
-下游服务失败不应影响 ready 状态，避免单一依赖导致全部实例被摘除。
-
-Blog public 网关只暴露 Blog 的两个健康路径；VEB 健康路径仅在 Compose 私网可访问，可通过容器编排器或 `docker compose exec` 检查。
-
-## 5. 回滚
-
-项目尚未上线，不存在需要回滚保护的历史数据。上线后若需回滚，恢复上一个镜像并还原部署前的数据库备份即可。
-
-## 6. 部署与磁盘回收
-
-生产发布统一使用：
+建议由密钥管理或部署系统在仓库外生成环境文件，例如：
 
 ```bash
-pnpm compose:deploy
+export COMPOSE_ENV_FILE=/secure/path/veb.production.env
 ```
 
-该命令默认使用根目录的 `.env.production`。仓库中的值仅用于描述生产配置结构，部署前
-必须替换所有 `replace-before-deploy`、示例域名和 PEM 占位符。若生产配置由部署系统
-生成到其他路径，可通过 `COMPOSE_ENV_FILE=/path/to/file pnpm compose:deploy` 指定，
-无需创建或覆盖通用 `.env`。
+部署前至少校验以下配置：
 
-脚本先构建并启动 Compose 项目，等待所有长期服务 ready，成功后才执行以下回收：
+| 类别        | 配置                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| VEB 数据库  | `VEB_DB_NAME`、`VEB_DB_USER`、`VEB_DB_PASSWORD`、`VEB_DATABASE_URL`                         |
+| Blog 数据库 | `BLOG_DB_NAME`、`BLOG_DB_USER`、`BLOG_DB_PASSWORD`、`BLOG_DATABASE_URL`                     |
+| 登录会话    | `AUTH_SECRET`、指向 Web 公网地址的 `AUTH_URL`                                               |
+| 访客标识    | 独立的 `BLOG_VISITOR_HASH_SECRET`                                                           |
+| 服务鉴权    | 匹配的 `SERVICE_AUTH_PRIVATE_KEY`、`SERVICE_AUTH_PUBLIC_KEY` 与唯一的 `SERVICE_AUTH_KEY_ID` |
+| 对外端口    | `WEB_PORT`、`BLOG_API_PORT`                                                                 |
+| 私网上游    | `VEB_API_INTERNAL_URL`、`BLOG_API_INTERNAL_URL`                                             |
 
-- 删除已成功退出的 `veb-migrate` 与 `blog-migrate` 容器。
-- 删除超过 24 小时的悬挂镜像；不会删除有 tag 的回滚镜像、运行中镜像或 volume。
-- 将宿主机 BuildKit 缓存限制在 `8GB`。构建缓存由 Docker daemon 全局管理，因此这项上限同时适用于宿主机上的其他项目；它只影响后续构建速度，不影响运行中的容器。
+数据库 URL 在容器内必须使用 `veb-postgres` 和 `blog-postgres` 服务名。URL 用户名或密码
+中的 `@`、`:`、`/`、`?`、`#`、`%` 等保留字符必须 percent-encode；
+`VEB_DB_PASSWORD` 和 `BLOG_DB_PASSWORD` 则保留 PostgreSQL 接收的原始值。RSA 私钥只
+提供给 VEB API，Blog API 只通过 VEB API 的内部 JWKS 获取公钥。
 
-可通过 `COMPOSE_WAIT_TIMEOUT`、`DOCKER_IMAGE_PRUNE_UNTIL` 和 `DOCKER_BUILD_CACHE_MAX_SIZE` 调整默认值。旧版 Docker 不支持缓存容量上限时，脚本回退为删除超过 `DOCKER_BUILD_CACHE_MAX_AGE`（默认 168 小时）的缓存。设置 `DOCKER_DEPLOY_PRUNE=0` 可跳过镜像与构建缓存回收，但仍会删除成功退出的 migration 容器。
-
-首次启用前可在部署成功后执行一次即时回收：
+先执行只校验、不输出展开后密钥内容的 Compose 配置检查：
 
 ```bash
-docker compose --env-file .env.production rm --force veb-migrate blog-migrate
-docker image prune --force
-docker builder prune --force --max-used-space 8GB
-docker system df
+docker compose --env-file "$COMPOSE_ENV_FILE" config --quiet
 ```
 
-不要给以上命令增加 `--volumes`；数据库和上传文件都保存在命名 volume 中。
+`WEB_TRUST_PROXY_HEADERS=true` 只能用于原始 Web 端口不对外开放、且可信入口会覆盖客户端
+伪造的 `Forwarded`、`X-Forwarded-For`、`X-Real-IP` 和 `CF-Connecting-IP` 的部署。
+当前 `docker-compose.yml` 满足这一入口覆盖要求；新增外层代理时必须继续保持该边界。
+
+## 3. 发布前验证
+
+以下检查可由受信 CI 或目标主机完成，但结果必须绑定到同一个待发布 commit：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm db:generate
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+docker compose --env-file "$COMPOSE_ENV_FILE" build
+```
+
+数据库验证必须从空库应用当前 init migration。不要使用 `prisma db push`，不要为已删除的
+旧 schema、旧字段或旧数据编写升级和兼容步骤。
+
+## 4. 执行部署
+
+在固定 commit 的仓库目录中执行：
+
+```bash
+COMPOSE_ENV_FILE="$COMPOSE_ENV_FILE" pnpm compose:deploy
+```
+
+Compose 的关键依赖顺序为：
+
+```text
+veb-postgres healthy -> veb-migrate completed -> veb-api healthy -> web healthy -> web-public healthy
+                              |
+blog-postgres healthy --------+-> blog-migrate completed -> blog-api healthy -> blog-public healthy
+```
+
+`veb-migrate` 和 `blog-migrate` 串行执行 `prisma migrate deploy`；每个 API 只能在自己依赖的
+迁移成功后启动。脚本使用 `docker compose up --wait` 等待全部长期服务健康，默认超时为
+300 秒。任一步失败都应停止部署并检查对应服务日志，不能跳过迁移强行启动：
+
+```bash
+docker compose --env-file "$COMPOSE_ENV_FILE" ps
+docker compose --env-file "$COMPOSE_ENV_FILE" logs --tail=200
+```
+
+迁移只负责建表，不会隐式执行 seed。
+
+## 5. 首次初始化
+
+Seed 是显式初始化操作，不属于每次部署流程。VEB seed 会同步内置模块、菜单、超级管理员
+授权和 `admin` 密码；Blog 当前没有需要初始化的业务数据。
+
+当前根 `pnpm db:seed` 及两个应用的 `db:seed` 都明确读取开发配置，**不能用于生产环境**。
+首次上线前必须先实现并审查一个明确读取生产配置的 VEB seed 入口，然后在目标环境按需执行。
+执行后应立即修改并验证管理员凭据，且不得把初始密码写入本文或提交到仓库。
+
+## 6. Smoke Test 与暴露面检查
+
+部署命令成功后至少验证：
+
+1. Web public 与 Blog public 的 `/api/health/live`、`/api/health/ready` 返回成功；VEB API
+   与 Blog API 的 ready 只检查各自数据库和必要配置，不因另一个业务服务不可用而失败。
+2. Web 登录、session、RBAC 页面守卫和受保护 API 权限符合预期。
+3. 文件上传和读取正常，文件实际写入持久化的 `veb-uploads` volume。
+4. 博客管理可以创建、编辑和发布文章；公开列表与详情只返回已发布且发布时间不晚于当前
+   时间的内容。
+5. 浏览器经 Web 同源入口访问公开博客 API，外部客户端经 Blog public gateway 访问公开
+   API，响应契约和 `X-Request-Id` 传递正常。
+6. 宿主机和公网不能直接访问原始 Web、VEB API、Blog API、数据库及 Blog 内部管理接口；
+   Blog public gateway 对 `/api/internal/v1/**` 和其他非白名单路径返回 404。
+7. Blog API 或 Blog 数据库不可用时，VEB 系统管理仍可用且博客管理返回 `50301`；VEB API
+   不可用时，Blog public API 仍可用。
+
+## 7. 发布记录与后续规则
+
+首次上线验收通过后，记录以下信息：
+
+- Git commit、三个应用镜像的 tag/digest，以及 Compose 配置版本。
+- 两套 migration 的执行结果和 seed 执行记录。
+- DNS/TLS、备份位置与恢复验证结果。
+- smoke test 结果、时间和关联的 `X-Request-Id`。
+
+随后立即更新仓库中的“尚未上线”状态，并根据实际生产约束制定备份、增量迁移、兼容和回滚
+规则。首次上线前不维护假设性的历史升级或回滚方案。
+
+## 8. 部署后清理
+
+`pnpm compose:deploy` 仅在全部长期服务 ready 后执行清理：
+
+- 删除已经成功退出的 `veb-migrate` 和 `blog-migrate` 容器。
+- 删除超过 `DOCKER_IMAGE_PRUNE_UNTIL`（默认 `24h`）的悬挂镜像，不删除带 tag 的镜像、
+  运行中镜像或 volume。
+- 将宿主机全局 BuildKit 缓存限制为 `DOCKER_BUILD_CACHE_MAX_SIZE`（默认 `8GB`）；旧版
+  Docker 不支持容量上限时，改为删除超过 `DOCKER_BUILD_CACHE_MAX_AGE`（默认 `168h`）
+  的缓存。
+
+设置 `DOCKER_DEPLOY_PRUNE=0` 可跳过镜像和构建缓存清理，但仍会删除成功退出的 migration
+容器。不要给清理命令增加 `--volumes`，也不要在未确认同机其他项目影响时扩大 Docker
+prune 范围。

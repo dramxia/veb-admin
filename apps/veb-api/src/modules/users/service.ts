@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import type { UserListQuery as UserListContractQuery } from '@veb/api-contracts';
+import { isPrismaKnownRequestError } from '@veb/api-kit';
 import { Prisma } from '@/generated/client';
 import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
 import { prisma } from '@/lib/prisma';
@@ -102,16 +103,10 @@ export async function updateUser(id: string, data: UserUpdateData) {
     });
     return user;
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2025'
-    ) {
+    if (isPrismaKnownRequestError(error, 'P2025')) {
       throw new NotFoundError('用户不存在');
     }
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
+    if (isPrismaKnownRequestError(error, 'P2002')) {
       throw new ConflictError('用户名或邮箱已存在');
     }
     throw error;

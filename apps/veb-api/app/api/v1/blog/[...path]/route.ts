@@ -10,6 +10,7 @@ async function proxy(request: Request, { params }: RouteContext) {
   const startedAt = Date.now();
   const response = await proxyBlogRequest(request, params.path);
   logApiAccess(
+    'veb-api',
     request,
     response,
     response.headers.get('x-request-id') || 'unknown',

@@ -9,7 +9,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: path.join(appDirectory, '../..'),
   },
-  transpilePackages: ['@veb/api-contracts', '@veb/service-auth'],
+  transpilePackages: ['@veb/api-contracts', '@veb/api-kit', '@veb/service-auth'],
   webpack(config) {
     config.resolve.extensionAlias = {
       ...config.resolve.extensionAlias,

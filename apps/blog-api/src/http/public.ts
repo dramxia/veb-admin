@@ -1,12 +1,12 @@
 import type { NextRequest } from 'next/server';
 import { publicArticleListQuerySchema } from '@veb/api-contracts';
-import { ok, readQuery, withApi } from '@/lib/api';
+import { ok, pageOptions, readQuery, withApi } from '@/lib/api';
 import {
   ARTICLE_VISITOR_COOKIE,
   hashVisitorKey,
   newVisitorId,
 } from '@/lib/content';
-import { assertRateLimit, getClientIp } from '@/lib/rate-limit';
+import { assertRateLimit, getClientIp } from '@veb/api-kit';
 import {
   getLikeState,
   getPublicArticle,
@@ -30,16 +30,7 @@ const visitorCookieOptions = {
 
 export const listArticles = withApi(async (request: Request) => {
   const query = readQuery(request, publicArticleListQuerySchema);
-  return ok(
-    await listPublicArticles(
-      {
-        page: query.page,
-        pageSize: query.pageSize,
-        skip: (query.page - 1) * query.pageSize,
-      },
-      query.tag,
-    ),
-  );
+  return ok(await listPublicArticles(pageOptions(query), query.tag));
 });
 
 export const getArticle = withApi<SlugContext>(async (_request, context) => {

@@ -11,6 +11,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/veb-api/package.json apps/veb-api/package.json
 COPY packages/api-contracts/package.json packages/api-contracts/package.json
+COPY packages/api-kit/package.json packages/api-kit/package.json
 COPY packages/service-auth/package.json packages/service-auth/package.json
 RUN --mount=type=cache,id=veb-pnpm-store,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile \
@@ -23,6 +24,7 @@ COPY apps/veb-api/prisma apps/veb-api/prisma
 RUN pnpm --filter @veb/veb-api prisma:generate
 COPY apps/veb-api apps/veb-api
 COPY packages/api-contracts packages/api-contracts
+COPY packages/api-kit packages/api-kit
 COPY packages/service-auth packages/service-auth
 RUN --mount=type=cache,id=veb-api-next-cache,target=/app/apps/veb-api/.next/cache,sharing=locked \
     pnpm --filter @veb/veb-api build

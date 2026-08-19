@@ -6,7 +6,7 @@ import {
   publicArticleListItemSchema,
   publicTagSchema,
 } from '@veb/api-contracts';
-import { parseOutput } from '@/lib/contracts';
+import { parseOutput } from '@veb/api-kit';
 
 type TagRecord = {
   id: string;

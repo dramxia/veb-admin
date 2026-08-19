@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { AppModuleListQuery as AppModuleListContractQuery } from '@veb/api-contracts';
+import { isPrismaKnownRequestError } from '@veb/api-kit';
 import { Prisma } from '@/generated/client';
 import { ConflictError, NotFoundError } from '@/lib/errors';
 import { prisma } from '@/lib/prisma';
@@ -68,12 +69,12 @@ function resolveModule(record: SelectedAppModule, counts?: MenuCounts) {
 }
 
 function rethrowModuleWriteError(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === 'P2002') throw new ConflictError('模块编码已存在');
-    if (error.code === 'P2003')
-      throw new ConflictError('模块已关联角色或菜单，不能删除');
-    if (error.code === 'P2025') throw new NotFoundError('模块不存在');
-  }
+  if (isPrismaKnownRequestError(error, 'P2002'))
+    throw new ConflictError('模块编码已存在');
+  if (isPrismaKnownRequestError(error, 'P2003'))
+    throw new ConflictError('模块已关联角色或菜单，不能删除');
+  if (isPrismaKnownRequestError(error, 'P2025'))
+    throw new NotFoundError('模块不存在');
   throw error;
 }
 

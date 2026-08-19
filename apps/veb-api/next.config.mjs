@@ -4,7 +4,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
   },
-  transpilePackages: ['@veb/api-contracts', '@veb/service-auth'],
+  transpilePackages: ['@veb/api-contracts', '@veb/api-kit', '@veb/service-auth'],
 };
 
 export default nextConfig;

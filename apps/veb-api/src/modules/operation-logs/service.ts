@@ -1,4 +1,5 @@
 import type { OperationLogQuery } from '@veb/api-contracts';
+import { getClientIpHeader } from '@veb/api-kit';
 import { LogStatus, type Prisma } from '@/generated/client';
 import { prisma } from '@/lib/prisma';
 
@@ -28,15 +29,6 @@ type OperationLogListQuery = OperationLogFilters & {
   pageSize: number;
   skip: number;
 };
-
-function getClientIp(req?: Request | null) {
-  if (!req) return null;
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-real-ip') ||
-    null
-  );
-}
 
 function operationLogWhere({
   keyword,
@@ -159,7 +151,7 @@ export async function logOperation({
         actorId: actorId || null,
         action,
         target: target || null,
-        ip: getClientIp(req),
+        ip: getClientIpHeader(req),
         userAgent: req?.headers.get('user-agent') || null,
         payload: payload ?? undefined,
         status,

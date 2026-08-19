@@ -1,5 +1,5 @@
 import { createHmac, randomUUID } from 'node:crypto';
-import { ParamError } from './errors';
+import { ParamError } from '@veb/api-kit';
 
 export const ARTICLE_VISITOR_COOKIE = 'veb_article_visitor';
 

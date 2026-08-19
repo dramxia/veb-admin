@@ -9,15 +9,20 @@ import {
   likeStatsSchema,
   pageResultSchema,
 } from '@veb/api-contracts';
+import {
+  ConflictError,
+  isPrismaUniqueError,
+  NotFoundError,
+  ParamError,
+  parseOutput,
+} from '@veb/api-kit';
 import { prisma } from '@/lib/prisma';
-import { parseOutput } from '@/lib/contracts';
 import {
   createContentSlug,
   maskVisitorHash,
   normalizeSlug,
   validatePublishableArticle,
 } from '@/lib/content';
-import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
 import {
   serializeAdminArticle,
   serializeAdminTag,
@@ -67,13 +72,6 @@ export type TagUpdateCommand = TagUpdateInput;
 
 function publishedWhere(now = new Date()): Prisma.ArticleWhereInput {
   return { status: ArticleStatus.PUBLISHED, publishedAt: { lte: now } };
-}
-
-function isPrismaUniqueError(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
 }
 
 async function ensureTagIds(tagIds: string[] = []) {

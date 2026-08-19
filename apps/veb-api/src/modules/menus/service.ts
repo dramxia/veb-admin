@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { isPrismaKnownRequestError } from '@veb/api-kit';
 import { Prisma, type Menu, type MenuType } from '@/generated/client';
 import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
 import { prisma } from '@/lib/prisma';
@@ -34,18 +35,18 @@ function isHttpUrl(value: string) {
 }
 
 function rethrowMenuWriteError(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === 'P2002') {
-      const target = Array.isArray(error.meta?.target) ? error.meta.target : [];
-      if (target.includes('path')) throw new ConflictError('页面路径已存在');
-      if (target.includes('permissionCode'))
-        throw new ConflictError('权限码已存在');
-      throw new ConflictError('菜单数据已存在');
-    }
-    if (error.code === 'P2003')
-      throw new ConflictError('菜单仍有关联数据，不能执行该操作');
-    if (error.code === 'P2025') throw new NotFoundError('菜单不存在');
+  if (isPrismaKnownRequestError(error, 'P2002')) {
+    const target = (error as { meta?: { target?: unknown } }).meta?.target;
+    const fields = Array.isArray(target) ? target : [];
+    if (fields.includes('path')) throw new ConflictError('页面路径已存在');
+    if (fields.includes('permissionCode'))
+      throw new ConflictError('权限码已存在');
+    throw new ConflictError('菜单数据已存在');
   }
+  if (isPrismaKnownRequestError(error, 'P2003'))
+    throw new ConflictError('菜单仍有关联数据，不能执行该操作');
+  if (isPrismaKnownRequestError(error, 'P2025'))
+    throw new NotFoundError('菜单不存在');
   throw error;
 }
 

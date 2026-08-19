@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotFoundError } from '@/lib/errors';
+import { NotFoundError } from '@veb/api-kit';
 import { createArticle, getPublicArticle } from '@/modules/content/service';
 
 const prismaMock = vi.hoisted(() => ({

@@ -1,16 +1,20 @@
-import { randomUUID } from 'node:crypto';
+import { ERROR_CODES } from '@veb/api-contracts';
 import {
-  ERROR_CODES,
-  createApiError,
-  createApiSuccess,
-  type ApiErrorCode,
-} from '@veb/api-contracts';
-import { NextResponse } from 'next/server';
-import { ZodError } from 'zod';
+  AuthError,
+  buildErrorResponse,
+  fail,
+  isDatabaseConnectionError,
+  ok,
+  pageOptions,
+  readJson,
+  readQuery,
+  REQUEST_ID_HEADER,
+  withApi as withApiKit,
+  type ApiErrorMapper,
+} from '@veb/api-kit';
 import { ServiceAuthError, verifyServiceRequest } from '@veb/service-auth';
-import { Prisma } from '@/generated/prisma';
-import { logApiAccess } from './access-log';
-import { AppError, AuthError, ParamError } from './errors';
+
+export { ok, pageOptions, readJson, readQuery };
 
 export type RouteContext = { params: Record<string, string> };
 
@@ -19,138 +23,59 @@ export type ApiHandler<TContext = RouteContext> = (
   context: TContext,
 ) => Promise<Response> | Response;
 
-export function ok<T>(data: T, message = 'ok') {
-  return NextResponse.json(createApiSuccess(data, message));
-}
-
-function fail(code: ApiErrorCode, message: string, status: number) {
-  return NextResponse.json(createApiError(code, message), { status });
-}
-
-function requestIdFor(request: Request) {
-  return request.headers.get('x-request-id')?.trim() || randomUUID();
-}
-
-type DatabaseConnectionError = {
-  name?: string;
-  code?: string;
-  errorCode?: string;
-  message?: string;
+const serviceAuthErrorMapper: ApiErrorMapper = (error) => {
+  if (!(error instanceof ServiceAuthError)) return undefined;
+  if (error.status >= 500) {
+    return fail(ERROR_CODES.SERVER_ERROR, '服务认证配置错误', 500);
+  }
+  if (error.status === 403) {
+    return fail(ERROR_CODES.FORBIDDEN, '服务令牌权限不足', 403);
+  }
+  return fail(ERROR_CODES.UNAUTHORIZED, '服务身份验证失败', 401);
 };
 
-const databaseConnectionCodes = new Set([
-  'P1000',
-  'P1001',
-  'P1002',
-  'P1003',
-  'P1017',
-]);
-
-const databaseConnectionMessage =
-  /can't reach database server|server has closed the connection|connection refused|error connecting to the database/i;
-
-function isDatabaseConnectionError(
-  error: unknown,
-): error is DatabaseConnectionError {
-  if (typeof error !== 'object' || error === null) return false;
-  const candidate = error as DatabaseConnectionError;
-  return (
-    error instanceof Prisma.PrismaClientInitializationError ||
-    candidate.name === 'PrismaClientInitializationError' ||
-    databaseConnectionCodes.has(candidate.errorCode ?? candidate.code ?? '') ||
-    (candidate.name?.startsWith('PrismaClient') === true &&
-      databaseConnectionMessage.test(candidate.message ?? ''))
-  );
-}
-
-function errorResponse(error: unknown, requestId: string) {
-  if (error instanceof ZodError) {
-    return fail(
-      ERROR_CODES.PARAM_ERROR,
-      error.errors[0]?.message ?? '请求参数错误',
-      400,
-    );
-  }
-  if (error instanceof AppError) {
-    return fail(error.code, error.message, error.status);
-  }
-  if (error instanceof ServiceAuthError) {
-    if (error.status >= 500) {
-      return fail(ERROR_CODES.SERVER_ERROR, '服务认证配置错误', 500);
-    }
-    if (error.status === 403) {
-      return fail(ERROR_CODES.FORBIDDEN, '服务令牌权限不足', 403);
-    }
-    return fail(ERROR_CODES.UNAUTHORIZED, '服务身份验证失败', 401);
-  }
-  if (isDatabaseConnectionError(error)) {
-    console.error('[blog-api:database-unavailable]', {
-      requestId,
-      errorCode: error.errorCode ?? error.code ?? null,
-      message: error.message ?? null,
-    });
-    return fail(
-      ERROR_CODES.SERVICE_UNAVAILABLE,
-      '博客数据库连接失败。请确认 blog-postgres 已启动；本地开发还需启动 Docker Desktop。',
-      503,
-    );
-  }
-  console.error('[blog-api:error]', {
-    requestId,
-    error:
-      error instanceof Error
-        ? { name: error.name, message: error.message, stack: error.stack }
-        : error,
+const databaseConnectionErrorMapper: ApiErrorMapper = (error) => {
+  if (!isDatabaseConnectionError(error)) return undefined;
+  console.error('[blog-api:database-unavailable]', {
+    errorCode: error.errorCode ?? error.code ?? null,
+    message: error.message ?? null,
   });
-  return fail(ERROR_CODES.SERVER_ERROR, '服务器内部错误', 500);
+  return fail(
+    ERROR_CODES.SERVICE_UNAVAILABLE,
+    '博客数据库连接失败。请确认 blog-postgres 已启动；本地开发还需启动 Docker Desktop。',
+    503,
+  );
+};
+
+const errorMappers = [serviceAuthErrorMapper, databaseConnectionErrorMapper];
+
+export function handleApiError(error: unknown, requestId?: string) {
+  const response = buildErrorResponse(error, {
+    mappers: errorMappers,
+    logLabel: '[blog-api:error]',
+    requestId,
+  });
+  if (requestId) response.headers.set(REQUEST_ID_HEADER, requestId);
+  return response;
 }
 
 export function withApi<TContext = RouteContext>(
   handler: ApiHandler<TContext>,
   options: { internal?: boolean; permission?: string | string[] } = {},
 ) {
-  return async (request: Request, context: TContext) => {
-    const requestId = requestIdFor(request);
-    const startedAt = Date.now();
-    try {
-      if (options.internal) {
-        if (!request.headers.get('x-request-id')) {
-          throw new AuthError('内部请求缺少 X-Request-Id');
+  return withApiKit(handler, {
+    scope: 'blog-api',
+    errorMappers,
+    beforeHandle: options.internal
+      ? async ([request]) => {
+          if (!request.headers.get(REQUEST_ID_HEADER)) {
+            throw new AuthError('内部请求缺少 X-Request-Id');
+          }
+          await verifyServiceRequest(request, {
+            audience: 'blog-api',
+            permission: options.permission,
+          });
         }
-        await verifyServiceRequest(request, {
-          audience: 'blog-api',
-          permission: options.permission,
-        });
-      }
-      const response = await handler(request, context);
-      response.headers.set('x-request-id', requestId);
-      logApiAccess(request, response, requestId, startedAt);
-      return response;
-    } catch (error) {
-      const response = errorResponse(error, requestId);
-      response.headers.set('x-request-id', requestId);
-      logApiAccess(request, response, requestId, startedAt);
-      return response;
-    }
-  };
-}
-
-export async function readJson<T>(
-  request: Request,
-  schema: { parse(data: unknown): T },
-) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch (error) {
-    throw new ParamError('请求体必须是 JSON', { cause: error });
-  }
-  return schema.parse(body);
-}
-
-export function readQuery<T>(
-  request: Request,
-  schema: { parse(data: unknown): T },
-) {
-  return schema.parse(Object.fromEntries(new URL(request.url).searchParams));
+      : undefined,
+  });
 }

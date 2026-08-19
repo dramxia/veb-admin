@@ -1,50 +1,28 @@
-import type { ApiErrorCode, ApiResult } from '@veb/api-contracts';
-import { LogStatus, type Prisma } from '@/generated/client';
-import { NextResponse } from 'next/server';
-import { ZodError } from 'zod';
-import { logApiAccess } from './access-log';
+import type { Prisma } from '@/generated/client';
+import { LogStatus } from '@/generated/client';
+import {
+  buildErrorResponse,
+  fail,
+  ok,
+  pageOptions,
+  readJson,
+  readQuery,
+  withApi as withApiKit,
+} from '@veb/api-kit';
 import { auth } from './auth';
-import { AppError, ERROR_CODES, ParamError } from './errors';
 import { t } from './i18n';
 import { logOperation } from './operation-log';
-import { attachRequestId, getRequestId } from './request-id';
 
-export function ok<T>(data: T, message = 'ok') {
-  return NextResponse.json<ApiResult<T>>({
-    code: ERROR_CODES.OK,
-    data,
-    message,
-  });
-}
-
-export function fail(code: ApiErrorCode, message: string, status = 400) {
-  return NextResponse.json<ApiResult<null>>(
-    { code, data: null, message },
-    { status },
-  );
-}
+export { fail, ok, pageOptions, readJson, readQuery };
 
 export function handleApiError(error: unknown, requestId?: string) {
-  let response: Response;
-  if (error instanceof ZodError) {
-    response = fail(
-      ERROR_CODES.PARAM_ERROR,
-      error.errors[0]?.message ?? t('error.param'),
-      400,
-    );
-  } else if (error instanceof AppError) {
-    response = fail(error.code, error.message, error.status);
-  } else {
-    console.error('[api:error]', {
-      requestId: requestId ?? null,
-      error:
-        error instanceof Error
-          ? { message: error.message, stack: error.stack }
-          : error,
-    });
-    response = fail(ERROR_CODES.SERVER_ERROR, t('error.server'), 500);
-  }
-  return requestId ? attachRequestId(response, requestId) : response;
+  const response = buildErrorResponse(error, {
+    serverErrorMessage: t('error.server'),
+    logLabel: '[api:error]',
+    requestId,
+  });
+  if (requestId) response.headers.set('x-request-id', requestId);
+  return response;
 }
 
 type WithApiOptions = {
@@ -140,71 +118,39 @@ async function writeActionLog(
   });
 }
 
+type WithApiState = {
+  payloadPromise?: Promise<Prisma.InputJsonValue | null | undefined>;
+};
+
 export function withApi<TArgs extends unknown[]>(
   handler: (...args: TArgs) => Promise<Response> | Response,
   options: WithApiOptions = {},
 ) {
-  return async (...args: TArgs) => {
-    const req = args[0] instanceof Request ? args[0] : undefined;
-    const requestId = req ? getRequestId(req) : undefined;
-    const startedAt = Date.now();
-    const payloadPromise = options.action
-      ? readLogPayload(req)
-      : Promise.resolve(undefined);
-
-    try {
-      const response = await handler(...args);
+  return withApiKit<TArgs, WithApiState>(handler, {
+    scope: 'veb-api',
+    serverErrorMessage: t('error.server'),
+    prepare: (args) => ({
+      payloadPromise: options.action
+        ? readLogPayload(args[0] instanceof Request ? args[0] : undefined)
+        : Promise.resolve(undefined),
+    }),
+    onSuccess: async (args, response, state) => {
       await writeActionLog(
         args,
         options,
         LogStatus.SUCCESS,
         undefined,
-        operationPayloads.get(response) ?? (await payloadPromise),
+        operationPayloads.get(response) ?? (await state.payloadPromise),
       );
-      const result = requestId
-        ? attachRequestId(response, requestId)
-        : response;
-      if (req && requestId) logApiAccess(req, result, requestId, startedAt);
-      return result;
-    } catch (error) {
+    },
+    onFailure: async (args, error, state) => {
       await writeActionLog(
         args,
         options,
         LogStatus.FAILURE,
         error instanceof Error ? error.message : t('error.unknown'),
-        await payloadPromise,
+        await state.payloadPromise,
       );
-      const response = handleApiError(error, requestId);
-      if (req && requestId) logApiAccess(req, response, requestId, startedAt);
-      return response;
-    }
-  };
-}
-
-export async function readJson<T>(
-  request: Request,
-  schema: { parse: (data: unknown) => T },
-) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    throw new ParamError(t('error.jsonRequired'));
-  }
-  return schema.parse(body);
-}
-
-export function readQuery<T>(
-  request: Request,
-  schema: { parse(data: unknown): T },
-) {
-  return schema.parse(Object.fromEntries(new URL(request.url).searchParams));
-}
-
-export function pageOptions(query: { page: number; pageSize: number }) {
-  return {
-    page: query.page,
-    pageSize: query.pageSize,
-    skip: (query.page - 1) * query.pageSize,
-  };
+    },
+  });
 }

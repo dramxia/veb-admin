@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ERROR_CODES } from '@veb/api-contracts';
-import { resetRateLimit } from '@/lib/rate-limit';
+import { resetRateLimit } from '@veb/api-kit';
 import { putArticleLike } from '@/http/public';
 
 const contentServiceMock = vi.hoisted(() => ({
