@@ -184,7 +184,10 @@ VEB BFF 先按 HTTP method 与路径映射 `content:*` 权限，校验当前用�
 
 Blog API 从 VEB API 的内部 JWKS 获取公钥，验签后再次校验令牌绑定值和目标接口要求的权限。
 因此令牌不能换路径、换方法、替换请求体或脱离原 request ID 重放到其他操作。RSA 私钥只
-配置给 VEB API，Blog API 不持有私钥。
+配置给 VEB API，Blog API 不持有私钥。对 `POST/PUT/PATCH/DELETE`，Blog API 还会在 Blog
+PostgreSQL 中原子登记 `issuer + token ID`；有效期内重复消费返回 401。过期记录在后续成功
+消费时清理，并额外保留 60 秒以覆盖验签时钟容差。`GET/HEAD` 不登记，以保留只读请求的
+一次安全重试。
 
 ### 5.3 公开博客
 
@@ -210,6 +213,11 @@ Browser -> Web proxy -> VEB API permission check
 文件归 VEB 边界所有。当前 Markdown 文章不建立跨服务文件外键；若未来文章引用文件，应使用
 明确的公共标识或 URL 契约，不能让 Blog API 直接读取 VEB Prisma Client 或数据库。
 
+上传只接受明确列出的扩展名，并在服务端校验文件签名或 UTF-8 文本内容；不信任客户端声明的
+MIME，SVG、HTML、XML、CSS 等主动内容不允许上传。文件响应使用服务端规范化 MIME、
+`nosniff` 和 sandbox CSP，只有无脚本的位图及纯文本允许 inline，PDF 与 Office 文档始终
+作为附件下载。
+
 ## 6. 数据所有权
 
 | 所有者   | 数据                                                                      | 持久化位置           |
@@ -217,7 +225,7 @@ Browser -> Web proxy -> VEB API permission check
 | VEB API  | `User`、`Role`、`UserRole`、`AppModule`、`Menu`、`RoleModule`、`RoleMenu` | VEB PostgreSQL       |
 | VEB API  | `File` 元数据、`OperationLog`、Auth.js 相关表                             | VEB PostgreSQL       |
 | VEB API  | 上传文件内容                                                              | `veb-uploads` volume |
-| Blog API | `Article`、`Tag`、`ArticleTag`、`ArticleLike`                             | Blog PostgreSQL      |
+| Blog API | `Article`、`Tag`、`ArticleTag`、`ArticleLike`、`ServiceTokenReplay`       | Blog PostgreSQL      |
 
 跨服务只传递契约数据。Blog 文章中的作者字段是写入时快照，作者改名或删除不会跨库级联修改
 历史文章。任何应用都不得导入另一应用生成的 Prisma Client，也不得通过共享包隐藏跨库访问。

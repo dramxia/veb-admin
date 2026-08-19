@@ -13,6 +13,7 @@ import {
   type ApiErrorMapper,
 } from '@veb/api-kit';
 import { ServiceAuthError, verifyServiceRequest } from '@veb/service-auth';
+import { consumeServiceToken } from '@/modules/service-auth/replay';
 
 export { ok, pageOptions, readJson, readQuery };
 
@@ -71,10 +72,11 @@ export function withApi<TContext = RouteContext>(
           if (!request.headers.get(REQUEST_ID_HEADER)) {
             throw new AuthError('内部请求缺少 X-Request-Id');
           }
-          await verifyServiceRequest(request, {
+          const claims = await verifyServiceRequest(request, {
             audience: 'blog-api',
             permission: options.permission,
           });
+          await consumeServiceToken(claims);
         }
       : undefined,
   });

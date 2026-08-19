@@ -49,6 +49,6 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   url(file: { id: string }) {
-    return `/api/files/${file.id}`;
+    return `/api/v1/files/${file.id}`;
   }
 }

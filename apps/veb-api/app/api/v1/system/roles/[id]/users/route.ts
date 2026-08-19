@@ -17,9 +17,9 @@ export const GET = withApi(
 
 export const POST = withApi(
   async (request: Request, { params }: { params: { id: string } }) => {
-    await requirePermission('system:role:assign-user');
+    const actor = await requirePermission('system:role:assign-user');
     const data = await readJson(request, assignUsersSchema);
-    return ok(await assignRoleUsers(params.id, data.userIds));
+    return ok(await assignRoleUsers(actor.id, params.id, data.userIds));
   },
   {
     action: 'role.assign-user',

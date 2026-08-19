@@ -14,10 +14,10 @@ export const GET = withApi(async (request: Request) => {
 
 export const POST = withApi(
   async (request: Request) => {
-    await requirePermission('system:user:create');
+    const actor = await requirePermission('system:user:create');
     const data = await readJson(request, userCreateSchema);
 
-    return ok(await createUser(data));
+    return ok(await createUser(actor.id, data));
   },
   { action: 'user.create' },
 );

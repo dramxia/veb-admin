@@ -7,6 +7,10 @@ import {
   assignRoleAccessWithAudit,
   getRoleAccessDetail,
 } from '@/src/modules/roles/service';
+import {
+  assertRoleAccessAssignable,
+  assertRolesAssignable,
+} from '@/src/modules/role-assignment/policy';
 
 export const GET = withApi(
   async (_request: Request, { params }: { params: { id: string } }) => {
@@ -17,8 +21,10 @@ export const GET = withApi(
 
 export const PUT = withApi(
   async (request: Request, { params }: { params: { id: string } }) => {
-    await requirePermission('system:role:assign-access');
+    const actor = await requirePermission('system:role:assign-access');
     const data = await readJson(request, roleAccessSchema);
+    await assertRolesAssignable(actor.id, [params.id]);
+    await assertRoleAccessAssignable(actor.id, data.modules);
     const { result, audit } = await assignRoleAccessWithAudit(
       params.id,
       data.modules,

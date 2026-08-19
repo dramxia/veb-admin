@@ -3,9 +3,10 @@ import bcrypt from 'bcryptjs';
 import type { UserListQuery as UserListContractQuery } from '@veb/api-contracts';
 import { isPrismaKnownRequestError } from '@veb/api-kit';
 import { Prisma } from '@/generated/client';
-import { ConflictError, NotFoundError, ParamError } from '@/lib/errors';
+import { ConflictError, NotFoundError } from '@/lib/errors';
 import { prisma } from '@/lib/prisma';
 import { userCreateSchema, userUpdateSchema } from '@/lib/validation';
+import { assertRolesAssignable } from '@/src/modules/role-assignment/policy';
 
 type UserCreateData = z.infer<typeof userCreateSchema>;
 type UserUpdateData = z.infer<typeof userUpdateSchema>;
@@ -62,11 +63,13 @@ export async function listUsers({
   return { items, total, page, pageSize };
 }
 
-export async function createUser(data: UserCreateData) {
+export async function createUser(actorId: string, data: UserCreateData) {
   const exists = await prisma.user.findUnique({
     where: { username: data.username },
   });
   if (exists) throw new ConflictError('用户名已存在');
+
+  await assertRolesAssignable(actorId, data.roleIds ?? []);
 
   const passwordHash = await bcrypt.hash(data.password, 12);
   return prisma.user.create({
@@ -118,16 +121,21 @@ export async function deleteUser(id: string) {
   return { id };
 }
 
-export async function assignUserRoles(id: string, requestedRoleIds: string[]) {
+export async function assignUserRoles(
+  actorId: string,
+  id: string,
+  requestedRoleIds: string[],
+) {
   const roleIds = [...new Set(requestedRoleIds)];
-  const [user, roleCount] = await Promise.all([
-    prisma.user.findUnique({ where: { id }, select: { id: true } }),
-    roleIds.length
-      ? prisma.role.count({ where: { id: { in: roleIds } } })
-      : Promise.resolve(0),
-  ]);
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, roles: { select: { roleId: true } } },
+  });
   if (!user) throw new NotFoundError('用户不存在');
-  if (roleCount !== roleIds.length) throw new ParamError('角色不存在');
+  await assertRolesAssignable(actorId, [
+    ...roleIds,
+    ...user.roles.map((assignment) => assignment.roleId),
+  ]);
 
   await prisma.$transaction(async (tx) => {
     await tx.userRole.deleteMany({ where: { userId: id } });

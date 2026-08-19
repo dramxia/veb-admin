@@ -7,9 +7,9 @@ import { assignUserRoles } from '@/src/modules/users/service';
 
 export const POST = withApi(
   async (request: Request, { params }: { params: { id: string } }) => {
-    await requirePermission('system:user:assign-role');
+    const actor = await requirePermission('system:user:assign-role');
     const data = await readJson(request, assignRolesSchema);
-    return ok(await assignUserRoles(params.id, data.roleIds));
+    return ok(await assignUserRoles(actor.id, params.id, data.roleIds));
   },
   {
     action: 'user.assign-role',

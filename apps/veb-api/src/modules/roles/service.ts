@@ -9,6 +9,7 @@ import { createMenuHierarchy } from '@/lib/menu-hierarchy';
 import { prisma } from '@/lib/prisma';
 import { withSerializableRetry } from '@/lib/prisma-transaction';
 import { roleSchema, roleUpdateSchema } from '@/lib/validation';
+import { assertRolesAssignable } from '@/src/modules/role-assignment/policy';
 
 type RoleCreateData = z.infer<typeof roleSchema>;
 type RoleUpdateData = z.infer<typeof roleUpdateSchema>;
@@ -415,7 +416,12 @@ export async function assignRoleAccessWithAudit(
   return replaceRoleAccess(id, requestedModules);
 }
 
-export async function assignRoleUsers(id: string, requestedUserIds: string[]) {
+export async function assignRoleUsers(
+  actorId: string,
+  id: string,
+  requestedUserIds: string[],
+) {
+  await assertRolesAssignable(actorId, [id]);
   const userIds = [...new Set(requestedUserIds)];
   const [role, userCount] = await Promise.all([
     prisma.role.findUnique({ where: { id }, select: { id: true } }),

@@ -60,6 +60,16 @@ model ArticleLike {
   @@index([createdAt])
 }
 
+model ServiceTokenReplay {
+  issuer    String
+  tokenId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@id([issuer, tokenId])
+  @@index([expiresAt])
+}
+
 enum ArticleStatus {
   DRAFT
   PUBLISHED

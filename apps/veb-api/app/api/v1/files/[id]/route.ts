@@ -6,6 +6,7 @@ import { ok, readQuery, withApi } from '@/lib/api';
 import { requirePermission } from '@/lib/permission';
 import { logOperation } from '@/lib/operation-log';
 import { requireUser } from '@/lib/session';
+import { isInlinePreviewMime } from '@/lib/upload';
 import { deleteFile, readFile } from '@/src/modules/files/service';
 
 function encodeFileName(name: string) {
@@ -25,12 +26,16 @@ export const GET = withApi(
     const { file, buffer } = await readFile(user.id, params.id);
     const { download } = readQuery(request, fileReadQuerySchema);
 
+    const forceDownload = download === '1' || !isInlinePreviewMime(file.mime);
     return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': file.mime,
         'Content-Length': String(file.size),
-        'Content-Disposition': contentDisposition(file.name, download === '1'),
+        'Content-Disposition': contentDisposition(file.name, forceDownload),
         'Cache-Control': 'private, max-age=300',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+        'Cross-Origin-Resource-Policy': 'same-origin',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   },
