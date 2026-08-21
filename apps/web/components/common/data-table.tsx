@@ -7,7 +7,6 @@ import {
   Flex,
   Heading,
   HStack,
-  Icon,
   TableContainer,
   Tbody,
   Td,
@@ -17,9 +16,10 @@ import {
   type BoxProps,
   type StackProps,
 } from '@chakra-ui/react';
-import { Inbox } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { EmptyInboxIcon } from '@/assets/icons';
 import { GlassPanel } from './glass-panel';
+import { LocalIcon } from './local-icon';
 
 type DataTableCardProps = Omit<BoxProps, 'title'> & {
   children: ReactNode;
@@ -217,7 +217,7 @@ export function EmptyTableRow({
             py={8}
           >
             <Center layerStyle="iconBrand" aria-hidden="true" mb={3}>
-              <Icon as={Inbox} boxSize={5} />
+              <LocalIcon icon={EmptyInboxIcon} />
             </Center>
             <Text color="ink.700" fontWeight="700">
               {text}

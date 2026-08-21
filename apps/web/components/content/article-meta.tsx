@@ -1,5 +1,6 @@
 import { HStack, Text } from '@chakra-ui/react';
-import { CalendarDays, Heart, MessageCircle } from 'lucide-react';
+import { CalendarIcon, CommentsIcon, LikesIcon } from '@/assets/icons';
+import { LocalIcon } from '@/components/common/local-icon';
 
 function formatDate(value: string | null) {
   if (!value) return '未发布';
@@ -27,15 +28,15 @@ export function ArticleMeta({
       wrap="wrap"
     >
       <HStack spacing={1.5}>
-        <CalendarDays size={16} aria-hidden />
+        <LocalIcon icon={CalendarIcon} />
         <Text>{formatDate(publishedAt)}</Text>
       </HStack>
       <HStack spacing={1.5}>
-        <Heart size={16} aria-hidden />
+        <LocalIcon icon={LikesIcon} />
         <Text>{likeCount}</Text>
       </HStack>
       <HStack spacing={1.5}>
-        <MessageCircle size={16} aria-hidden />
+        <LocalIcon icon={CommentsIcon} />
         <Text>{commentCount}</Text>
       </HStack>
     </HStack>

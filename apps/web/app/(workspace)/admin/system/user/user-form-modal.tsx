@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   Box,
   Checkbox,
@@ -15,7 +14,6 @@ import {
   Input,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -26,7 +24,9 @@ import {
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 
 type RoleSummary = Pick<RoleDto, 'id' | 'code' | 'name'>;
 
@@ -102,12 +102,12 @@ export function UserFormModal({
           minH={0}
         >
           <ModalHeader>{editing ? '编辑用户' : '新增用户'}</ModalHeader>
-          <ModalCloseButton aria-label="关闭用户表单" />
+          <OverlayCloseButton aria-label="关闭用户表单" onClick={onClose} />
           <ModalBody>
             <Stack spacing={5}>
               {error ? (
                 <Alert status="error" aria-live="polite">
-                  <AlertIcon />
+                  <AlertStatusIcon status="error" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}

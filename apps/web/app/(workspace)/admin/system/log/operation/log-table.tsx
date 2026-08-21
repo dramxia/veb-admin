@@ -3,7 +3,6 @@
 import {
   Badge,
   Button,
-  Icon,
   Link,
   Table,
   Tbody,
@@ -13,7 +12,8 @@ import {
   Tr,
 } from '@chakra-ui/react';
 import type { OperationLogDto } from '@veb/api-contracts';
-import { Download } from 'lucide-react';
+import { DownloadIcon } from '@/assets/icons';
+import { LocalIcon } from '@/components/common/local-icon';
 import { useSearchParams } from 'next/navigation';
 import { Auth } from '@/components/auth/auth';
 import { DataTableCard, EmptyTableRow } from '@/components/common/data-table';
@@ -38,7 +38,7 @@ export function OperationLogTable({ logs }: { logs: OperationLogDto[] }) {
           <Button
             as={Link}
             href={exportHref}
-            leftIcon={<Icon as={Download} boxSize={4} />}
+            leftIcon={<LocalIcon icon={DownloadIcon} />}
             variant="outline"
           >
             导出 CSV

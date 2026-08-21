@@ -3,21 +3,21 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   FormControl,
   FormErrorMessage,
   FormLabel,
-  Icon,
   Input,
   InputGroup,
   InputLeftElement,
   Stack,
 } from '@chakra-ui/react';
-import { LockKeyhole, UserRound } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { AccountIcon, PasswordIcon } from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { LocalIcon } from '@/components/common/local-icon';
 import { getSafeInternalPath } from '@/lib/safe-redirect';
 
 export function LoginForm() {
@@ -72,7 +72,7 @@ export function LoginForm() {
       <Stack spacing={5}>
         {errorMessage ? (
           <Alert status="error" aria-live="polite">
-            <AlertIcon />
+            <AlertStatusIcon status="error" />
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
@@ -81,15 +81,7 @@ export function LoginForm() {
           <FormLabel>用户名</FormLabel>
           <InputGroup size="lg">
             <InputLeftElement pointerEvents="none" h="full" w={12}>
-              <Icon
-                as={UserRound}
-                aria-hidden
-                boxSize={8}
-                p={1.5}
-                borderRadius="control"
-                bg="brand.50"
-                color="brand.600"
-              />
+              <LocalIcon icon={AccountIcon} aria-hidden color="brand.600" />
             </InputLeftElement>
             <Input
               name="username"
@@ -111,15 +103,7 @@ export function LoginForm() {
           <FormLabel>密码</FormLabel>
           <InputGroup size="lg">
             <InputLeftElement pointerEvents="none" h="full" w={12}>
-              <Icon
-                as={LockKeyhole}
-                aria-hidden
-                boxSize={8}
-                p={1.5}
-                borderRadius="control"
-                bg="brand.50"
-                color="brand.600"
-              />
+              <LocalIcon icon={PasswordIcon} aria-hidden color="brand.600" />
             </InputLeftElement>
             <Input
               name="password"

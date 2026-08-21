@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   Checkbox,
   CheckboxGroup,
@@ -11,7 +10,6 @@ import {
   Input,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -23,6 +21,8 @@ import {
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 
 type RoleSummary = Pick<RoleDto, 'id' | 'code' | 'name'>;
 
@@ -78,12 +78,12 @@ export function AssignRolesModal({
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>分配角色</ModalHeader>
-        <ModalCloseButton aria-label="关闭角色分配" />
+        <OverlayCloseButton aria-label="关闭角色分配" onClick={onClose} />
         <ModalBody>
           <Stack spacing={4}>
             {error ? (
               <Alert status="error" aria-live="polite">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}

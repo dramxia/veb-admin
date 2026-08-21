@@ -1,7 +1,8 @@
 import { Box, Button, Flex, Heading, HStack, Text } from '@chakra-ui/react';
-import { LayoutDashboard } from 'lucide-react';
 import NextLink from 'next/link';
+import { DashboardIcon } from '@/assets/icons';
 import { BrandMark } from '@/components/common/brand-mark';
+import { LocalIcon } from '@/components/common/local-icon';
 
 export function PublicArticleHeader() {
   return (
@@ -40,7 +41,7 @@ export function PublicArticleHeader() {
         <NextLink href="/dashboard">
           <Button as="span" size="sm" variant="ghost">
             <HStack spacing={2}>
-              <LayoutDashboard size={16} aria-hidden />
+              <LocalIcon icon={DashboardIcon} />
               <Text>管理后台</Text>
             </HStack>
           </Button>

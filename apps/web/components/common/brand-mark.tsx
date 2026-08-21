@@ -1,14 +1,14 @@
 'use client';
 
-import { Flex, Icon, type FlexProps, type IconProps } from '@chakra-ui/react';
-import { Blocks } from 'lucide-react';
+import { Flex, type FlexProps } from '@chakra-ui/react';
+import { VebMarkIcon } from '@/assets/icons';
+import { LocalIcon } from './local-icon';
 
 type BrandMarkProps = {
   size?: FlexProps['boxSize'];
-  iconSize?: IconProps['boxSize'];
 };
 
-export function BrandMark({ size = 9, iconSize = 5 }: BrandMarkProps) {
+export function BrandMark({ size = 9 }: BrandMarkProps) {
   return (
     <Flex
       boxSize={size}
@@ -21,7 +21,7 @@ export function BrandMark({ size = 9, iconSize = 5 }: BrandMarkProps) {
       boxShadow="none"
       aria-hidden
     >
-      <Icon as={Blocks} boxSize={iconSize} />
+      <LocalIcon icon={VebMarkIcon} />
     </Flex>
   );
 }

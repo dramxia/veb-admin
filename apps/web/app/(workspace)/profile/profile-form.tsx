@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   FormControl,
   FormLabel,
@@ -12,6 +11,7 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import type { ProfileDto } from '@veb/api-contracts';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
@@ -40,7 +40,7 @@ export function ProfileForm({ user }: { user: ProfileDto }) {
         <Heading size="md">资料信息</Heading>
         {error ? (
           <Alert status="error" aria-live="polite">
-            <AlertIcon />
+            <AlertStatusIcon status="error" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}

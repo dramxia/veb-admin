@@ -6,7 +6,6 @@ import {
   Button,
   Flex,
   HStack,
-  Icon,
   IconButton,
   Input,
   Link as ChakraLink,
@@ -26,20 +25,21 @@ import {
   useDisclosure,
   VStack,
 } from '@chakra-ui/react';
-import {
-  ChevronDown,
-  ExternalLink,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Search,
-  UserCircle,
-} from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDownIcon,
+  ExternalLinkIcon,
+  LogoutIcon,
+  ProfileIcon,
+  SearchIcon,
+  SidebarCloseIcon,
+  SidebarOpenIcon,
+} from '@/assets/icons';
 import { BrandMark } from '@/components/common/brand-mark';
+import { LocalIcon } from '@/components/common/local-icon';
 import type { AuthUser } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
 import type { WorkspaceAppModule } from './app-modules';
@@ -117,7 +117,7 @@ function ModuleSwitcher({
           h="34px"
           maxW={{ base: '92px', sm: '128px' }}
           px={{ base: 2, sm: 3 }}
-          rightIcon={<Icon as={ChevronDown} boxSize={4} aria-hidden />}
+          rightIcon={<LocalIcon icon={ChevronDownIcon} />}
           aria-label="切换应用模块"
         >
           <Text as="span" noOfLines={1}>
@@ -254,10 +254,10 @@ export function Header({ user }: HeaderProps) {
                 aria-controls={ADMIN_SIDEBAR_ID}
                 aria-expanded={mobileSidebarOpen}
                 icon={
-                  <Icon
-                    as={mobileSidebarOpen ? PanelLeftClose : PanelLeftOpen}
-                    boxSize={5}
-                    aria-hidden
+                  <LocalIcon
+                    icon={
+                      mobileSidebarOpen ? SidebarCloseIcon : SidebarOpenIcon
+                    }
                   />
                 }
                 onClick={handleMobileSidebarToggle}
@@ -276,12 +276,12 @@ export function Header({ user }: HeaderProps) {
                     desktopSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'
                   }
                   icon={
-                    <Icon
-                      as={
-                        desktopSidebarCollapsed ? PanelLeftOpen : PanelLeftClose
+                    <LocalIcon
+                      icon={
+                        desktopSidebarCollapsed
+                          ? SidebarOpenIcon
+                          : SidebarCloseIcon
                       }
-                      boxSize={5}
-                      aria-hidden
                     />
                   }
                   onClick={() => {
@@ -340,7 +340,7 @@ export function Header({ user }: HeaderProps) {
               <PopoverTrigger>
                 <IconButton
                   aria-label="搜索应用菜单"
-                  icon={<Icon as={Search} boxSize={5} aria-hidden />}
+                  icon={<LocalIcon icon={SearchIcon} />}
                   variant="ghost"
                   size="sm"
                 />
@@ -409,12 +409,9 @@ export function Header({ user }: HeaderProps) {
                                 </Text>
                               </VStack>
                               {external ? (
-                                <Icon
-                                  as={ExternalLink}
-                                  boxSize={4}
+                                <LocalIcon
+                                  icon={ExternalLinkIcon}
                                   color="ink.400"
-                                  flexShrink={0}
-                                  aria-hidden
                                 />
                               ) : null}
                             </ChakraLink>
@@ -469,7 +466,7 @@ export function Header({ user }: HeaderProps) {
                 <MenuItem
                   as={Link}
                   href="/profile"
-                  icon={<Icon as={UserCircle} boxSize="18px" aria-hidden />}
+                  icon={<LocalIcon icon={ProfileIcon} />}
                   aria-current={
                     isActive(pathname, '/profile') ? 'page' : undefined
                   }
@@ -478,7 +475,7 @@ export function Header({ user }: HeaderProps) {
                   个人中心
                 </MenuItem>
                 <MenuItem
-                  icon={<Icon as={LogOut} boxSize="18px" aria-hidden />}
+                  icon={<LocalIcon icon={LogoutIcon} />}
                   onClick={() => void signOut({ callbackUrl: '/login' })}
                   rounded="xl"
                 >

@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Box,
   Button,
@@ -13,7 +12,6 @@ import {
   Input,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -26,7 +24,9 @@ import {
 } from '@chakra-ui/react';
 import type { RoleDto } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 
 type RoleFormPayload = {
   code?: string;
@@ -111,12 +111,16 @@ export function RoleFormModal({
           minH={0}
         >
           <ModalHeader>{editing ? '编辑角色' : '新增角色'}</ModalHeader>
-          <ModalCloseButton aria-label="关闭角色表单" isDisabled={busy} />
+          <OverlayCloseButton
+            aria-label="关闭角色表单"
+            isDisabled={busy}
+            onClick={handleClose}
+          />
           <ModalBody>
             <Stack spacing={5}>
               {submitError ? (
                 <Alert status="error">
-                  <AlertIcon />
+                  <AlertStatusIcon status="error" />
                   <Box>
                     <AlertTitle>角色保存失败</AlertTitle>
                     <AlertDescription>{submitError}</AlertDescription>

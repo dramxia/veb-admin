@@ -3,9 +3,7 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
-  Icon,
   IconButton,
   Link,
   Table,
@@ -18,7 +16,9 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { FileDto } from '@veb/api-contracts';
-import { Download, ExternalLink, Trash2 } from 'lucide-react';
+import { DeleteIcon, DownloadIcon, ExternalLinkIcon } from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { LocalIcon } from '@/components/common/local-icon';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Auth } from '@/components/auth/auth';
@@ -57,7 +57,7 @@ export function FileTable({ files }: { files: FileDto[] }) {
       </Auth>
       {error ? (
         <Alert status="error" mb={4} aria-live="polite">
-          <AlertIcon />
+          <AlertStatusIcon status="error" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
@@ -108,7 +108,7 @@ export function FileTable({ files }: { files: FileDto[] }) {
                           size="xs"
                           variant="ghost"
                           aria-label="预览文件"
-                          icon={<Icon as={ExternalLink} boxSize={4} />}
+                          icon={<LocalIcon icon={ExternalLinkIcon} />}
                         />
                       </Tooltip>
                       <Tooltip label="下载文件" hasArrow>
@@ -118,7 +118,7 @@ export function FileTable({ files }: { files: FileDto[] }) {
                           size="xs"
                           variant="ghost"
                           aria-label="下载文件"
-                          icon={<Icon as={Download} boxSize={4} />}
+                          icon={<LocalIcon icon={DownloadIcon} />}
                         />
                       </Tooltip>
                       <AuthButton
@@ -127,7 +127,7 @@ export function FileTable({ files }: { files: FileDto[] }) {
                         intent="danger"
                         variant="ghost"
                         tooltip="删除文件"
-                        icon={<Icon as={Trash2} boxSize={4} />}
+                        icon={<LocalIcon icon={DeleteIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();

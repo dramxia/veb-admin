@@ -8,10 +8,11 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { ShieldCheck } from 'lucide-react';
 import { Suspense } from 'react';
+import { VerifiedAccessIcon } from '@/assets/icons';
 import { BrandMark } from '@/components/common/brand-mark';
 import { GlassPanel } from '@/components/common/glass-panel';
+import { LocalIcon } from '@/components/common/local-icon';
 import { LoginForm } from './login-form';
 
 export default function LoginPage() {
@@ -41,7 +42,7 @@ export default function LoginPage() {
             borderColor="whiteAlpha.700"
           >
             <Stack spacing={6}>
-              <BrandMark size="52px" iconSize={6} />
+              <BrandMark size="52px" />
               <Box>
                 <Badge colorScheme="brand" mb={4}>
                   VEB 管理后台
@@ -68,7 +69,7 @@ export default function LoginPage() {
             <Stack spacing={7}>
               <HStack spacing={3} align="flex-start">
                 <Flex layerStyle="iconBrand" w="46px" h="46px" flexShrink={0}>
-                  <ShieldCheck size={20} aria-hidden />
+                  <LocalIcon icon={VerifiedAccessIcon} />
                 </Flex>
                 <Box>
                   <Heading as="h1" size="lg" color="ink.900">

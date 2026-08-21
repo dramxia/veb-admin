@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   FormControl,
   FormErrorMessage,
@@ -14,6 +13,7 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { GlassPanel } from '@/components/common/glass-panel';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
@@ -61,7 +61,7 @@ export function ChangePasswordForm() {
         <Heading size="md">修改密码</Heading>
         {error ? (
           <Alert status="error" aria-live="polite">
-            <AlertIcon />
+            <AlertStatusIcon status="error" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}

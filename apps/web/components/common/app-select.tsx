@@ -2,7 +2,6 @@
 
 import {
   Box,
-  Icon,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -11,7 +10,8 @@ import {
   useFormControlContext,
 } from '@chakra-ui/react';
 import type { PlacementWithLogical, SystemStyleObject } from '@chakra-ui/react';
-import { Check, ChevronDown } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon } from '@/assets/icons';
+import { LocalIcon } from '@/components/common/local-icon';
 import type {
   ChangeEvent,
   ComponentProps,
@@ -567,9 +567,8 @@ export function AppSelect(props: AppSelectProps) {
             >
               {triggerContent}
             </Box>
-            <Icon
-              as={ChevronDown}
-              boxSize={4}
+            <LocalIcon
+              icon={ChevronDownIcon}
               flexShrink={0}
               color={isDisabled ? 'ink.400' : 'brand.600'}
               transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
@@ -678,9 +677,8 @@ export function AppSelect(props: AppSelectProps) {
                         {option.label}
                       </Box>
                       {isSelected ? (
-                        <Icon
-                          as={Check}
-                          boxSize={4}
+                        <LocalIcon
+                          icon={CheckIcon}
                           flexShrink={0}
                           color="brand.600"
                           aria-hidden="true"

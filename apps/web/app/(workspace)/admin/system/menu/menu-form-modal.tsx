@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Box,
   Button,
@@ -11,7 +10,6 @@ import {
   Divider,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
@@ -30,7 +28,9 @@ import {
 } from '@chakra-ui/react';
 import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 import {
   buildMenuHierarchy,
   collectDescendantIds,
@@ -257,7 +257,11 @@ export function MenuFormModal({
           flexDirection="column"
           minH={0}
         >
-          <DrawerCloseButton aria-label="关闭节点编辑抽屉" isDisabled={busy} />
+          <OverlayCloseButton
+            aria-label="关闭节点编辑抽屉"
+            isDisabled={busy}
+            onClick={handleClose}
+          />
           <DrawerHeader pr={12}>
             {editing
               ? '编辑菜单或按钮'
@@ -269,7 +273,7 @@ export function MenuFormModal({
             <Stack spacing={6} pb={4}>
               {locked ? (
                 <Alert status="info">
-                  <AlertIcon />
+                  <AlertStatusIcon status="info" />
                   <Box>
                     <AlertTitle>系统节点受保护</AlertTitle>
                     <AlertDescription>
@@ -280,7 +284,7 @@ export function MenuFormModal({
               ) : null}
               {error || submitError ? (
                 <Alert status="error">
-                  <AlertIcon />
+                  <AlertStatusIcon status="error" />
                   <Box>
                     <AlertTitle>保存失败</AlertTitle>
                     <AlertDescription>{error || submitError}</AlertDescription>

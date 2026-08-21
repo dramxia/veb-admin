@@ -3,11 +3,9 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Button,
   Checkbox,
   HStack,
-  Icon,
   Input,
   InputGroup,
   InputLeftElement,
@@ -23,9 +21,15 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { ArticleLike, LikeStats } from '@veb/api-contracts';
-import { BarChart3, Heart, Search, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  AnalyticsIcon,
+  DeleteIcon,
+  LikesIcon,
+  SearchIcon,
+} from '@/assets/icons';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -34,6 +38,7 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { MetricIsland } from '@/components/common/metric-island';
+import { LocalIcon } from '@/components/common/local-icon';
 import { PaginationControls } from '@/components/common/pagination-controls';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import type { PageResult } from '@/components/content/admin-types';
@@ -144,21 +149,21 @@ export function LikeManager({
     <Stack spacing={5}>
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
         <MetricIsland
-          icon={<Heart size={20} />}
+          icon={<LocalIcon icon={LikesIcon} />}
           label="筛选范围喜欢数"
           value={stats.total}
           help="默认统计最近 30 天"
           tone="brand"
         />
         <MetricIsland
-          icon={<BarChart3 size={20} />}
+          icon={<LocalIcon icon={AnalyticsIcon} />}
           label="涉及文章"
           value={stats.articles.length}
           help="当前时间范围内"
           tone="cyan"
         />
         <MetricIsland
-          icon={<BarChart3 size={20} />}
+          icon={<LocalIcon icon={AnalyticsIcon} />}
           label="活跃天数"
           value={stats.trend.length}
           help="产生喜欢记录的日期"
@@ -173,7 +178,7 @@ export function LikeManager({
           <AuthButton
             code="content:like:delete"
             intent="danger"
-            icon={<Icon as={Trash2} boxSize={4} />}
+            icon={<LocalIcon icon={DeleteIcon} />}
             isDisabled={!selected.length}
             onClick={askBatchDelete}
           >
@@ -184,14 +189,14 @@ export function LikeManager({
           <Stack spacing={3}>
             {fetchError ? (
               <Alert status="error">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{fetchError}</AlertDescription>
               </Alert>
             ) : null}
             <Stack direction={{ base: 'column', lg: 'row' }} spacing={3}>
               <InputGroup flex="1" minW="230px">
                 <InputLeftElement>
-                  <Icon as={Search} boxSize={4} color="ink.400" />
+                  <LocalIcon icon={SearchIcon} color="ink.400" />
                 </InputLeftElement>
                 <Input
                   value={keyword}
@@ -308,7 +313,7 @@ export function LikeManager({
                         intent="danger"
                         variant="ghost"
                         tooltip="删除喜欢记录"
-                        icon={<Icon as={Trash2} boxSize={4} />}
+                        icon={<LocalIcon icon={DeleteIcon} />}
                         onClick={() => askDelete(item)}
                       />
                     </TableActions>

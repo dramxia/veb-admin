@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
   Box,
   Button,
@@ -11,7 +10,6 @@ import {
   FormHelperText,
   FormLabel,
   HStack,
-  Icon,
   IconButton,
   Input,
   InputGroup,
@@ -22,7 +20,6 @@ import {
   MenuList,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -38,19 +35,20 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { RoleDto, VebUser } from '@veb/api-contracts';
-import {
-  KeyRound,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Search,
-  ShieldCheck,
-  Trash2,
-} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  AddIcon,
+  DeleteIcon,
+  EditIcon,
+  MoreIcon,
+  PermissionsIcon,
+  SearchIcon,
+  VerifiedAccessIcon,
+} from '@/assets/icons';
 import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -58,6 +56,8 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
+import { LocalIcon } from '@/components/common/local-icon';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 import { requestJson } from '@/lib/client-api';
 import { AssignRolesModal } from './assign-roles-modal';
 import { UserFormModal } from './user-form-modal';
@@ -103,11 +103,11 @@ function ResetPasswordModal({
           minH={0}
         >
           <ModalHeader>重置密码</ModalHeader>
-          <ModalCloseButton aria-label="关闭密码重置" />
+          <OverlayCloseButton aria-label="关闭密码重置" onClick={onClose} />
           <ModalBody>
             {error ? (
               <Alert status="error" mb={4} aria-live="polite">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
@@ -183,13 +183,13 @@ export function UserTable({
           <Stack spacing={3}>
             {error ? (
               <Alert status="error" aria-live="polite">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
             <InputGroup maxW={{ base: 'full', md: '360px' }}>
               <InputLeftElement pointerEvents="none" color="ink.400">
-                <Icon as={Search} boxSize={4} />
+                <LocalIcon icon={SearchIcon} />
               </InputLeftElement>
               <Input
                 value={query}
@@ -205,7 +205,7 @@ export function UserTable({
           <AuthButton
             code="system:user:create"
             isLoading={loading}
-            icon={<Icon as={Plus} boxSize={4} />}
+            icon={<LocalIcon icon={AddIcon} />}
             onClick={() => {
               clearError();
               setEditingUser(null);
@@ -254,7 +254,7 @@ export function UserTable({
                         intent="neutral"
                         variant="ghost"
                         tooltip="编辑用户"
-                        icon={<Icon as={Pencil} boxSize={4} />}
+                        icon={<LocalIcon icon={EditIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
@@ -268,7 +268,7 @@ export function UserTable({
                         intent="neutral"
                         variant="ghost"
                         tooltip="分配角色"
-                        icon={<Icon as={ShieldCheck} boxSize={4} />}
+                        icon={<LocalIcon icon={VerifiedAccessIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
@@ -282,14 +282,14 @@ export function UserTable({
                           size="xs"
                           variant="ghost"
                           aria-label={`更多用户操作：${user.username}`}
-                          icon={<Icon as={MoreHorizontal} boxSize={4} />}
+                          icon={<LocalIcon icon={MoreIcon} />}
                           isDisabled={loading}
                         />
                         <Portal>
                           <MenuList>
                             <Auth code="system:user:reset-password">
                               <MenuItem
-                                icon={<Icon as={KeyRound} boxSize={4} />}
+                                icon={<LocalIcon icon={PermissionsIcon} />}
                                 onClick={() => {
                                   clearError();
                                   setResettingUser(user);
@@ -301,7 +301,7 @@ export function UserTable({
                             </Auth>
                             <Auth code="system:user:delete">
                               <MenuItem
-                                icon={<Icon as={Trash2} boxSize={4} />}
+                                icon={<LocalIcon icon={DeleteIcon} />}
                                 color="statusDanger"
                                 onClick={() => {
                                   clearError();

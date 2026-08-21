@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Badge,
   Box,
@@ -11,14 +10,12 @@ import {
   Checkbox,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
   DrawerOverlay,
   Grid,
   HStack,
-  Icon,
   Skeleton,
   Stack,
   Text,
@@ -30,14 +27,17 @@ import type {
   RoleAccessModuleOption,
   RoleDto,
 } from '@veb/api-contracts';
-import {
-  ExternalLink,
-  FileText,
-  FolderTree,
-  MousePointerClick,
-} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ButtonNodeIcon,
+  DirectoryNodeIcon,
+  ExternalPageIcon,
+  PageNodeIcon,
+} from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { LocalIcon } from '@/components/common/local-icon';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 import {
   getErrorMessage,
   useActionFeedback,
@@ -56,10 +56,10 @@ const EMPTY_MENUS: RoleAccessMenuOption[] = [];
 const EMPTY_MODULES: RoleAccessModuleOption[] = [];
 
 const NODE_ICON = {
-  BUTTON: MousePointerClick,
-  DIR: FolderTree,
-  LINK: ExternalLink,
-  PAGE: FileText,
+  BUTTON: ButtonNodeIcon,
+  DIR: DirectoryNodeIcon,
+  LINK: ExternalPageIcon,
+  PAGE: PageNodeIcon,
 } as const;
 
 function getAccessDetailPath(roleId: string) {
@@ -469,9 +469,10 @@ export function AssignAccessDrawer({
       >
         <DrawerOverlay />
         <DrawerContent maxW={{ base: '100%', xl: '1080px' }} ms="auto">
-          <DrawerCloseButton
+          <OverlayCloseButton
             aria-label="关闭访问权限抽屉"
             isDisabled={loading}
+            onClick={handleClose}
           />
           <DrawerHeader>
             <Stack spacing={2} pr={8}>
@@ -491,7 +492,7 @@ export function AssignAccessDrawer({
           <DrawerBody p={0} overflow="hidden">
             {locked && detail.isReady ? (
               <Alert status="info" rounded="none">
-                <AlertIcon />
+                <AlertStatusIcon status="info" />
                 <AlertDescription>
                   超级管理员隐式拥有全部启用模块和有效节点，此处仅供查看。
                 </AlertDescription>
@@ -499,7 +500,7 @@ export function AssignAccessDrawer({
             ) : null}
             {submitError ? (
               <Alert status="error" rounded="none">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{submitError}</AlertDescription>
               </Alert>
             ) : null}
@@ -534,7 +535,7 @@ export function AssignAccessDrawer({
                 gap={3}
               >
                 <HStack align="flex-start" spacing={2}>
-                  <AlertIcon mt={1} />
+                  <AlertStatusIcon status="error" mt={1} />
                   <Box>
                     <AlertTitle>访问范围加载失败</AlertTitle>
                     <AlertDescription>
@@ -678,7 +679,7 @@ export function AssignAccessDrawer({
 
                       {!selectedModuleIdSet.has(activeModule.id) ? (
                         <Alert status="warning" m={5}>
-                          <AlertIcon />
+                          <AlertStatusIcon status="warning" />
                           <AlertDescription>
                             请先在左侧勾选该模块，再配置菜单和按钮权限。
                           </AlertDescription>
@@ -736,9 +737,8 @@ export function AssignAccessDrawer({
                                 />
                                 <Stack spacing={1} minW={0}>
                                   <HStack spacing={2} wrap="wrap">
-                                    <Icon
-                                      as={NodeIcon}
-                                      boxSize={4}
+                                    <LocalIcon
+                                      icon={NodeIcon}
                                       color={
                                         menu.type === 'BUTTON'
                                           ? 'orange.600'

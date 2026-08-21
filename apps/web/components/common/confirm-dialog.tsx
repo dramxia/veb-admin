@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertDialog,
   AlertDialogBody,
   AlertDialogContent,
@@ -16,6 +15,7 @@ import {
 } from '@chakra-ui/react';
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
+import { AlertStatusIcon } from './alert-status-icon';
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -59,7 +59,7 @@ export function ConfirmDialog({
               <Box>{description}</Box>
               {error ? (
                 <Alert status="error" aria-live="polite">
-                  <AlertIcon />
+                  <AlertStatusIcon status="error" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}

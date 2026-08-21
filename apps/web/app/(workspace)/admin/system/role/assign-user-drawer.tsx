@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Badge,
   Box,
@@ -12,7 +11,6 @@ import {
   CheckboxGroup,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
@@ -32,6 +30,8 @@ import type {
   RoleUserOption,
 } from '@veb/api-contracts';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 import {
   getErrorMessage,
   useActionFeedback,
@@ -138,7 +138,11 @@ export function AssignUserDrawer({
     >
       <DrawerOverlay />
       <DrawerContent>
-        <DrawerCloseButton aria-label="关闭用户分配抽屉" isDisabled={loading} />
+        <OverlayCloseButton
+          aria-label="关闭用户分配抽屉"
+          isDisabled={loading}
+          onClick={handleClose}
+        />
         <DrawerHeader>
           <Stack spacing={2} pr={8}>
             <Text>分配用户</Text>
@@ -173,7 +177,7 @@ export function AssignUserDrawer({
 
             {submitError ? (
               <Alert status="error">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <Box>
                   <AlertTitle>无法保存</AlertTitle>
                   <AlertDescription>{submitError}</AlertDescription>
@@ -197,7 +201,7 @@ export function AssignUserDrawer({
                 gap={3}
               >
                 <HStack align="flex-start" spacing={2}>
-                  <AlertIcon mt={1} />
+                  <AlertStatusIcon status="error" mt={1} />
                   <Box>
                     <AlertTitle>用户详情加载失败</AlertTitle>
                     <AlertDescription>
@@ -218,7 +222,7 @@ export function AssignUserDrawer({
 
             {detail.status === 'idle' && isOpen ? (
               <Alert status="warning">
-                <AlertIcon />
+                <AlertStatusIcon status="warning" />
                 <Box>
                   <AlertTitle>未选择角色</AlertTitle>
                   <AlertDescription>

@@ -3,10 +3,8 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
   Button,
-  Icon,
   Input,
   InputGroup,
   InputLeftElement,
@@ -21,9 +19,10 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { AppModuleDto } from '@veb/api-contracts';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { AddIcon, DeleteIcon, EditIcon, SearchIcon } from '@/assets/icons';
 import { useMemo, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -31,6 +30,7 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
+import { LocalIcon } from '@/components/common/local-icon';
 import { requestJson } from '@/lib/client-api';
 import { ModuleFormDrawer, type ModulePayload } from './module-form-drawer';
 
@@ -80,13 +80,13 @@ export function ModuleTable({ modules }: { modules: AppModuleDto[] }) {
           <Stack spacing={3}>
             {error ? (
               <Alert status="error" aria-live="polite">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
             <InputGroup maxW={{ base: 'full', md: '360px' }}>
               <InputLeftElement pointerEvents="none" color="ink.400">
-                <Icon as={Search} boxSize={4} />
+                <LocalIcon icon={SearchIcon} />
               </InputLeftElement>
               <Input
                 value={query}
@@ -101,7 +101,7 @@ export function ModuleTable({ modules }: { modules: AppModuleDto[] }) {
         primaryAction={
           <AuthButton
             code="system:module:create"
-            icon={<Icon as={Plus} boxSize={4} />}
+            icon={<LocalIcon icon={AddIcon} />}
             isLoading={loading}
             onClick={() => {
               clearError();
@@ -174,7 +174,7 @@ export function ModuleTable({ modules }: { modules: AppModuleDto[] }) {
                         intent="neutral"
                         variant="ghost"
                         tooltip="编辑模块"
-                        icon={<Icon as={Pencil} boxSize={4} />}
+                        icon={<LocalIcon icon={EditIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
@@ -190,7 +190,7 @@ export function ModuleTable({ modules }: { modules: AppModuleDto[] }) {
                         tooltip={
                           module.isSystem ? '内置模块不可删除' : '删除模块'
                         }
-                        icon={<Icon as={Trash2} boxSize={4} />}
+                        icon={<LocalIcon icon={DeleteIcon} />}
                         isDisabled={loading || module.isSystem}
                         onClick={() => {
                           clearError();

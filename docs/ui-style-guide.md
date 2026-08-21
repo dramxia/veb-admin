@@ -1,6 +1,6 @@
 # VEB UI 风格规范
 
-## 🎯 文档目标
+## 文档目标
 
 本文档用于统一 VEB 管理后台的视觉语言、样式规则和组件落地方式。
 
@@ -18,7 +18,7 @@ Chakra UI 是主组件系统，TailwindCSS 只作为布局与工具类补充。�
 
 ---
 
-## 🌿 设计定位
+## 设计定位
 
 ### 核心气质
 
@@ -47,7 +47,7 @@ Chakra UI 是主组件系统，TailwindCSS 只作为布局与工具类补充。�
 
 ---
 
-## 🎨 设计令牌
+## 设计令牌
 
 ### 主色
 
@@ -219,7 +219,7 @@ Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
 
 ---
 
-## 🧱 全局布局规则
+## 全局布局规则
 
 ### App Shell
 
@@ -261,7 +261,7 @@ Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
 
 ---
 
-## 🧩 Chakra UI 组件规范
+## Chakra UI 组件规范
 
 Chakra UI v2 是项目主组件系统。主题入口应集中在 `apps/web/app/providers.tsx` 的 `extendTheme`，业务组件优先使用 Chakra props 和主题 token。
 
@@ -422,7 +422,7 @@ Chakra UI v2 是项目主组件系统。主题入口应集中在 `apps/web/app/p
 
 - `Popover`：浮层背景、边框和阴影与 `Menu` 一致；触发器保留明确 focus 状态。
 - `AlertDialog`：沿用 `Modal` 的浅色模糊遮罩与高可读性内容层；危险确认必须使用红色语义和明确的影响说明。
-- `IconButton`、`CloseButton`：使用固定方形点击区和圆角，图标来自 `lucide-react`；无文字按钮必须提供 `aria-label` 和 Tooltip。
+- `IconButton`、关闭按钮：使用固定方形点击区和圆角，统一通过 `LocalIcon` 渲染分类 SVG；无文字按钮必须提供 `aria-label`，不熟悉的操作还需提供 Tooltip。
 - `Avatar`：尺寸稳定、边框使用半透明白色或 `ink.100`；不能用头像颜色作为唯一状态表达。
 - `Radio`、`Checkbox`、`Switch`：选中态使用 `brand.500`，未选中态保持中性色边框，均需可见 focus ring。
 - `NumberInput`：与 `Input` 共用背景、边框、错误态和 focus ring；步进按钮不得挤压数值内容。
@@ -431,7 +431,7 @@ Chakra UI v2 是项目主组件系统。主题入口应集中在 `apps/web/app/p
 
 ---
 
-## 🧰 TailwindCSS 使用规则
+## TailwindCSS 使用规则
 
 TailwindCSS 是工具层，不替代 Chakra 主题系统。
 
@@ -474,7 +474,7 @@ theme: {
 
 ---
 
-## 📊 echarts 样式对齐
+## echarts 样式对齐
 
 echarts 图表必须看起来属于同一套后台 UI。
 
@@ -539,7 +539,7 @@ tooltip: {
 
 ---
 
-## 🌀 framer-motion 动效规则
+## framer-motion 动效规则
 
 framer-motion 用于微交互，不用于制造视觉噪音。
 
@@ -579,7 +579,7 @@ const easeTransition = {
 
 ---
 
-## 🔵 nprogress 样式规则
+## nprogress 样式规则
 
 nprogress 体现页面切换的轻盈感。
 
@@ -608,7 +608,7 @@ nprogress 体现页面切换的轻盈感。
 
 ---
 
-## 🧠 Zustand UI 状态规则
+## Zustand UI 状态规则
 
 Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台操作语义。
 
@@ -631,13 +631,13 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ---
 
-## 🔗 外部依赖视觉对齐
+## 外部依赖视觉对齐
 
 所有具有可见输出的依赖都必须服从同一套淡蓝玻璃主题，不能带入独立的默认视觉语言。
 
 - `@chakra-ui/react`：主组件系统。颜色、圆角、阴影、焦点态和浮层样式以 `apps/web/app/providers.tsx` 的主题为唯一来源。
 - `tailwindcss`：只承担布局、响应式和少量工具类；不使用颜色、阴影、圆角类覆盖 Chakra 语义 token，且保持 `preflight` 关闭。
-- `lucide-react`：作为唯一图标库；图标随按钮或文本的语义色变化，线宽和尺寸在同一操作区域内保持一致。
+- 本地图标集：SVG 按 `actions`、`auth`、`brand`、`content`、`editor`、`navigation`、`status`、`system` 分类；统一使用 24×24 画布、`1.8` 线宽和 `currentColor`，通过 `LocalIcon` 渲染。所有业务图标固定为 18px，品牌块、统计卡和状态面板只调整外层容器，不放大图标本身。
 - `echarts`：遵循本规范的图表色板、坐标轴、玻璃 Tooltip 和稳定容器尺寸；不使用库默认色板。
 - `framer-motion`：仅用于定义的微交互，并尊重 `prefers-reduced-motion`；不使用默认弹簧参数制造明显跳动。
 - `nprogress`：仅使用全局的品牌渐变进度条，不额外添加 spinner 或文字提示。
@@ -646,7 +646,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ---
 
-## 🖼️ 典型页面规范
+## 典型页面规范
 
 ### 登录页
 
@@ -756,7 +756,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ---
 
-## ♿ 可访问性
+## 可访问性
 
 必须满足以下规则：
 
@@ -770,7 +770,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ---
 
-## ⚡ 性能规则
+## 性能规则
 
 玻璃态和模糊效果需要克制使用。
 
@@ -785,7 +785,7 @@ Zustand 用于客户端 UI 状态时，命名和状态结构必须体现后台�
 
 ---
 
-## ✅ 实现入口建议
+## 实现入口建议
 
 ### `apps/web/app/providers.tsx`
 
@@ -843,7 +843,7 @@ corePlugins: {
 
 ---
 
-## 🚫 禁用清单
+## 禁用清单
 
 以下做法不允许进入项目主 UI：
 
@@ -857,10 +857,12 @@ corePlugins: {
 - 只用 Toast 表达关键错误。
 - 只用颜色表达状态。
 - 图表使用与主题不一致的高饱和随机色。
+- 使用表情符号充当界面图标、状态标识或装饰。
+- 在业务组件中直接内联 SVG 或引入第三方图标组件。
 
 ---
 
-## 🧪 UI 验收清单
+## UI 验收清单
 
 每次新增或重构 UI，至少检查：
 
@@ -873,10 +875,11 @@ corePlugins: {
 - 图表、进度条、动画是否与主题一致。
 - 页面是否保持后台系统应有的信息密度。
 - 是否存在过度装饰、重阴影、高饱和色。
+- 图标是否来自分类 SVG 图标集，并保持统一画布、线宽、尺寸和可变色。
 
 ---
 
-## 📌 总结
+## 总结
 
 VEB 的 UI 不追求复杂装饰，而是追求清晰、通透、轻盈和可靠。
 

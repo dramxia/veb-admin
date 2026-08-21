@@ -3,7 +3,6 @@
 import {
   Box,
   Flex,
-  Icon,
   Link as ChakraLink,
   Stack,
   Text,
@@ -11,27 +10,28 @@ import {
   useBreakpointValue,
 } from '@chakra-ui/react';
 import type { MenuNode } from '@veb/api-contracts';
-import {
-  Circle,
-  Compass,
-  ExternalLink,
-  FileBox,
-  FileText,
-  Folder,
-  Heart,
-  KeyRound,
-  LayoutDashboard,
-  ListTree,
-  ScrollText,
-  Shield,
-  Tags,
-  User,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
+import {
+  ArticlesIcon,
+  DashboardIcon,
+  ExternalLinkIcon,
+  FallbackNavigationIcon,
+  FilesIcon,
+  FolderIcon,
+  LikesIcon,
+  MenuTreeIcon,
+  ModulesIcon,
+  OperationLogsIcon,
+  PermissionsIcon,
+  ProfileIcon,
+  RolesIcon,
+  SystemIcon,
+  TagsIcon,
+  UsersIcon,
+} from '@/assets/icons';
+import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { useUiStore } from '@/stores/ui-store';
 import {
   flattenNavigableMenus,
@@ -47,48 +47,54 @@ export const DESKTOP_SIDEBAR_EXPANDED_WIDTH = '184px';
 export const DESKTOP_SIDEBAR_COLLAPSED_WIDTH = '76px';
 export const MOBILE_SIDEBAR_WIDTH = `min(${DESKTOP_SIDEBAR_EXPANDED_WIDTH}, calc(100vw - 48px))`;
 
-const iconMap: Record<string, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  home: LayoutDashboard,
-  system: Compass,
-  users: Users,
-  user: User,
-  role: Shield,
-  shield: Shield,
-  permission: KeyRound,
-  key: KeyRound,
-  keyround: KeyRound,
-  menu: ListTree,
-  file: FileBox,
-  filetext: FileText,
-  article: FileText,
-  folder: Folder,
-  tag: Tags,
-  tags: Tags,
-  like: Heart,
-  heart: Heart,
-  log: ScrollText,
-  profile: User,
+const iconMap: Record<string, SvgComponent> = {
+  dashboard: DashboardIcon,
+  layoutdashboard: DashboardIcon,
+  home: DashboardIcon,
+  system: SystemIcon,
+  users: UsersIcon,
+  user: ProfileIcon,
+  role: RolesIcon,
+  shield: RolesIcon,
+  permission: PermissionsIcon,
+  key: PermissionsIcon,
+  keyround: PermissionsIcon,
+  menu: MenuTreeIcon,
+  listtree: MenuTreeIcon,
+  module: ModulesIcon,
+  modules: ModulesIcon,
+  boxes: ModulesIcon,
+  file: FilesIcon,
+  filebox: FilesIcon,
+  filetext: ArticlesIcon,
+  article: ArticlesIcon,
+  folder: FolderIcon,
+  tag: TagsIcon,
+  tags: TagsIcon,
+  like: LikesIcon,
+  heart: LikesIcon,
+  log: OperationLogsIcon,
+  profile: ProfileIcon,
 };
 
-function getMenuIcon(menu: MenuNode): LucideIcon {
+function getMenuIcon(menu: MenuNode): SvgComponent {
   const configured = menu.icon?.toLowerCase();
   const path = normalizeMenuPath(menu.path);
   if (configured && iconMap[configured]) return iconMap[configured];
-  if (path === '/dashboard') return LayoutDashboard;
-  if (path === '/profile') return User;
-  if (path.includes('/article')) return FileText;
-  if (path.includes('/tag')) return Tags;
-  if (path.includes('/like')) return Heart;
-  if (path.includes('user')) return Users;
-  if (path.includes('role')) return Shield;
-  if (path.includes('permission')) return KeyRound;
-  if (path.includes('menu')) return ListTree;
-  if (path.includes('file')) return FileBox;
-  if (path.includes('log')) return ScrollText;
-  if (path.startsWith('/admin/content')) return FileText;
-  if (path.startsWith('/admin/system')) return Compass;
-  return Circle;
+  if (path === '/dashboard') return DashboardIcon;
+  if (path === '/profile') return ProfileIcon;
+  if (path.includes('/article')) return ArticlesIcon;
+  if (path.includes('/tag')) return TagsIcon;
+  if (path.includes('/like')) return LikesIcon;
+  if (path.includes('user')) return UsersIcon;
+  if (path.includes('role')) return RolesIcon;
+  if (path.includes('permission')) return PermissionsIcon;
+  if (path.includes('menu')) return MenuTreeIcon;
+  if (path.includes('file')) return FilesIcon;
+  if (path.includes('log')) return OperationLogsIcon;
+  if (path.startsWith('/admin/content')) return ArticlesIcon;
+  if (path.startsWith('/admin/system')) return SystemIcon;
+  return FallbackNavigationIcon;
 }
 
 type FlatMenuItemProps = {
@@ -206,7 +212,7 @@ function FlatMenuItem({
         color={current ? 'brand.600' : 'ink.500'}
         transition="background 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms cubic-bezier(0.16, 1, 0.3, 1)"
       >
-        <Icon as={MenuItemIcon} boxSize="17px" aria-hidden />
+        <LocalIcon icon={MenuItemIcon} />
       </Flex>
 
       {!collapsed && (
@@ -215,10 +221,9 @@ function FlatMenuItem({
         </Text>
       )}
       {!collapsed && external && (
-        <Icon
+        <LocalIcon
           className="sidebar-external-icon"
-          as={ExternalLink}
-          boxSize={4}
+          icon={ExternalLinkIcon}
           color={current ? 'brand.500' : 'ink.400'}
           opacity={current ? 0.72 : 0.55}
           transition="color 160ms ease, opacity 160ms ease"

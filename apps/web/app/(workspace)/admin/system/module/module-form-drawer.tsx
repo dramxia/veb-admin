@@ -3,12 +3,10 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Box,
   Button,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
@@ -23,7 +21,9 @@ import {
   Textarea,
 } from '@chakra-ui/react';
 import type { AppModuleDto } from '@veb/api-contracts';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 
 export type ModulePayload = {
   code?: string;
@@ -94,19 +94,23 @@ export function ModuleFormDrawer({
           flexDirection="column"
           minH={0}
         >
-          <DrawerCloseButton aria-label="关闭模块表单" isDisabled={isLoading} />
+          <OverlayCloseButton
+            aria-label="关闭模块表单"
+            isDisabled={isLoading}
+            onClick={onClose}
+          />
           <DrawerHeader>{editing ? '编辑模块' : '新增模块'}</DrawerHeader>
           <DrawerBody>
             <Stack spacing={5}>
               {error ? (
                 <Alert status="error" aria-live="polite">
-                  <AlertIcon />
+                  <AlertStatusIcon status="error" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}
               {locked ? (
                 <Alert status="info">
-                  <AlertIcon />
+                  <AlertStatusIcon status="info" />
                   <AlertDescription>
                     内置模块仅允许修改名称、图标和排序。
                   </AlertDescription>

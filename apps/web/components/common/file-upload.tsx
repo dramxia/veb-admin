@@ -3,14 +3,12 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Badge,
   Box,
   Button,
   Center,
   HStack,
-  Icon,
   Input,
   List,
   ListItem,
@@ -20,8 +18,10 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import type { FileDto } from '@veb/api-contracts';
-import { FileUp, Paperclip } from 'lucide-react';
 import { type DragEvent, useId, useRef, useState } from 'react';
+import { AttachmentIcon, UploadIcon } from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { LocalIcon } from '@/components/common/local-icon';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
 import { t } from '@/lib/i18n';
@@ -114,7 +114,7 @@ export function FileUpload({ value = [], onChange }: FileUploadProps) {
       >
         <HStack spacing={3} minW={0}>
           <Center layerStyle="iconBrand" aria-hidden="true">
-            <Icon as={FileUp} boxSize={5} />
+            <LocalIcon icon={UploadIcon} />
           </Center>
           <VStack align="stretch" spacing={0.5} minW={0}>
             <Text id={titleId} color="ink.800" fontWeight="700">
@@ -171,7 +171,7 @@ export function FileUpload({ value = [], onChange }: FileUploadProps) {
 
       {error ? (
         <Alert status="error" mt={4} alignItems="flex-start">
-          <AlertIcon mt={0.5} />
+          <AlertStatusIcon status="error" mt={0.5} />
           <Box>
             <AlertTitle>{t('upload.failed')}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -193,12 +193,10 @@ export function FileUpload({ value = [], onChange }: FileUploadProps) {
               py={2}
               color="ink.700"
             >
-              <Icon
-                as={Paperclip}
+              <LocalIcon
+                icon={AttachmentIcon}
                 aria-hidden="true"
-                boxSize={4}
                 color="brand.600"
-                flexShrink={0}
               />
               <Text minW={0} flex="1" noOfLines={1} title={file.name}>
                 {file.name}

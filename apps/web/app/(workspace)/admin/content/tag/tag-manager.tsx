@@ -3,12 +3,10 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Box,
   Button,
   Drawer,
   DrawerBody,
-  DrawerCloseButton,
   DrawerContent,
   DrawerHeader,
   DrawerOverlay,
@@ -16,13 +14,11 @@ import {
   FormHelperText,
   FormLabel,
   HStack,
-  Icon,
   Input,
   InputGroup,
   InputLeftElement,
   Modal,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
   ModalHeader,
@@ -38,7 +34,16 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { AdminTag } from '@veb/api-contracts';
-import { FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import {
+  AddIcon,
+  ArticlesIcon,
+  DeleteIcon,
+  EditIcon,
+  SearchIcon,
+} from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { LocalIcon } from '@/components/common/local-icon';
+import { OverlayCloseButton } from '@/components/common/overlay-close-button';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { AuthButton } from '@/components/auth/auth-button';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -149,7 +154,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
         primaryAction={
           <AuthButton
             code="content:tag:create"
-            icon={<Icon as={Plus} boxSize={4} />}
+            icon={<LocalIcon icon={AddIcon} />}
             onClick={() => openForm()}
           >
             新增标签
@@ -159,13 +164,13 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
           <Stack spacing={3}>
             {listError ? (
               <Alert status="error">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{listError}</AlertDescription>
               </Alert>
             ) : null}
             <InputGroup maxW="360px">
               <InputLeftElement>
-                <Icon as={Search} boxSize={4} color="ink.400" />
+                <LocalIcon icon={SearchIcon} color="ink.400" />
               </InputLeftElement>
               <Input
                 value={keyword}
@@ -212,7 +217,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
                         intent="neutral"
                         variant="ghost"
                         tooltip="查看关联文章"
-                        icon={<Icon as={FileText} boxSize={4} />}
+                        icon={<LocalIcon icon={ArticlesIcon} />}
                         onClick={() => void openRelated(tag)}
                       />
                       <AuthButton
@@ -221,7 +226,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
                         intent="neutral"
                         variant="ghost"
                         tooltip="编辑标签"
-                        icon={<Icon as={Pencil} boxSize={4} />}
+                        icon={<LocalIcon icon={EditIcon} />}
                         onClick={() => openForm(tag)}
                       />
                       <AuthButton
@@ -230,7 +235,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
                         intent="danger"
                         variant="ghost"
                         tooltip="删除标签"
-                        icon={<Icon as={Trash2} boxSize={4} />}
+                        icon={<LocalIcon icon={DeleteIcon} />}
                         onClick={() => {
                           setDeleting(tag);
                           confirm.onOpen();
@@ -263,12 +268,15 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
         <ModalContent>
           <Box as="form" onSubmit={submit}>
             <ModalHeader>{editing ? '编辑标签' : '新增标签'}</ModalHeader>
-            <ModalCloseButton />
+            <OverlayCloseButton
+              aria-label="关闭标签表单"
+              onClick={form.onClose}
+            />
             <ModalBody>
               <Stack spacing={4}>
                 {feedback.error ? (
                   <Alert status="error">
-                    <AlertIcon />
+                    <AlertStatusIcon status="error" />
                     <AlertDescription>{feedback.error}</AlertDescription>
                   </Alert>
                 ) : null}
@@ -314,7 +322,10 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
       >
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
+          <OverlayCloseButton
+            aria-label="关闭关联文章抽屉"
+            onClick={drawer.onClose}
+          />
           <DrawerHeader>{viewing?.name} · 关联文章</DrawerHeader>
           <DrawerBody>
             <Stack spacing={3}>

@@ -3,9 +3,7 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
-  Icon,
   IconButton,
   Menu,
   MenuButton,
@@ -23,17 +21,18 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { RoleDto } from '@veb/api-contracts';
-import {
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  ShieldCheck,
-  Trash2,
-  Users,
-} from 'lucide-react';
 import { useState } from 'react';
+import {
+  AddIcon,
+  DeleteIcon,
+  EditIcon,
+  MoreIcon,
+  UsersIcon,
+  VerifiedAccessIcon,
+} from '@/assets/icons';
 import { Auth } from '@/components/auth/auth';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -41,6 +40,7 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
+import { LocalIcon } from '@/components/common/local-icon';
 import { requestJson } from '@/lib/client-api';
 import { AssignAccessDrawer } from './assign-access-drawer';
 import { AssignUserDrawer } from './assign-user-drawer';
@@ -72,7 +72,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
         toolbar={
           error ? (
             <Alert status="error" aria-live="polite">
-              <AlertIcon />
+              <AlertStatusIcon status="error" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : undefined
@@ -81,7 +81,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
           <AuthButton
             code="system:role:create"
             isLoading={loading}
-            icon={<Icon as={Plus} boxSize={4} />}
+            icon={<LocalIcon icon={AddIcon} />}
             onClick={() => {
               clearError();
               setEditingRole(null);
@@ -171,7 +171,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
                         variant="ghost"
                         tooltip="编辑角色"
                         aria-label={`编辑角色 ${role.name}`}
-                        icon={<Icon as={Pencil} boxSize={4} />}
+                        icon={<LocalIcon icon={EditIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
@@ -190,7 +190,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
                             : '配置访问权限'
                         }
                         aria-label={`${role.code === 'superadmin' ? '查看' : '配置'}角色 ${role.name} 的访问权限`}
-                        icon={<Icon as={ShieldCheck} boxSize={4} />}
+                        icon={<LocalIcon icon={VerifiedAccessIcon} />}
                         isDisabled={loading}
                         onClick={() => {
                           clearError();
@@ -204,14 +204,14 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
                           size="xs"
                           variant="ghost"
                           aria-label={`更多角色操作：${role.name}`}
-                          icon={<Icon as={MoreHorizontal} boxSize={4} />}
+                          icon={<LocalIcon icon={MoreIcon} />}
                           isDisabled={loading}
                         />
                         <Portal>
                           <MenuList>
                             <Auth code="system:role:assign-user">
                               <MenuItem
-                                icon={<Icon as={Users} boxSize={4} />}
+                                icon={<LocalIcon icon={UsersIcon} />}
                                 isDisabled={loading}
                                 onClick={() => {
                                   clearError();
@@ -224,7 +224,7 @@ export function RoleTable({ roles }: { roles: RoleDto[] }) {
                             </Auth>
                             <Auth code="system:role:delete">
                               <MenuItem
-                                icon={<Icon as={Trash2} boxSize={4} />}
+                                icon={<LocalIcon icon={DeleteIcon} />}
                                 color="statusDanger"
                                 isDisabled={loading || role.isSystem}
                                 onClick={() => {

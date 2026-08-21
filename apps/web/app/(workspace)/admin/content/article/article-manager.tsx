@@ -3,11 +3,9 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
   Button,
   HStack,
-  Icon,
   Input,
   InputGroup,
   InputLeftElement,
@@ -21,12 +19,19 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react';
-import { ExternalLink, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useEffect, useState } from 'react';
+import {
+  AddIcon,
+  DeleteIcon,
+  EditIcon,
+  ExternalLinkIcon,
+  SearchIcon,
+} from '@/assets/icons';
 import { AuthButton } from '@/components/auth/auth-button';
 import { Auth } from '@/components/auth/auth';
 import { AppSelect } from '@/components/common/app-select';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
   DataTableCard,
@@ -34,6 +39,7 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { PaginationControls } from '@/components/common/pagination-controls';
+import { LocalIcon } from '@/components/common/local-icon';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
 import type {
@@ -113,7 +119,7 @@ export function ArticleManager({
             <Button
               as={NextLink}
               href="/admin/content/article/new"
-              leftIcon={<Icon as={Plus} boxSize={4} />}
+              leftIcon={<LocalIcon icon={AddIcon} />}
             >
               新增文章
             </Button>
@@ -123,14 +129,14 @@ export function ArticleManager({
           <Stack spacing={3}>
             {fetchError ? (
               <Alert status="error">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{fetchError}</AlertDescription>
               </Alert>
             ) : null}
             <Stack direction={{ base: 'column', lg: 'row' }} spacing={3}>
               <InputGroup flex="1" minW="240px">
                 <InputLeftElement>
-                  <Icon as={Search} boxSize={4} color="ink.400" />
+                  <LocalIcon icon={SearchIcon} color="ink.400" />
                 </InputLeftElement>
                 <Input
                   value={keyword}
@@ -253,7 +259,7 @@ export function ArticleManager({
                           variant="ghost"
                           aria-label="查看公开文章"
                         >
-                          <Icon as={ExternalLink} boxSize={4} />
+                          <LocalIcon icon={ExternalLinkIcon} />
                         </Button>
                       ) : null}
                       <Auth code="content:article:update">
@@ -264,7 +270,7 @@ export function ArticleManager({
                           variant="ghost"
                           aria-label="编辑文章"
                         >
-                          <Icon as={Pencil} boxSize={4} />
+                          <LocalIcon icon={EditIcon} />
                         </Button>
                       </Auth>
                       <AuthButton
@@ -273,7 +279,7 @@ export function ArticleManager({
                         intent="danger"
                         variant="ghost"
                         tooltip="删除文章"
-                        icon={<Icon as={Trash2} boxSize={4} />}
+                        icon={<LocalIcon icon={DeleteIcon} />}
                         onClick={() => {
                           setDeleting(article);
                           dialog.onOpen();

@@ -3,12 +3,10 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
   Box,
   Flex,
   HStack,
-  Icon,
   Stack,
   Table,
   Tbody,
@@ -21,19 +19,19 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
-import {
-  ExternalLink,
-  FileText,
-  FolderTree,
-  MousePointerClick,
-  Pencil,
-  Plus,
-  SquarePlus,
-  Trash2,
-  type LucideIcon,
-} from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+  AddChildIcon,
+  AddIcon,
+  ButtonNodeIcon,
+  DeleteIcon,
+  DirectoryNodeIcon,
+  EditIcon,
+  ExternalPageIcon,
+  PageNodeIcon,
+} from '@/assets/icons';
 import { AuthButton } from '@/components/auth/auth-button';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import {
@@ -42,13 +40,14 @@ import {
   TableActions,
 } from '@/components/common/data-table';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
+import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { requestJson } from '@/lib/client-api';
 import { MenuFormModal, type MenuCreateDefaults } from './menu-form-modal';
 import { buildMenuHierarchy } from './menu-hierarchy';
 
 type MenuTypeMeta = {
   colorScheme: string;
-  icon: LucideIcon;
+  icon: SvgComponent;
   iconColor: string;
   label: string;
 };
@@ -56,25 +55,25 @@ type MenuTypeMeta = {
 const MENU_TYPE_META: Record<MenuDto['type'], MenuTypeMeta> = {
   DIR: {
     colorScheme: 'gray',
-    icon: FolderTree,
+    icon: DirectoryNodeIcon,
     iconColor: 'ink.500',
     label: '目录',
   },
   LINK: {
     colorScheme: 'cyan',
-    icon: ExternalLink,
+    icon: ExternalPageIcon,
     iconColor: 'cyan.600',
     label: '外链',
   },
   PAGE: {
     colorScheme: 'brand',
-    icon: FileText,
+    icon: PageNodeIcon,
     iconColor: 'brand.600',
     label: '页面',
   },
   BUTTON: {
     colorScheme: 'orange',
-    icon: MousePointerClick,
+    icon: ButtonNodeIcon,
     iconColor: 'orange.600',
     label: '按钮',
   },
@@ -134,7 +133,7 @@ export function MenuTree({
           <Stack spacing={3}>
             {error ? (
               <Alert status="error" aria-live="polite">
-                <AlertIcon />
+                <AlertStatusIcon status="error" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
@@ -157,7 +156,7 @@ export function MenuTree({
           <AuthButton
             code="system:menu:create"
             isLoading={loading}
-            icon={<Icon as={Plus} boxSize="18px" />}
+            icon={<LocalIcon icon={AddIcon} />}
             onClick={() =>
               openCreate(
                 moduleFilter === 'ALL' ? undefined : { moduleId: moduleFilter },
@@ -207,11 +206,9 @@ export function MenuTree({
                             borderColor="ink.200"
                           />
                         ) : null}
-                        <Icon
-                          as={typeMeta.icon}
-                          boxSize={5}
+                        <LocalIcon
+                          icon={typeMeta.icon}
                           color={typeMeta.iconColor}
-                          flexShrink={0}
                         />
                         <Stack spacing={1} minW={0}>
                           <HStack spacing={2} wrap="wrap">
@@ -324,7 +321,7 @@ export function MenuTree({
                             variant="ghost"
                             tooltip="新增按钮"
                             aria-label={`在页面 ${menu.name} 下新增按钮`}
-                            icon={<Icon as={SquarePlus} boxSize="18px" />}
+                            icon={<LocalIcon icon={AddChildIcon} />}
                             isDisabled={loading}
                             onClick={() =>
                               openCreate({
@@ -343,7 +340,7 @@ export function MenuTree({
                           variant="ghost"
                           tooltip={`编辑${typeMeta.label}`}
                           aria-label={`编辑${typeMeta.label} ${menu.name}`}
-                          icon={<Icon as={Pencil} boxSize="18px" />}
+                          icon={<LocalIcon icon={EditIcon} />}
                           isDisabled={loading}
                           onClick={() => {
                             clearError();
@@ -364,7 +361,7 @@ export function MenuTree({
                               : `删除${typeMeta.label}`
                           }
                           aria-label={`删除${typeMeta.label} ${menu.name}`}
-                          icon={<Icon as={Trash2} boxSize="18px" />}
+                          icon={<LocalIcon icon={DeleteIcon} />}
                           isDisabled={loading || menu.isSystem}
                           onClick={() => {
                             clearError();

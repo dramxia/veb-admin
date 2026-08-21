@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   Badge,
   Box,
   Button,
@@ -17,7 +16,6 @@ import {
   Grid,
   Heading,
   HStack,
-  Icon,
   Input,
   SimpleGrid,
   Stack,
@@ -27,25 +25,27 @@ import {
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import {
-  Bold,
-  Braces,
-  Code2,
-  Columns2,
-  Eye,
-  Heading2,
-  Image as ImageIcon,
-  Italic,
-  Link2,
-  List,
-  ListOrdered,
-  PenLine,
-  Quote,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useRef, useState } from 'react';
+import {
+  EditorBoldIcon,
+  EditorBulletedListIcon,
+  EditorCodeBlockIcon,
+  EditorCodeDocumentIcon,
+  EditorHeadingIcon,
+  EditorImageIcon,
+  EditorItalicIcon,
+  EditorLinkIcon,
+  EditorOrderedListIcon,
+  EditorPreviewIcon,
+  EditorQuoteIcon,
+  EditorSplitViewIcon,
+  EditorWriteIcon,
+} from '@/assets/icons';
 import { useHasPermission } from '@/components/auth/use-has-permission';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { MarkdownContent } from '@/components/content/markdown-content';
 import type {
   ArticleDetail,
@@ -76,28 +76,28 @@ type MarkdownAction =
 
 const formatActions: Array<{
   action: MarkdownAction;
-  icon: typeof Bold;
+  icon: SvgComponent;
   label: string;
 }> = [
-  { action: 'heading', icon: Heading2, label: '二级标题' },
-  { action: 'bold', icon: Bold, label: '粗体' },
-  { action: 'italic', icon: Italic, label: '斜体' },
-  { action: 'quote', icon: Quote, label: '引用' },
-  { action: 'unordered-list', icon: List, label: '无序列表' },
-  { action: 'ordered-list', icon: ListOrdered, label: '有序列表' },
-  { action: 'code', icon: Code2, label: '代码' },
-  { action: 'link', icon: Link2, label: '链接' },
-  { action: 'image', icon: ImageIcon, label: '图片' },
+  { action: 'heading', icon: EditorHeadingIcon, label: '二级标题' },
+  { action: 'bold', icon: EditorBoldIcon, label: '粗体' },
+  { action: 'italic', icon: EditorItalicIcon, label: '斜体' },
+  { action: 'quote', icon: EditorQuoteIcon, label: '引用' },
+  { action: 'unordered-list', icon: EditorBulletedListIcon, label: '无序列表' },
+  { action: 'ordered-list', icon: EditorOrderedListIcon, label: '有序列表' },
+  { action: 'code', icon: EditorCodeBlockIcon, label: '代码' },
+  { action: 'link', icon: EditorLinkIcon, label: '链接' },
+  { action: 'image', icon: EditorImageIcon, label: '图片' },
 ];
 
 const viewModes: Array<{
   value: ViewMode;
-  icon: typeof PenLine;
+  icon: SvgComponent;
   label: string;
 }> = [
-  { value: 'write', icon: PenLine, label: '编辑' },
-  { value: 'split', icon: Columns2, label: '分栏' },
-  { value: 'preview', icon: Eye, label: '预览' },
+  { value: 'write', icon: EditorWriteIcon, label: '编辑' },
+  { value: 'split', icon: EditorSplitViewIcon, label: '分栏' },
+  { value: 'preview', icon: EditorPreviewIcon, label: '预览' },
 ];
 
 function wrapSelection(
@@ -297,7 +297,7 @@ export function ArticleEditor({
             color="ink.400"
             textAlign="center"
           >
-            <Icon as={Braces} boxSize={7} mb={3} />
+            <LocalIcon icon={EditorCodeDocumentIcon} mb={3} />
             <Text fontWeight="700">暂无预览内容</Text>
           </Flex>
         )}
@@ -310,7 +310,7 @@ export function ArticleEditor({
       <Stack spacing={4}>
         {error ? (
           <Alert status="error" aria-live="polite">
-            <AlertIcon />
+            <AlertStatusIcon status="error" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
@@ -458,7 +458,7 @@ export function ArticleEditor({
                     isDisabled={saving || viewMode === 'preview'}
                     onClick={() => applyMarkdown(action)}
                   >
-                    <Icon as={icon} boxSize={4} />
+                    <LocalIcon icon={icon} />
                   </Button>
                 </Tooltip>
               ))}
@@ -472,7 +472,7 @@ export function ArticleEditor({
                 <Button
                   key={value}
                   type="button"
-                  leftIcon={<Icon as={icon} boxSize={4} />}
+                  leftIcon={<LocalIcon icon={icon} />}
                   colorScheme={viewMode === value ? 'brand' : 'gray'}
                   bg={viewMode === value ? 'brand.50' : 'controlBg'}
                   color={viewMode === value ? 'brand.700' : 'ink.600'}

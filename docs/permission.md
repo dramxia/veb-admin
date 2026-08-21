@@ -196,6 +196,9 @@ Content-Type: application/json
 ```
 
 - 模块和每级菜单均按 `sort -> name -> id` 排序。
+- 内置模块和导航节点的 `icon` 保存语义键（如 `dashboard`、`articles`、`users`、`roles`）；
+  Web 只从 `apps/web/assets/icons` 的分类 SVG 图标集解析这些键。未知键按节点路径推断语义，
+  仍无法识别时使用通用页面图标，不从外部图标库动态加载。
 - 导航只保留自身及祖先启用、可见的授权节点，始终排除 `BUTTON`，并剪除没有后代的
   `DIR`。
 - 模块树深度优先遇到的第一个有效 `PAGE.path` 是 `landingPath`；`LINK` 不参与落点计算，

@@ -10,10 +10,17 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { Boxes, KeyRound, ListTree, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { DashboardStats } from '@veb/api-contracts';
+import {
+  MenuTreeIcon,
+  ModulesIcon,
+  PermissionsIcon,
+  RolesIcon,
+  UsersIcon,
+} from '@/assets/icons';
 import { GlassPanel } from '@/components/common/glass-panel';
+import { LocalIcon } from '@/components/common/local-icon';
 import { MetricIsland } from '@/components/common/metric-island';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { flattenNavigableMenus } from '@/components/layout/navigation-utils';
@@ -22,27 +29,37 @@ import { getWorkspaceNavigation } from '@/lib/workspace-navigation';
 import { AdminShell } from '@/components/layout/admin-shell';
 
 const statMeta = [
-  { label: '用户', icon: Users, tone: 'brand' as const, help: '系统账号总量' },
-  { label: '角色', icon: Shield, tone: 'cyan' as const, help: '权限分组数量' },
+  {
+    label: '用户',
+    icon: UsersIcon,
+    tone: 'brand' as const,
+    help: '系统账号总量',
+  },
+  {
+    label: '角色',
+    icon: RolesIcon,
+    tone: 'cyan' as const,
+    help: '权限分组数量',
+  },
   {
     label: '权限',
-    icon: KeyRound,
+    icon: PermissionsIcon,
     tone: 'purple' as const,
     help: '可授权能力数量',
   },
   {
     label: '菜单',
-    icon: ListTree,
+    icon: MenuTreeIcon,
     tone: 'green' as const,
     help: '已配置导航数量',
   },
 ];
 
 const quickLinkMeta = [
-  { path: '/admin/system/user', icon: Users },
-  { path: '/admin/system/role', icon: Shield },
-  { path: '/admin/system/menu', icon: ListTree },
-  { path: '/admin/system/module', icon: Boxes },
+  { path: '/admin/system/user', icon: UsersIcon },
+  { path: '/admin/system/role', icon: RolesIcon },
+  { path: '/admin/system/menu', icon: MenuTreeIcon },
+  { path: '/admin/system/module', icon: ModulesIcon },
 ];
 
 async function DashboardContent() {
@@ -87,7 +104,7 @@ async function DashboardContent() {
           return (
             <MetricIsland
               key={item.label}
-              icon={<StatIcon size={20} />}
+              icon={<LocalIcon icon={StatIcon} />}
               label={item.label}
               value={values[index]}
               help={item.help}
@@ -121,7 +138,7 @@ async function DashboardContent() {
                       justifyContent="flex-start"
                     >
                       <HStack spacing={2}>
-                        <QuickLinkIcon size={16} aria-hidden />
+                        <LocalIcon icon={QuickLinkIcon} />
                         <Text>{item.label}</Text>
                       </HStack>
                     </Button>
@@ -139,7 +156,7 @@ async function DashboardContent() {
         <GlassPanel variant="solid" p={{ base: 5, md: 6 }}>
           <HStack align="flex-start" spacing={4}>
             <Flex layerStyle="iconBrand" w="46px" h="46px" flexShrink={0}>
-              <Shield size={20} aria-hidden />
+              <LocalIcon icon={RolesIcon} />
             </Flex>
             <Box>
               <Text color="ink.900" fontSize="lg" fontWeight="800">

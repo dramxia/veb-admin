@@ -1,9 +1,11 @@
 'use client';
 
-import { Alert, AlertIcon, Button, Icon, Stack, Text } from '@chakra-ui/react';
+import { Alert, Button, Stack, Text } from '@chakra-ui/react';
 import type { LikeState } from '@veb/api-contracts';
-import { Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { LikesIcon } from '@/assets/icons';
+import { AlertStatusIcon } from '@/components/common/alert-status-icon';
+import { LocalIcon } from '@/components/common/local-icon';
 import { requestJson } from '@/lib/client-api';
 
 export function LikeButton({
@@ -58,14 +60,17 @@ export function LikeButton({
         aria-pressed={state.liked}
         onClick={toggleLike}
         leftIcon={
-          <Icon as={Heart} fill={state.liked ? 'currentColor' : 'none'} />
+          <LocalIcon
+            icon={LikesIcon}
+            fill={state.liked ? 'currentColor' : 'none'}
+          />
         }
       >
         {state.liked ? '已喜欢' : '喜欢'} · {state.likeCount}
       </Button>
       {error ? (
         <Alert status="error" aria-live="polite">
-          <AlertIcon />
+          <AlertStatusIcon status="error" />
           <Text fontSize="sm">{error}</Text>
         </Alert>
       ) : null}

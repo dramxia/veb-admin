@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertIcon,
   AlertTitle,
   Box,
   Button,
@@ -18,6 +17,7 @@ import {
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { AlertStatusIcon } from './alert-status-icon';
 
 type ErrorStateAction = {
   label: string;
@@ -64,7 +64,7 @@ export function ErrorState({
         <CardBody p={{ base: 6, md: 8 }}>
           <Stack spacing={6}>
             <Alert status={status} alignItems="flex-start">
-              <AlertIcon mt={1} />
+              <AlertStatusIcon status={status} mt={1} />
               <Stack spacing={1}>
                 <AlertTitle>{eyebrow}</AlertTitle>
                 {description ? (

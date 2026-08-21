@@ -363,6 +363,22 @@ const menus = [
   },
 ] as const;
 
+const menuIconById: Record<string, string> = {
+  'menu-dashboard': 'dashboard',
+  'content-root': 'articles',
+  'menu-content-article': 'articles',
+  'menu-content-tag': 'tags',
+  'menu-content-like': 'likes',
+  'system-root': 'system',
+  'menu-system-module': 'modules',
+  'menu-system-user': 'users',
+  'menu-system-role': 'roles',
+  'menu-system-menu': 'menu',
+  'menu-system-file': 'files',
+  'menu-system-log': 'folder',
+  'menu-system-log-operation': 'log',
+};
+
 async function main() {
   const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
   if (!seedAdminPassword || seedAdminPassword.length < 6) {
@@ -377,7 +393,7 @@ async function main() {
     update: {
       name: '仪表盘',
       description: '系统内置仪表盘模块',
-      icon: 'LayoutDashboard',
+      icon: 'dashboard',
       sort: -1,
       status: 'ENABLED',
       isSystem: true,
@@ -387,7 +403,7 @@ async function main() {
       code: 'dashboard',
       name: '仪表盘',
       description: '系统内置仪表盘模块',
-      icon: 'LayoutDashboard',
+      icon: 'dashboard',
       sort: -1,
       status: 'ENABLED',
       isSystem: true,
@@ -399,7 +415,7 @@ async function main() {
     update: {
       name: '后台管理',
       description: '系统内置后台管理模块',
-      icon: 'LayoutDashboard',
+      icon: 'system',
       sort: 0,
       status: 'ENABLED',
       isSystem: true,
@@ -409,7 +425,7 @@ async function main() {
       code: 'admin',
       name: '后台管理',
       description: '系统内置后台管理模块',
-      icon: 'LayoutDashboard',
+      icon: 'system',
       sort: 0,
       status: 'ENABLED',
       isSystem: true,
@@ -485,7 +501,7 @@ async function main() {
       description: null,
       path: 'path' in menu ? menu.path : null,
       component: 'component' in menu ? menu.component : null,
-      icon: null,
+      icon: isButton ? null : (menuIconById[menu.id] ?? null),
       sort: menu.sort,
       type: menu.type,
       permissionCode,
