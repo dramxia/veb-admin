@@ -94,10 +94,6 @@ export const pagePathSchema = z
   .min(1, '路径不能为空')
   .refine(isCanonicalPagePath, '页面路径必须是未被系统保留的规范绝对路径');
 
-// Compatibility aliases for callers that still import the old path helpers.
-export const isCanonicalModuleMenuPath = isCanonicalPagePath;
-export const moduleMenuPathSchema = pagePathSchema;
-
 export const roleSummarySchema = z
   .object({
     id: idSchema,

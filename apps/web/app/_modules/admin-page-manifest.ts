@@ -12,10 +12,9 @@ export const menuPageManifest: Record<string, MenuPageLoader> = {
   'system/file/page': () => import('../(workspace)/admin/system/file/page'),
   'system/log/operation/page': () =>
     import('../(workspace)/admin/system/log/operation/page'),
-  'content/article/page': () =>
-    import('../(workspace)/admin/content/article/page'),
-  'content/tag/page': () => import('../(workspace)/admin/content/tag/page'),
-  'content/like/page': () => import('../(workspace)/admin/content/like/page'),
+  'blog/article/page': () => import('../(workspace)/admin/blog/article/page'),
+  'blog/tag/page': () => import('../(workspace)/admin/blog/tag/page'),
+  'blog/like/page': () => import('../(workspace)/admin/blog/like/page'),
 };
 
 export function getMenuPageLoader(component?: string | null) {

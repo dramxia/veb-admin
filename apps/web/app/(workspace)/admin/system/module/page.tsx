@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 import { Badge, HStack } from '@chakra-ui/react';
 import type { AppModuleDto, PageResult } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { ModuleTable } from './module-table';
 
 export default async function ModulePage() {
-  const { items: modules } = await requestVebPage<PageResult<AppModuleDto>>(
+  const { items: modules } = await requestCorePage<PageResult<AppModuleDto>>(
     '/api/v1/system/modules?pageSize=100',
   );
 

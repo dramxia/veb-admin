@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 import { Badge, HStack } from '@chakra-ui/react';
 import type { PageResult, RoleDto } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { RoleTable } from './role-table';
 
 export default async function RolePage() {
-  const rolePage = await requestVebPage<PageResult<RoleDto>>(
+  const rolePage = await requestCorePage<PageResult<RoleDto>>(
     '/api/v1/system/roles?pageSize=100',
   );
   const roles = rolePage.items;

@@ -4,7 +4,7 @@ import { Badge, HStack } from '@chakra-ui/react';
 import type { OperationLogDto, PageResult } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { t } from '@/lib/i18n';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { OperationLogTable } from './log-table';
 
 export default async function OperationLogPage({
@@ -16,7 +16,7 @@ export default async function OperationLogPage({
   for (const [key, value] of Object.entries(searchParams)) {
     if (value) query.set(key, value);
   }
-  const { items: logs } = await requestVebPage<PageResult<OperationLogDto>>(
+  const { items: logs } = await requestCorePage<PageResult<OperationLogDto>>(
     `/api/v1/system/logs/operation?${query}`,
   );
 

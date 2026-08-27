@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  email         String?        @unique
+  passwordHash  String
+  nickname      String?
+  avatar        String?
+  status        UserStatus     @default(ENABLED)
+  lastLoginAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  roles         UserRole[]
+  files         File[]
+  operationLogs OperationLog[]
+  accounts      Account[]
+  sessions      Session[]
+  articles      Article[]
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String
+  description String?
+  status      CommonStatus @default(ENABLED)
+  sort        Int          @default(0)
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       UserRole[]
+  modules     RoleModule[]
+  menus       RoleMenu[]
+}
+
+model AppModule {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String
+  description String?
+  icon        String?
+  sort        Int          @default(0)
+  status      CommonStatus @default(ENABLED)
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       RoleModule[]
+  menus       Menu[]
+}
+
+model Menu {
+  id             String       @id @default(cuid())
+  parentId       String?
+  moduleId       String
+  module         AppModule    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  parent         Menu?        @relation("MenuTree", fields: [parentId, moduleId], references: [id, moduleId], onDelete: Restrict)
+  children       Menu[]       @relation("MenuTree")
+  name           String
+  description    String?
+  path           String?      @unique
+  component      String?
+  icon           String?
+  sort           Int          @default(0)
+  type           MenuType     @default(PAGE)
+  permissionCode String?      @unique
+  visible        Boolean      @default(true)
+  status         CommonStatus @default(ENABLED)
+  externalUrl    String?
+  isSystem       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  roles          RoleMenu[]
+
+  @@unique([id, moduleId])
+  @@index([moduleId, parentId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RoleModule {
+  roleId   String
+  moduleId String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   AppModule  @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  menus    RoleMenu[]
+
+  @@id([roleId, moduleId])
+  @@index([moduleId])
+}
+
+model RoleMenu {
+  roleId   String
+  moduleId String
+  menuId   String
+  role     Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  module   RoleModule @relation(fields: [roleId, moduleId], references: [roleId, moduleId], onDelete: Cascade)
+  menu     Menu       @relation(fields: [menuId, moduleId], references: [id, moduleId], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@index([roleId, moduleId])
+  @@index([menuId, moduleId])
+}
+
+model OperationLog {
+  id        String    @id @default(cuid())
+  actorId   String?
+  actor     User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  ip        String?
+  userAgent String?
+  payload   Json?
+  status    LogStatus @default(SUCCESS)
+  message   String?
+  createdAt DateTime  @default(now())
+}
+
+model File {
+  id         String   @id @default(cuid())
+  name       String
+  path       String
+  mime       String
+  size       Int
+  uploaderId String?
+  uploader   User?    @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+  scope      String?
+  createdAt  DateTime @default(now())
+}
+
+model Article {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  summary         String?
+  contentMarkdown String        @db.Text
+  status          ArticleStatus @default(DRAFT)
+  authorId        String
+  author          User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  tags            ArticleTag[]
+  likes           ArticleLike[]
+
+  @@index([status, publishedAt])
+  @@index([authorId])
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  articles  ArticleTag[]
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+}
+
+model ArticleLike {
+  id             String   @id @default(cuid())
+  articleId      String
+  visitorKeyHash String
+  createdAt      DateTime @default(now())
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, visitorKeyHash])
+  @@index([articleId, createdAt])
+  @@index([visitorKeyHash])
+  @@index([createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum UserStatus {
+  ENABLED
+  DISABLED
+}
+
+enum CommonStatus {
+  ENABLED
+  DISABLED
+}
+
+enum MenuType {
+  DIR
+  PAGE
+  LINK
+  BUTTON
+}
+
+enum LogStatus {
+  SUCCESS
+  FAILURE
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}

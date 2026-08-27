@@ -92,7 +92,7 @@ function getMenuIcon(menu: MenuNode): SvgComponent {
   if (path.includes('menu')) return MenuTreeIcon;
   if (path.includes('file')) return FilesIcon;
   if (path.includes('log')) return OperationLogsIcon;
-  if (path.startsWith('/admin/content')) return ArticlesIcon;
+  if (path.startsWith('/admin/blog')) return ArticlesIcon;
   if (path.startsWith('/admin/system')) return SystemIcon;
   return FallbackNavigationIcon;
 }
@@ -102,6 +102,7 @@ type FlatMenuItemProps = {
   currentMenuId?: string;
   collapsed: boolean;
   tabIndex?: number;
+  onNavigate?: () => void;
 };
 
 function FlatMenuItem({
@@ -109,6 +110,7 @@ function FlatMenuItem({
   currentMenuId,
   collapsed,
   tabIndex,
+  onNavigate,
 }: FlatMenuItemProps) {
   const current = currentMenuId === menu.id;
   const MenuItemIcon = getMenuIcon(menu);
@@ -128,6 +130,7 @@ function FlatMenuItem({
       tabIndex={tabIndex}
       aria-current={current ? 'page' : undefined}
       aria-label={external ? `${menu.name}（新窗口打开）` : menu.name}
+      onClick={onNavigate}
       position="relative"
       display="flex"
       alignItems="center"
@@ -245,6 +248,7 @@ type MenuGroupProps = {
   currentMenuId?: string;
   collapsed: boolean;
   tabIndex?: number;
+  onNavigate?: () => void;
 };
 
 type MenuItemsProps = {
@@ -252,6 +256,7 @@ type MenuItemsProps = {
   currentMenuId?: string;
   collapsed: boolean;
   tabIndex?: number;
+  onNavigate?: () => void;
 };
 
 function MenuItems({
@@ -259,6 +264,7 @@ function MenuItems({
   currentMenuId,
   collapsed,
   tabIndex,
+  onNavigate,
 }: MenuItemsProps) {
   return (
     <Stack spacing={1}>
@@ -269,6 +275,7 @@ function MenuItems({
           currentMenuId={currentMenuId}
           collapsed={collapsed}
           tabIndex={tabIndex}
+          onNavigate={onNavigate}
         />
       ))}
     </Stack>
@@ -280,6 +287,7 @@ function MenuGroup({
   currentMenuId,
   collapsed,
   tabIndex,
+  onNavigate,
 }: MenuGroupProps) {
   const items = flattenNavigableMenus(menu.children);
   if (items.length === 0) return null;
@@ -304,6 +312,7 @@ function MenuGroup({
         currentMenuId={currentMenuId}
         collapsed={collapsed}
         tabIndex={tabIndex}
+        onNavigate={onNavigate}
       />
     </Box>
   );
@@ -423,6 +432,11 @@ export function Sidebar() {
                       currentMenuId={currentMenu?.id}
                       collapsed={collapsed}
                       tabIndex={mobileSidebarInactive ? -1 : undefined}
+                      onNavigate={
+                        isMobileViewport
+                          ? closeMobileSidebarAndRestoreFocus
+                          : undefined
+                      }
                     />
                   ) : menu.type !== 'DIR' ? (
                     <MenuItems
@@ -431,6 +445,11 @@ export function Sidebar() {
                       currentMenuId={currentMenu?.id}
                       collapsed={collapsed}
                       tabIndex={mobileSidebarInactive ? -1 : undefined}
+                      onNavigate={
+                        isMobileViewport
+                          ? closeMobileSidebarAndRestoreFocus
+                          : undefined
+                      }
                     />
                   ) : null,
                 )}

@@ -1,0 +1,116 @@
+import type { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ERROR_CODES } from '@veb/api-contracts';
+import { resetRateLimit } from '@/lib/api-kit';
+import { putArticleLike } from '@/src/http/blog-public';
+
+const contentServiceMock = vi.hoisted(() => ({
+  getLikeState: vi.fn(),
+  getPublicArticle: vi.fn(),
+  getPublicTag: vi.fn(),
+  getPublishedArticleIdentity: vi.fn(),
+  likeArticle: vi.fn(),
+  listPublicArticles: vi.fn(),
+  listPublicTags: vi.fn(),
+  unlikeArticle: vi.fn(),
+}));
+
+vi.mock('@/src/modules/blog/service', () => contentServiceMock);
+
+vi.mock('@/lib/api', async () => {
+  const api = await import('@/lib/api-kit');
+  return {
+    ...api,
+    defineApiRoute: (_access: unknown, handler: unknown) =>
+      api.withApi(handler as never, { scope: 'core-api' }),
+  };
+});
+
+function likeRequest(
+  options: {
+    protocol?: 'http' | 'https';
+    visitorId?: string | null;
+  } = {},
+) {
+  const protocol = options.protocol ?? 'http';
+  const visitorId =
+    options.visitorId === undefined ? 'existing-visitor' : options.visitorId;
+  const request = new Request(
+    'http://core-api:1067/api/v1/blog/articles/rate-limited/like',
+    {
+      method: 'PUT',
+      headers: {
+        'x-forwarded-for': '203.0.113.10',
+        'x-forwarded-proto': protocol,
+      },
+    },
+  ) as NextRequest;
+  Object.defineProperty(request, 'cookies', {
+    value: {
+      get: () => (visitorId ? { value: visitorId } : undefined),
+    },
+  });
+  return request;
+}
+
+describe('public like HTTP endpoint', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-22T08:00:00.000Z'));
+    vi.clearAllMocks();
+    resetRateLimit();
+    process.env.BLOG_VISITOR_HASH_SECRET = 'test-visitor-secret';
+    contentServiceMock.getPublishedArticleIdentity.mockResolvedValue({
+      id: 'article-1',
+    });
+    contentServiceMock.likeArticle.mockResolvedValue({
+      liked: true,
+      likeCount: 1,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    resetRateLimit();
+  });
+
+  it.each([
+    ['http', false],
+    ['https', true],
+  ] as const)(
+    'sets a visitor cookie compatible with a trusted %s request',
+    async (protocol, secure) => {
+      const response = await putArticleLike(
+        likeRequest({ protocol, visitorId: null }),
+        { params: { slug: 'rate-limited' } },
+      );
+      const cookie = response.headers.get('set-cookie');
+
+      expect(response.status).toBe(200);
+      expect(cookie).toContain('veb_article_visitor=');
+      expect(cookie).toContain('HttpOnly');
+      expect(cookie?.includes('Secure')).toBe(secure);
+    },
+  );
+
+  it('returns the contract rate-limit error after 30 requests from one IP', async () => {
+    for (let count = 0; count < 30; count += 1) {
+      const response = await putArticleLike(likeRequest(), {
+        params: { slug: 'rate-limited' },
+      });
+      expect(response.status).toBe(200);
+    }
+
+    const blocked = await putArticleLike(likeRequest(), {
+      params: { slug: 'rate-limited' },
+    });
+
+    expect(blocked.status).toBe(429);
+    await expect(blocked.json()).resolves.toEqual({
+      code: ERROR_CODES.RATE_LIMITED,
+      data: null,
+      message: '请求过于频繁',
+    });
+    expect(contentServiceMock.likeArticle).toHaveBeenCalledTimes(30);
+  });
+});

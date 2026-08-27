@@ -20,6 +20,8 @@ FROM dependencies AS builder
 COPY tsconfig.base.json ./
 COPY apps/web apps/web
 COPY packages/api-contracts packages/api-contracts
+COPY --from=dependencies /workspace/apps/web/node_modules apps/web/node_modules
+COPY --from=dependencies /workspace/packages/api-contracts/node_modules packages/api-contracts/node_modules
 RUN pnpm --filter @veb/api-contracts build
 RUN --mount=type=cache,id=web-next-cache,target=/workspace/apps/web/.next/cache,sharing=locked \
   pnpm --filter @veb/web build

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ERROR_CODES,
+  adminArticleDetailSchema,
   appModuleCreateInputSchema,
   apiResultSchema,
   createApiError,
@@ -199,6 +200,29 @@ describe('service DTO boundaries', () => {
         status: 'PUBLISHED',
         authorUsername: 'admin',
       }).success,
+    ).toBe(false);
+  });
+
+  it('requires a concrete system user on admin article DTOs', () => {
+    const article = {
+      id: 'article-1',
+      title: 'A managed post',
+      slug: 'managed-post',
+      summary: null,
+      status: 'DRAFT' as const,
+      publishedAt: null,
+      createdAt: '2026-07-22T00:00:00.000Z',
+      updatedAt: '2026-07-22T00:00:00.000Z',
+      author: { id: 'user-1', username: 'admin', nickname: 'Editor' },
+      tags: [],
+      likeCount: 0,
+      commentCount: 0,
+      contentMarkdown: '# Draft',
+    };
+
+    expect(adminArticleDetailSchema.parse(article)).toEqual(article);
+    expect(
+      adminArticleDetailSchema.safeParse({ ...article, author: null }).success,
     ).toBe(false);
   });
 

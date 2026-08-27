@@ -126,7 +126,7 @@ export function PageLoading() {
   const showMetrics =
     pathname === '/dashboard' ||
     pathname === '/admin/system' ||
-    pathname === '/admin/content/like';
+    pathname === '/admin/blog/like';
 
   useEffect(
     () => () => {

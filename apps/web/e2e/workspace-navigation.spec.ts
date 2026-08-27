@@ -72,22 +72,22 @@ test('workspace navigation keeps the admin module active and restores its home',
 
   const moduleLink = await getAdminModuleLink(page);
   await expect(moduleLink).toHaveAttribute('aria-current', 'page');
-  await expect(moduleLink).toHaveAttribute('href', '/admin/content/article');
+  await expect(moduleLink).toHaveAttribute('href', '/admin/blog/article');
   await moduleLink.click();
-  await expect(page).toHaveURL(/\/admin\/content\/article$/);
+  await expect(page).toHaveURL(/\/admin\/blog\/article$/);
 
   await page.goto('/admin/system/user');
   await page
     .getByRole('link', { name: '返回后台管理首个菜单', exact: true })
     .click();
-  await expect(page).toHaveURL(/\/admin\/content\/article$/);
+  await expect(page).toHaveURL(/\/admin\/blog\/article$/);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/admin\/system\/user$/);
   await page.goForward();
-  await expect(page).toHaveURL(/\/admin\/content\/article$/);
+  await expect(page).toHaveURL(/\/admin\/blog\/article$/);
   await page.reload();
-  await expect(page).toHaveURL(/\/admin\/content\/article$/);
+  await expect(page).toHaveURL(/\/admin\/blog\/article$/);
 
   await expect(
     page.getByRole('button', { name: '搜索应用菜单' }),
@@ -180,7 +180,10 @@ test('desktop sidebar tooltip only opens from pointer hover', async ({
   await login(page);
   await page.goto('/admin/system/user');
 
-  const sidebarToggle = page.getByRole('button', { name: '收起侧边栏' });
+  const sidebarToggle = page.getByRole('button', {
+    name: '收起侧边栏',
+    includeHidden: true,
+  });
   const sidebarTooltip = page
     .locator('[role="tooltip"]')
     .filter({ hasText: '收起侧边栏' });

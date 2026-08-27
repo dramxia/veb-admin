@@ -3,13 +3,13 @@ export const dynamic = 'force-dynamic';
 import { Badge, HStack } from '@chakra-ui/react';
 import type { PageResult, RoleDto, VebUser } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { UserTable } from './user-table';
 
 export default async function UserPage() {
   const [userPage, rolePage] = await Promise.all([
-    requestVebPage<PageResult<VebUser>>('/api/v1/system/users?pageSize=100'),
-    requestVebPage<PageResult<RoleDto>>('/api/v1/system/roles?pageSize=100'),
+    requestCorePage<PageResult<VebUser>>('/api/v1/system/users?pageSize=100'),
+    requestCorePage<PageResult<RoleDto>>('/api/v1/system/roles?pageSize=100'),
   ]);
   const users = userPage.items;
   const roles = rolePage.items;

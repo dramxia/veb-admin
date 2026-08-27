@@ -23,7 +23,7 @@ docker compose --env-file "$compose_env_file" up \
   --wait-timeout "$compose_wait_timeout"
 
 # Successful one-shot jobs are no longer needed once all services are healthy.
-docker compose --env-file "$compose_env_file" rm --force veb-migrate blog-migrate
+docker compose --env-file "$compose_env_file" rm --force migrate
 
 if [ "${DOCKER_DEPLOY_PRUNE:-1}" = "1" ]; then
   # This removes only untagged images; named rollback images and volumes remain.

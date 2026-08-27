@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { normalizePathname } from '@/components/layout/app-modules';
 import { WorkspaceShell } from '@/components/layout/workspace-shell';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import {
   getWorkspaceNavigation,
   getWorkspacePage,
@@ -24,7 +24,7 @@ export default async function WorkspaceLayout({
     ? Promise.resolve(null)
     : getWorkspacePage(pathname);
   const [profile, navigation, page] = await Promise.all([
-    requestVebPage<ProfileDto>('/api/v1/me'),
+    requestCorePage<ProfileDto>('/api/v1/me'),
     getWorkspaceNavigation(),
     pagePromise,
   ]);

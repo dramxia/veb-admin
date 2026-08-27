@@ -40,7 +40,7 @@ test('the root redirects to the first authorized module home', async ({
 }) => {
   await login(page);
   await expectRedirect(page, '/', '/dashboard', 307);
-  await expectRedirect(page, '/admin', '/admin/content/article', 307);
+  await expectRedirect(page, '/admin', '/admin/blog/article', 307);
 });
 
 test('the forbidden page preserves an HTTP 403 status', async ({ page }) => {

@@ -16,15 +16,15 @@ import type { PublicArticleDetail } from '@veb/api-contracts';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArticleMeta } from '@/components/content/article-meta';
-import { LikeButton } from '@/components/content/like-button';
-import { MarkdownContent } from '@/components/content/markdown-content';
-import { isServerApiError, requestBlogPublic } from '@/lib/server-api';
+import { ArticleMeta } from '@/components/blog/article-meta';
+import { LikeButton } from '@/components/blog/like-button';
+import { MarkdownContent } from '@/components/blog/markdown-content';
+import { isServerApiError, requestCore } from '@/lib/server-api';
 
 async function findArticle(slug: string) {
   try {
-    return await requestBlogPublic<PublicArticleDetail>(
-      `/api/v1/public/articles/${encodeURIComponent(slug)}`,
+    return await requestCore<PublicArticleDetail>(
+      `/api/v1/blog/articles/${encodeURIComponent(slug)}`,
     );
   } catch (error) {
     if (isServerApiError(error, 404)) return null;

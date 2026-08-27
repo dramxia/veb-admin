@@ -21,8 +21,8 @@ import type {
 } from '@veb/api-contracts';
 import type { Metadata } from 'next';
 import NextLink from 'next/link';
-import { ArticleMeta } from '@/components/content/article-meta';
-import { requestBlogPublic } from '@/lib/server-api';
+import { ArticleMeta } from '@/components/blog/article-meta';
+import { requestCore } from '@/lib/server-api';
 
 export const metadata: Metadata = {
   title: '文章 | VEB',
@@ -46,10 +46,10 @@ export default async function ArticlesPage({
   });
   if (tag) query.set('tag', tag);
   const [articles, tagPayload] = await Promise.all([
-    requestBlogPublic<PageResult<PublicArticleListItem>>(
-      `/api/v1/public/articles?${query}`,
+    requestCore<PageResult<PublicArticleListItem>>(
+      `/api/v1/blog/articles?${query}`,
     ),
-    requestBlogPublic<{ items: PublicTag[] }>('/api/v1/public/tags'),
+    requestCore<{ items: PublicTag[] }>('/api/v1/blog/tags'),
   ]);
   const { items, total } = articles;
   const tags = tagPayload.items;

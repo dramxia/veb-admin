@@ -12,8 +12,8 @@ type NavigationResponse = {
   }>;
 };
 
-const VEB_API_INTERNAL_URL =
-  process.env.VEB_API_INTERNAL_URL || 'http://127.0.0.1:1067';
+const CORE_API_INTERNAL_URL =
+  process.env.CORE_API_INTERNAL_URL || 'http://127.0.0.1:1067';
 
 const GLOBAL_PATHS = new Set(['/login', '/profile', '/403', '/404']);
 
@@ -25,7 +25,7 @@ function isPublicOrGlobalPath(pathname: string) {
   );
 }
 
-async function requestVebApi(
+async function requestCoreApi(
   request: NextRequest,
   path: string,
   requestId: string,
@@ -38,7 +38,7 @@ async function requestVebApi(
   if (cookie) headers.set('cookie', cookie);
 
   try {
-    return await fetch(new URL(path, VEB_API_INTERNAL_URL), {
+    return await fetch(new URL(path, CORE_API_INTERNAL_URL), {
       cache: 'no-store',
       headers,
     });
@@ -85,7 +85,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/api' || pathname.startsWith('/api/')) {
     response = NextResponse.next({ request: { headers: requestHeaders } });
   } else if (pathname === '/admin') {
-    const navigationResponse = await requestVebApi(
+    const navigationResponse = await requestCoreApi(
       request,
       '/api/v1/navigation',
       requestId,
@@ -108,7 +108,7 @@ export async function middleware(request: NextRequest) {
       response = NextResponse.next({ request: { headers: requestHeaders } });
     }
   } else if (pathname === '/') {
-    const navigationResponse = await requestVebApi(
+    const navigationResponse = await requestCoreApi(
       request,
       '/api/v1/navigation',
       requestId,
@@ -131,7 +131,7 @@ export async function middleware(request: NextRequest) {
     }
   } else if (!isPublicOrGlobalPath(pathname)) {
     const query = new URLSearchParams({ path: pathname });
-    const pageResponse = await requestVebApi(
+    const pageResponse = await requestCoreApi(
       request,
       `/api/v1/navigation/page?${query.toString()}`,
       requestId,

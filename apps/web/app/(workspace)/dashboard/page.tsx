@@ -31,7 +31,7 @@ import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { AdminShell } from '@/components/layout/admin-shell';
 import { flattenNavigableMenus } from '@/components/layout/navigation-utils';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { getWorkspaceNavigation } from '@/lib/workspace-navigation';
 
 const quickLinkMeta = [
@@ -124,7 +124,7 @@ function ResourceStatus({
 async function DashboardContent() {
   const [menuSnapshot, stats] = await Promise.all([
     getWorkspaceNavigation(),
-    requestVebPage<DashboardStats>('/api/v1/dashboard/stats'),
+    requestCorePage<DashboardStats>('/api/v1/dashboard/stats'),
   ]);
   const adminMenus =
     menuSnapshot.modules.find((module) => module.code === 'admin')?.menus ?? [];

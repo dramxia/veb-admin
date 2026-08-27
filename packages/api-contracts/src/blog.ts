@@ -3,7 +3,7 @@ import { idSchema, isoDateTimeSchema, paginationQuerySchema } from './common';
 
 export const articleStatusSchema = z.enum(['DRAFT', 'PUBLISHED']);
 
-export const authorSnapshotSchema = z
+export const authorSchema = z
   .object({
     id: idSchema,
     username: z.string(),
@@ -33,20 +33,6 @@ export const articleCreateInputSchema = z
 
 export const articleUpdateInputSchema = articleCreateInputSchema
   .partial()
-  .refine((value) => Object.keys(value).length > 0, {
-    message: '请至少提供一个修改字段',
-  });
-
-export const internalArticleCreateInputSchema = articleCreateInputSchema.extend(
-  {
-    author: authorSnapshotSchema,
-  },
-);
-
-export const internalArticleUpdateInputSchema = articleCreateInputSchema
-  .partial()
-  .extend({ author: authorSnapshotSchema.optional() })
-  .strict()
   .refine((value) => Object.keys(value).length > 0, {
     message: '请至少提供一个修改字段',
   });
@@ -104,7 +90,7 @@ export const adminArticleListItemSchema = z
     publishedAt: isoDateTimeSchema.nullable(),
     createdAt: isoDateTimeSchema,
     updatedAt: isoDateTimeSchema,
-    author: authorSnapshotSchema.nullable(),
+    author: authorSchema,
     tags: z.array(
       adminTagSchema.omit({
         articleCount: true,
@@ -220,15 +206,9 @@ export const likeStatsQuerySchema = z.object({
 });
 
 export type ArticleStatus = z.infer<typeof articleStatusSchema>;
-export type AuthorSnapshot = z.infer<typeof authorSnapshotSchema>;
+export type Author = z.infer<typeof authorSchema>;
 export type ArticleCreateInput = z.input<typeof articleCreateInputSchema>;
 export type ArticleUpdateInput = z.input<typeof articleUpdateInputSchema>;
-export type InternalArticleCreateInput = z.input<
-  typeof internalArticleCreateInputSchema
->;
-export type InternalArticleUpdateInput = z.input<
-  typeof internalArticleUpdateInputSchema
->;
 export type TagCreateInput = z.input<typeof tagCreateInputSchema>;
 export type TagUpdateInput = z.input<typeof tagUpdateInputSchema>;
 export type TagIdsInput = z.input<typeof tagIdsInputSchema>;
@@ -251,11 +231,3 @@ export type PublicArticleDetail = z.infer<typeof publicArticleDetailSchema>;
 export type ArticleLike = z.infer<typeof articleLikeSchema>;
 export type LikeStats = z.infer<typeof likeStatsSchema>;
 export type LikeState = z.infer<typeof likeStateSchema>;
-
-// Compatibility aliases for the existing API handlers during the transition release.
-export const articleCreateSchema = articleCreateInputSchema;
-export const articleUpdateSchema = articleUpdateInputSchema;
-export const tagSchema = tagCreateInputSchema;
-export const tagUpdateSchema = tagUpdateInputSchema;
-export const tagIdsSchema = tagIdsInputSchema;
-export const likeBatchDeleteSchema = likeBatchDeleteInputSchema;

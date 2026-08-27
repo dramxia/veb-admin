@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 1066",
+    "dev": "next dev -p ${WEB_DEV_PORT:-1066}",
     "build": "next build",
     "start": "next start -p 1066",
     "lint": "next lint",

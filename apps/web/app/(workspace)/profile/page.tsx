@@ -4,12 +4,12 @@ import { Badge, HStack, SimpleGrid } from '@chakra-ui/react';
 import type { ProfileDto } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { PlainModuleShell } from '@/components/layout/plain-module-shell';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { ChangePasswordForm } from './change-password-form';
 import { ProfileForm } from './profile-form';
 
 export default async function ProfilePage() {
-  const user = await requestVebPage<ProfileDto>('/api/v1/me');
+  const user = await requestCorePage<ProfileDto>('/api/v1/me');
 
   return (
     <PlainModuleShell>

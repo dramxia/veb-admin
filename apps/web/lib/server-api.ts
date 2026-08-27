@@ -84,23 +84,18 @@ async function requestService<T>(
   return payload.data;
 }
 
-const vebApiUrl = process.env.VEB_API_INTERNAL_URL || 'http://127.0.0.1:1067';
-const blogApiUrl = process.env.BLOG_API_INTERNAL_URL || 'http://127.0.0.1:1068';
+const coreApiUrl = process.env.CORE_API_INTERNAL_URL || 'http://127.0.0.1:1067';
 
-export function requestVeb<T>(path: string, init?: ServerRequestInit) {
-  return requestService<T>(vebApiUrl, path, init);
+export function requestCore<T>(path: string, init?: ServerRequestInit) {
+  return requestService<T>(coreApiUrl, path, init);
 }
 
-export function requestBlogPublic<T>(path: string, init?: ServerRequestInit) {
-  return requestService<T>(blogApiUrl, path, init);
-}
-
-export async function requestVebPage<T>(
+export async function requestCorePage<T>(
   path: string,
   init?: ServerRequestInit,
 ) {
   try {
-    return await requestVeb<T>(path, init);
+    return await requestCore<T>(path, init);
   } catch (error) {
     if (isServerApiError(error, 401)) redirect('/login');
     if (isServerApiError(error, 403)) redirect('/403');

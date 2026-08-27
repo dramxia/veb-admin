@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 import { Badge, HStack } from '@chakra-ui/react';
 import type { MenuManagementList } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { MenuTree } from './menu-tree';
 
 export default async function MenuPage() {
-  const { items: menus, modules } = await requestVebPage<MenuManagementList>(
+  const { items: menus, modules } = await requestCorePage<MenuManagementList>(
     '/api/v1/system/menus',
   );
   return (

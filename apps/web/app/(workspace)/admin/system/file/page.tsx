@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 import { Badge, HStack } from '@chakra-ui/react';
 import type { FileDto, PageResult } from '@veb/api-contracts';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
-import { requestVebPage } from '@/lib/server-api';
+import { requestCorePage } from '@/lib/server-api';
 import { FileTable } from './file-table';
 
 export default async function FilePage() {
-  const { items: files } = await requestVebPage<PageResult<FileDto>>(
+  const { items: files } = await requestCorePage<PageResult<FileDto>>(
     '/api/v1/files?pageSize=100',
   );
 
