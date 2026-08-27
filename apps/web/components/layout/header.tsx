@@ -199,6 +199,7 @@ export function Header({ user }: HeaderProps) {
   );
   const canToggleSidebar = Boolean(activeModule && showSidebar);
   const canSearchMenus = Boolean(activeModule);
+  const homeModule = activeModule ?? modules[0];
   const restoreMobileSidebarToggleFocus = useCallback(() => {
     window.requestAnimationFrame(() => {
       mobileSidebarToggleRef.current?.focus({ preventScroll: true });
@@ -304,11 +305,24 @@ export function Header({ user }: HeaderProps) {
             </>
           ) : null}
 
-          <HStack spacing={2.5} minW={0}>
+          <ChakraLink
+            as={Link}
+            href={homeModule?.landingPath ?? '/'}
+            aria-label={
+              homeModule ? `返回${homeModule.name}首个菜单` : '返回工作台'
+            }
+            display="flex"
+            alignItems="center"
+            gap={2.5}
+            minW={0}
+            rounded="md"
+            color="ink.900"
+            _hover={{ color: 'ink.900', textDecoration: 'none' }}
+            _focusVisible={{ boxShadow: 'focusRing', outline: 'none' }}
+          >
             <BrandMark />
             <Text
               display={{ base: 'none', sm: 'block' }}
-              color="ink.900"
               fontSize={{ base: 'sm', md: 'md' }}
               fontWeight="900"
               lineHeight="1.2"
@@ -316,7 +330,7 @@ export function Header({ user }: HeaderProps) {
             >
               VEB 工作台
             </Text>
-          </HStack>
+          </ChakraLink>
         </HStack>
 
         <HStack

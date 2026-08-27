@@ -639,9 +639,15 @@ export const operationLogQuerySchema = paginationQuerySchema.extend({
 export const dashboardStatsSchema = z
   .object({
     userCount: z.number().int().nonnegative(),
+    enabledUserCount: z.number().int().nonnegative(),
     roleCount: z.number().int().nonnegative(),
+    enabledRoleCount: z.number().int().nonnegative(),
+    moduleCount: z.number().int().nonnegative(),
+    enabledModuleCount: z.number().int().nonnegative(),
     permissionCount: z.number().int().nonnegative(),
     menuCount: z.number().int().nonnegative(),
+    operationCount24h: z.number().int().nonnegative(),
+    failedOperationCount24h: z.number().int().nonnegative(),
   })
   .strict();
 

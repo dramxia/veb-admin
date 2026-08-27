@@ -5,6 +5,7 @@ import {
   apiResultSchema,
   createApiError,
   createApiSuccess,
+  dashboardStatsSchema,
   fileListQuerySchema,
   fileReadQuerySchema,
   pageResultSchema,
@@ -92,6 +93,27 @@ describe('pagination', () => {
 });
 
 describe('service DTO boundaries', () => {
+  it('keeps the dashboard resource and activity snapshot explicit', () => {
+    const stats = {
+      userCount: 12,
+      enabledUserCount: 10,
+      roleCount: 4,
+      enabledRoleCount: 3,
+      moduleCount: 3,
+      enabledModuleCount: 3,
+      permissionCount: 28,
+      menuCount: 14,
+      operationCount24h: 9,
+      failedOperationCount24h: 1,
+    };
+
+    expect(dashboardStatsSchema.parse(stats)).toEqual(stats);
+    expect(
+      dashboardStatsSchema.safeParse({ ...stats, serviceHealthy: true })
+        .success,
+    ).toBe(false);
+  });
+
   it('keeps the canonical navigation response shape', () => {
     const menu = {
       id: 'menu-dashboard',
