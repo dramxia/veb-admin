@@ -103,6 +103,11 @@ test('the dashboard module keeps header actions without sidebar infrastructure',
   await expect(page.locator('aside')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /侧边栏/ })).toHaveCount(0);
   await expect(
+    page.getByRole('img', { name: /最近 7 天操作趋势/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /文章发布构成/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '最近操作' })).toBeVisible();
+  await expect(
     page.getByRole('button', { name: '搜索应用菜单' }),
   ).toBeVisible();
   await expect(

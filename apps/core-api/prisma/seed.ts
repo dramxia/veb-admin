@@ -4,6 +4,7 @@ import { PrismaClient } from '@/generated/client';
 const prisma = new PrismaClient();
 
 const adminModuleId = 'module-admin';
+const blogModuleId = 'module-blog';
 const dashboardModuleId = 'module-dashboard';
 
 const menus = [
@@ -21,6 +22,7 @@ const menus = [
   {
     id: 'blog-root',
     parentId: null,
+    moduleId: blogModuleId,
     name: '博客管理',
     type: 'DIR',
     sort: 5,
@@ -28,6 +30,7 @@ const menus = [
   {
     id: 'menu-blog-article',
     parentId: 'blog-root',
+    moduleId: blogModuleId,
     name: '文章管理',
     type: 'PAGE',
     path: '/admin/blog/article',
@@ -38,6 +41,7 @@ const menus = [
   {
     id: 'button-blog-article-create',
     parentId: 'menu-blog-article',
+    moduleId: blogModuleId,
     name: '新增文章',
     type: 'BUTTON',
     permissionCode: 'blog:article:create',
@@ -46,6 +50,7 @@ const menus = [
   {
     id: 'button-blog-article-update',
     parentId: 'menu-blog-article',
+    moduleId: blogModuleId,
     name: '编辑文章',
     type: 'BUTTON',
     permissionCode: 'blog:article:update',
@@ -54,6 +59,7 @@ const menus = [
   {
     id: 'button-blog-article-delete',
     parentId: 'menu-blog-article',
+    moduleId: blogModuleId,
     name: '删除文章',
     type: 'BUTTON',
     permissionCode: 'blog:article:delete',
@@ -62,6 +68,7 @@ const menus = [
   {
     id: 'button-blog-article-publish',
     parentId: 'menu-blog-article',
+    moduleId: blogModuleId,
     name: '发布文章',
     type: 'BUTTON',
     permissionCode: 'blog:article:publish',
@@ -70,6 +77,7 @@ const menus = [
   {
     id: 'menu-blog-tag',
     parentId: 'blog-root',
+    moduleId: blogModuleId,
     name: '标签管理',
     type: 'PAGE',
     path: '/admin/blog/tag',
@@ -80,6 +88,7 @@ const menus = [
   {
     id: 'button-blog-tag-create',
     parentId: 'menu-blog-tag',
+    moduleId: blogModuleId,
     name: '新增标签',
     type: 'BUTTON',
     permissionCode: 'blog:tag:create',
@@ -88,6 +97,7 @@ const menus = [
   {
     id: 'button-blog-tag-update',
     parentId: 'menu-blog-tag',
+    moduleId: blogModuleId,
     name: '编辑标签',
     type: 'BUTTON',
     permissionCode: 'blog:tag:update',
@@ -96,6 +106,7 @@ const menus = [
   {
     id: 'button-blog-tag-delete',
     parentId: 'menu-blog-tag',
+    moduleId: blogModuleId,
     name: '删除标签',
     type: 'BUTTON',
     permissionCode: 'blog:tag:delete',
@@ -104,6 +115,7 @@ const menus = [
   {
     id: 'button-blog-tag-assign',
     parentId: 'menu-blog-tag',
+    moduleId: blogModuleId,
     name: '关联标签',
     type: 'BUTTON',
     permissionCode: 'blog:tag:assign',
@@ -112,6 +124,7 @@ const menus = [
   {
     id: 'menu-blog-like',
     parentId: 'blog-root',
+    moduleId: blogModuleId,
     name: '喜欢记录',
     type: 'PAGE',
     path: '/admin/blog/like',
@@ -122,6 +135,7 @@ const menus = [
   {
     id: 'button-blog-like-stats',
     parentId: 'menu-blog-like',
+    moduleId: blogModuleId,
     name: '喜欢统计',
     type: 'BUTTON',
     permissionCode: 'blog:like:stats',
@@ -130,6 +144,7 @@ const menus = [
   {
     id: 'button-blog-like-delete',
     parentId: 'menu-blog-like',
+    moduleId: blogModuleId,
     name: '删除喜欢记录',
     type: 'BUTTON',
     permissionCode: 'blog:like:delete',
@@ -416,7 +431,7 @@ async function main() {
       name: '后台管理',
       description: '系统内置后台管理模块',
       icon: 'system',
-      sort: 0,
+      sort: 1,
       status: 'ENABLED',
       isSystem: true,
     },
@@ -426,6 +441,28 @@ async function main() {
       name: '后台管理',
       description: '系统内置后台管理模块',
       icon: 'system',
+      sort: 1,
+      status: 'ENABLED',
+      isSystem: true,
+    },
+  });
+
+  const blogModule = await prisma.appModule.upsert({
+    where: { code: 'blog' },
+    update: {
+      name: '博客管理',
+      description: '系统内置博客管理模块',
+      icon: 'articles',
+      sort: 0,
+      status: 'ENABLED',
+      isSystem: true,
+    },
+    create: {
+      id: blogModuleId,
+      code: 'blog',
+      name: '博客管理',
+      description: '系统内置博客管理模块',
+      icon: 'articles',
       sort: 0,
       status: 'ENABLED',
       isSystem: true,
@@ -496,7 +533,9 @@ async function main() {
       moduleId:
         'moduleId' in menu && menu.moduleId === dashboardModuleId
           ? dashboardModule.id
-          : adminModule.id,
+          : 'moduleId' in menu && menu.moduleId === blogModuleId
+            ? blogModule.id
+            : adminModule.id,
       name: menu.name,
       description: null,
       path: 'path' in menu ? menu.path : null,

@@ -96,6 +96,7 @@ describe('pagination', () => {
 describe('service DTO boundaries', () => {
   it('keeps the dashboard resource and activity snapshot explicit', () => {
     const stats = {
+      generatedAt: '2026-07-24T12:00:00.000Z',
       userCount: 12,
       enabledUserCount: 10,
       roleCount: 4,
@@ -106,6 +107,25 @@ describe('service DTO boundaries', () => {
       menuCount: 14,
       operationCount24h: 9,
       failedOperationCount24h: 1,
+      fileCount: 18,
+      articleCount: 7,
+      publishedArticleCount: 5,
+      tagCount: 4,
+      likeCount: 32,
+      operationTrend: [
+        { date: '2026-07-23', successCount: 8, failureCount: 1 },
+        { date: '2026-07-24', successCount: 3, failureCount: 0 },
+      ],
+      recentOperations: [
+        {
+          id: 'log-1',
+          action: 'user.update',
+          target: 'user-2',
+          actorName: '管理员',
+          status: 'SUCCESS' as const,
+          createdAt: '2026-07-24T11:45:00.000Z',
+        },
+      ],
     };
 
     expect(dashboardStatsSchema.parse(stats)).toEqual(stats);

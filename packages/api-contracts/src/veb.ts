@@ -634,6 +634,7 @@ export const operationLogQuerySchema = paginationQuerySchema.extend({
 
 export const dashboardStatsSchema = z
   .object({
+    generatedAt: isoDateTimeSchema,
     userCount: z.number().int().nonnegative(),
     enabledUserCount: z.number().int().nonnegative(),
     roleCount: z.number().int().nonnegative(),
@@ -644,6 +645,32 @@ export const dashboardStatsSchema = z
     menuCount: z.number().int().nonnegative(),
     operationCount24h: z.number().int().nonnegative(),
     failedOperationCount24h: z.number().int().nonnegative(),
+    fileCount: z.number().int().nonnegative(),
+    articleCount: z.number().int().nonnegative(),
+    publishedArticleCount: z.number().int().nonnegative(),
+    tagCount: z.number().int().nonnegative(),
+    likeCount: z.number().int().nonnegative(),
+    operationTrend: z.array(
+      z
+        .object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          successCount: z.number().int().nonnegative(),
+          failureCount: z.number().int().nonnegative(),
+        })
+        .strict(),
+    ),
+    recentOperations: z.array(
+      z
+        .object({
+          id: idSchema,
+          action: z.string(),
+          target: z.string().nullable(),
+          actorName: z.string().nullable(),
+          status: logStatusSchema,
+          createdAt: isoDateTimeSchema,
+        })
+        .strict(),
+    ),
   })
   .strict();
 

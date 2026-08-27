@@ -4,11 +4,13 @@
 
 RBAC uses `User`, `Role`, `AppModule`, `Menu`, `UserRole`, `RoleModule`, and `RoleMenu`. PAGE and BUTTON menu records carry unique permission codes. A role can receive a menu only inside an assigned module.
 
-The built-in modules include dashboard and administration. Blog administration is represented by the blog menu tree and `blog:*` permissions under the administration module.
+The built-in modules are dashboard, blog management, and administration. The blog management module owns the blog menu tree and all `blog:*` permissions; the administration module owns system management menus and permissions.
 
 ## Effective authorization
 
 A user's effective authorization is computed from enabled users, enabled roles, enabled modules, enabled menu entries, and valid role assignments. The `superadmin` role receives all enabled modules and menus dynamically.
+
+Seed assigns the `superadmin` role to the built-in `admin` user. Because `superadmin` access is dynamic, the user receives the enabled blog management module and all of its page and button permissions by default without explicit `RoleModule` or `RoleMenu` rows.
 
 Permission array checks use any-of semantics: access succeeds when the user has at least one requested code.
 
@@ -53,6 +55,8 @@ Seeded blog management pages are:
 - `/admin/blog/tag`
 - `/admin/blog/like`
 
+All three pages, their parent directory, and their BUTTON permissions belong to the built-in `blog` module. The module landing page is `/admin/blog/article`.
+
 Server-side page resolution requires both module assignment and the page permission. BUTTON permissions control commands within those pages. Unknown, disabled, cross-module, or unassigned pages are rejected.
 
 ## Role delegation
@@ -62,3 +66,5 @@ Role and access assignment APIs enforce the caller's delegable role boundary. A 
 ## Audit
 
 Management writes record operation audit entries. Blog actions use the `blog.*` action namespace. Success and failure are recorded where configured; passwords, tokens, and secrets are redacted from JSON payloads.
+
+The Dashboard statistics route requires `dashboard:view`. Aggregate activity counts and trends remain part of that overview, while recent operation actors, actions, and targets are returned only when the caller also has `log:operation:view`; otherwise `recentOperations` is empty.
