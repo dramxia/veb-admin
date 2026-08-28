@@ -19,6 +19,14 @@ deploy/
 
 Core API uses thin Next Route Handlers. HTTP adaptation and access declarations live under `app/api`; domain work lives under `src/modules`; runtime adapters live under `lib`.
 
+## Web organization
+
+Reusable frontend domain enums and their tightly coupled presentation metadata live under `apps/web/enums`. Page modules consume those exports instead of maintaining duplicate code-to-label maps inline.
+
+`apps/web/enums/operation-action.ts` centralizes the Web representation of Core API audit action codes and their Chinese labels. Unknown action codes remain visible as their raw values so new backend actions do not render as blank text.
+
+Component-local visual variants and layout constants stay next to their owning components. The `enums` directory is reserved for domain values shared across page or component boundaries.
+
 ## Runtime topology
 
 ```text

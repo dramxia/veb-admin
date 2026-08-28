@@ -29,75 +29,10 @@ import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { WorkspaceCanvas } from '@/components/common/workspace-canvas';
 import { AdminShell } from '@/components/layout/admin-shell';
 import { flattenNavigableMenus } from '@/components/layout/navigation-utils';
+import { getOperationActionLabel } from '@/enums/operation-action';
 import { requestCorePage } from '@/lib/server-api';
 import { getWorkspaceNavigation } from '@/lib/workspace-navigation';
 import { ActivityTrendChart, ContentStatusChart } from './dashboard-charts';
-
-const quickLinkMeta = [
-  {
-    path: '/admin/blog/article',
-    icon: ArticlesIcon,
-    description: '编辑草稿与发布内容',
-  },
-  {
-    path: '/admin/system/user',
-    icon: UsersIcon,
-    description: '维护账号与角色分配',
-  },
-  {
-    path: '/admin/system/role',
-    icon: RolesIcon,
-    description: '配置角色和访问范围',
-  },
-  {
-    path: '/admin/system/file',
-    icon: FilesIcon,
-    description: '查看上传文件与存储记录',
-  },
-  {
-    path: '/admin/system/log/operation',
-    icon: OperationLogsIcon,
-    description: '追踪操作结果与异常',
-  },
-  {
-    path: '/admin/system/module',
-    icon: ModulesIcon,
-    description: '维护工作台业务模块',
-  },
-];
-
-const actionLabels: Record<string, string> = {
-  'blog.article.create': '新建文章',
-  'blog.article.delete': '删除文章',
-  'blog.article.publish': '发布文章',
-  'blog.article.tags.update': '更新文章标签',
-  'blog.article.update': '更新文章',
-  'blog.like.batch-delete': '批量删除喜欢记录',
-  'blog.like.delete': '删除喜欢记录',
-  'blog.tag.create': '新建标签',
-  'blog.tag.delete': '删除标签',
-  'blog.tag.update': '更新标签',
-  'file.delete': '删除文件',
-  'file.upload': '上传文件',
-  'menu.create': '新建菜单',
-  'menu.delete': '删除菜单',
-  'menu.update': '更新菜单',
-  'module.create': '新建模块',
-  'module.delete': '删除模块',
-  'module.update': '更新模块',
-  'profile.change-password': '修改登录密码',
-  'profile.update': '更新个人资料',
-  'role.assign-access': '调整角色权限',
-  'role.assign-user': '调整角色成员',
-  'role.create': '新建角色',
-  'role.delete': '删除角色',
-  'role.update': '更新角色',
-  'user.assign-role': '调整用户角色',
-  'user.create': '新建用户',
-  'user.delete': '删除用户',
-  'user.reset-password': '重置用户密码',
-  'user.update': '更新用户',
-};
 
 const metricToneStyles = {
   brand: 'iconBrand',
@@ -266,10 +201,6 @@ async function DashboardContent() {
       ),
     ),
   );
-  const quickLinks = quickLinkMeta.flatMap(({ path, icon, description }) => {
-    const menu = menuByPath.get(path);
-    return menu ? [{ href: path, label: menu.name, icon, description }] : [];
-  });
   const operationLogMenu = menuByPath.get('/admin/system/log/operation');
   const disabledUserCount = Math.max(
     stats.userCount - stats.enabledUserCount,
@@ -612,7 +543,7 @@ async function DashboardContent() {
                     </Flex>
                     <Box minW={0}>
                       <Text color="ink.800" fontSize="sm" fontWeight="800">
-                        {actionLabels[operation.action] || operation.action}
+                        {getOperationActionLabel(operation.action)}
                       </Text>
                       <Text mt={1} color="ink.500" fontSize="xs">
                         {operation.actorName || '系统任务'}
@@ -717,65 +648,57 @@ async function DashboardContent() {
           <Flex align="center" justify="space-between" gap={4}>
             <Box>
               <Text color="ink.900" fontWeight="800">
-                常用入口
+                内容数据
               </Text>
               <Text mt={1} color="ink.500" fontSize="sm">
-                当前账号可访问的管理页面
+                文章与内容资产的当前规模
               </Text>
             </Box>
-            <Text color="ink.400" fontSize="xs" whiteSpace="nowrap">
-              {quickLinks.length} 个
-            </Text>
+            <Badge colorScheme="cyan" flexShrink={0}>
+              {publishedPercent}% 发布
+            </Badge>
           </Flex>
 
-          {quickLinks.length > 0 ? (
-            <SimpleGrid columns={{ base: 1, sm: 2, xl: 1 }} spacing={1} mt={3}>
-              {quickLinks.map((item) => (
-                <Button
-                  key={item.href}
-                  as={Link}
-                  href={item.href}
-                  variant="ghost"
-                  h="auto"
-                  minH="54px"
-                  px={3}
-                  py={2.5}
-                  justifyContent="flex-start"
-                  textAlign="start"
-                >
-                  <HStack spacing={3} w="full" minW={0}>
-                    <Flex
-                      layerStyle="iconBrand"
-                      w="32px"
-                      h="32px"
-                      flexShrink={0}
-                    >
-                      <LocalIcon icon={item.icon} />
-                    </Flex>
-                    <VStack align="stretch" spacing={0.5} minW={0}>
-                      <Text color="ink.800" fontSize="sm" fontWeight="700">
-                        {item.label}
-                      </Text>
-                      <Text
-                        color="ink.500"
-                        fontSize="xs"
-                        fontWeight="500"
-                        whiteSpace="normal"
-                      >
-                        {item.description}
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </Button>
-              ))}
-            </SimpleGrid>
-          ) : (
-            <Flex align="center" justify="center" minH="180px">
-              <Text color="ink.500" fontSize="sm">
-                当前账号暂无可用管理入口。
+          <Flex mt={5} align="flex-end" justify="space-between" gap={4}>
+            <Box>
+              <Text color="ink.400" fontSize="xs" fontWeight="600">
+                文章总数
               </Text>
-            </Flex>
-          )}
+              <Text
+                mt={1.5}
+                color="ink.900"
+                fontSize="3xl"
+                fontWeight="800"
+                lineHeight="1"
+                sx={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {stats.articleCount}
+              </Text>
+            </Box>
+            <Box textAlign="end">
+              <Text color="ink.400" fontSize="xs" fontWeight="600">
+                已发布
+              </Text>
+              <Text
+                mt={1.5}
+                color="ink.800"
+                fontSize="lg"
+                fontWeight="800"
+                lineHeight="1"
+                sx={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {stats.publishedArticleCount}
+              </Text>
+            </Box>
+          </Flex>
+
+          <Progress
+            aria-label={`文章发布率 ${publishedPercent}%`}
+            value={publishedPercent}
+            mt={4}
+            h="6px"
+            rounded="full"
+          />
 
           <SimpleGrid
             columns={3}
@@ -785,9 +708,9 @@ async function DashboardContent() {
             borderTopWidth="1px"
             borderColor="borderSubtle"
           >
-            <DetailValue label="权限节点" value={stats.permissionCount} />
-            <DetailValue label="导航菜单" value={stats.menuCount} />
-            <DetailValue label="业务模块" value={stats.moduleCount} />
+            <DetailValue label="标签" value={stats.tagCount} />
+            <DetailValue label="文件" value={stats.fileCount} />
+            <DetailValue label="喜欢" value={stats.likeCount} />
           </SimpleGrid>
         </GlassPanel>
       </Grid>
