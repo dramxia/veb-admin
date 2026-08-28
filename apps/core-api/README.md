@@ -1,15 +1,22 @@
 # @veb/core-api
 
-Core API is the single backend runtime for authentication, RBAC, system administration, files, audit logs, and the blog module.
+`@veb/core-api` 是 VEB 的后端运行时，负责 Auth.js、RBAC、仪表盘、系统管理、文件、操作日志、文章、标签和喜欢记录。
 
-## API boundaries
+代码组织：
 
-- Public blog: `/api/v1/blog/articles/**`, `/api/v1/blog/tags/**`
-- Private blog management: `/api/v1/blog/manage/**`
-- System management: `/api/v1/system/**`
-- Session-owned resources: `/api/v1/me/**`, `/api/v1/navigation`, `/api/v1/files/**`
-- Health: `/api/health/live`, `/api/health/ready`
+- `app/api`：Route Handler 和 HTTP 方法导出。
+- `src/http`：博客公开与管理路由适配。
+- `src/modules`：业务服务。
+- `lib`：认证、权限、API 封装、日志、限流、存储和 Prisma 适配。
+- `prisma`：唯一的 Prisma Schema、初始化迁移和种子脚本。
 
-Every standard route is created through `defineApiRoute` and explicitly declares `public` or `private`. Private routes optionally declare one permission or an any-of permission list. The Auth.js catch-all adapter is the only documented exception because Auth.js owns that handler contract directly.
+包内命令：
 
-The application owns one Prisma schema and database. Blog articles have a required author relation to `User`; deleting an author with articles returns a conflict.
+```bash
+pnpm --filter @veb/core-api dev
+pnpm --filter @veb/core-api test
+pnpm --filter @veb/core-api typecheck
+pnpm --filter @veb/core-api lint
+```
+
+运行边界见 [`docs/architecture.md`](../../docs/architecture.md)，权限与种子数据见 [`docs/permission.md`](../../docs/permission.md)。

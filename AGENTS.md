@@ -1,42 +1,38 @@
-# VEB Repository Guide
+# VEB 仓库约定
 
-This file applies to the whole repository. Read `README.md` and the relevant parts of `docs/architecture.md`, `docs/permission.md`, and `docs/deployment.md` before changing code.
+本文件适用于整个仓库。修改代码前，先阅读 `README.md` 以及与改动相关的 `docs/architecture.md`、`docs/permission.md`、`docs/deployment.md` 或 `docs/ui-style-guide.md`。
 
-## Project status
+## 当前状态
 
-- The project is not deployed and has no production database or user traffic.
-- Current code, contracts, and the single Prisma schema are authoritative. Do not keep old routes, fields, tables, migrations, environment names, or compatibility layers.
-- Database verification starts from an empty isolated database and the current init migration/seed.
-- Never delete local databases, Docker volumes, uploads, or secrets without explicit user approval.
-- Do not describe CI or local Compose checks as a production deployment.
+- 项目尚未部署，没有正式数据库或用户流量。
+- 当前代码、`packages/api-contracts` 契约和 `apps/core-api/prisma/schema.prisma` 是实现依据。
+- 项目不保留旧路由、旧字段、旧表、历史迁移、旧环境变量或兼容层。
+- 数据库结构验证从隔离的空 PostgreSQL 开始，执行当前初始化迁移和种子脚本。
+- 未经用户明确批准，不得删除本地数据库、Docker 数据卷、上传文件或密钥。
 
-## Runtime topology
+## 运行边界
 
 ```text
-Browser / external client
+浏览器 / 外部客户端
   -> web-public
-  -> apps/web page or same-origin API proxy
+  -> apps/web 页面或同源 /api 代理
   -> apps/core-api
   -> PostgreSQL
 
-apps/core-api -> uploads volume
+apps/web 中间件和 SSR -> apps/core-api
+apps/core-api -> uploads 数据卷
 ```
 
-- Web forwards all `/api/**` requests to Core API and preserves Cookie and `X-Request-Id`.
-- Core API owns Auth.js, RBAC, system administration, files, audit logs, articles, tags, and likes.
-- Public blog routes are `/api/v1/blog/articles/**` and `/api/v1/blog/tags/**`.
-- Private blog management routes are `/api/v1/blog/manage/**` and require Session plus `blog:*` permissions.
-- `defineApiRoute` explicitly marks every standard method public/private and owns Session/RBAC, request ID, error/access logging, and optional audit. Auth.js is the only documented technical exception.
-- Core API and Web have no host port. `web-public` is the only non-loopback/public listener; PostgreSQL may bind only to `127.0.0.1` for local migration and maintenance commands.
+- `web-public` 是唯一面向非回环地址的 Compose 入口。
+- Web 和 Core API 不绑定宿主机端口；PostgreSQL 只绑定到 `127.0.0.1`。
+- Core API 负责 Auth.js、RBAC、仪表盘、系统管理、文件、操作日志和博客。
+- 除 Auth.js 全匹配处理器外，Core API 路由方法都通过 `defineApiRoute` 声明 `public` 或 `private`。
+- 私有路由的 Session 和权限检查以 Core API 为准，前端菜单与页面控制不能替代服务端校验。
+- 项目使用一个 Prisma Schema、一个 PostgreSQL 数据库和一个初始化迁移。
 
-## Database rules
+## 文档同步
 
-- One PostgreSQL database contains system, Auth.js, file metadata, audit, article, tag, and like data.
-- Article author is a required `User` relation with restrictive deletion.
-- Schema and the single init migration always express the latest structure. Seed is an explicit initialization operation and updates the admin password.
-
-## Documentation requirements
-
-- Architecture or topology changes must update `docs/architecture.md`.
-- Permission, module, menu, route policy, or seed changes must update `docs/permission.md`.
-- Compose, environment, migration, health, or release changes must update `docs/deployment.md`.
+- 架构、请求路径或服务边界变更：更新 `docs/architecture.md`。
+- 模块、菜单、权限、路由访问或种子数据变更：更新 `docs/permission.md`。
+- Compose、环境变量、迁移、健康检查或部署脚本变更：更新 `docs/deployment.md`。
+- Web 主题、布局、通用组件或可见依赖变更：更新 `docs/ui-style-guide.md`。

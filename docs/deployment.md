@@ -1,32 +1,47 @@
-# First Deployment
+# 部署说明
 
-The project has not been deployed. This document describes first-launch preparation and does not assert that production exists.
+项目尚未部署。当前仓库提供 Docker Compose 首次部署路径，不包含域名、TLS 证书、外部反向代理、备份平台或监控平台配置。
 
-## Exposure boundary
+## Compose 服务
 
-Compose exposes `web-public` on `WEB_PUBLIC_PORT` as the only non-loopback/public listener. `web` and `core-api` stay on the private Compose network. PostgreSQL also stays private to services but has a `127.0.0.1`-only `DB_PORT` binding for local migration and maintenance commands; it must never bind to a public interface. External API clients use the same Web gateway and `/api/**` proxy as browsers.
+| 服务         | 作用                                        | 宿主机绑定                       |
+| ------------ | ------------------------------------------- | -------------------------------- |
+| `postgres`   | PostgreSQL 15，使用 `postgres-data` 数据卷  | `127.0.0.1:${DB_PORT}:5432`      |
+| `migrate`    | 执行当前 Prisma 初始化迁移后退出            | 无                               |
+| `core-api`   | Core API，使用 `uploads` 数据卷             | 无，仅在 Compose 网络暴露 `1067` |
+| `web`        | Web 页面、SSR 和 API 代理                   | 无，仅在 Compose 网络暴露 `1066` |
+| `web-public` | Nginx 入口                                  | `${WEB_PUBLIC_PORT}:1066`        |
+| `seed`       | 显式执行种子脚本，属于 `operations` profile | 无                               |
 
-## Required configuration
+依赖顺序：
 
-| Area           | Variables                                                      |
+```text
+postgres 健康 -> migrate 成功 -> core-api 就绪 -> web 就绪 -> web-public 就绪
+```
+
+`seed` 不在常规启动链中，也不会由部署脚本自动执行。
+
+## 环境文件
+
+根目录的 `.env.development` 和 `.env.production` 供 Docker Compose 使用：
+
+| 领域           | 变量                                                           |
 | -------------- | -------------------------------------------------------------- |
-| Database       | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT`, `DATABASE_URL` |
-| Authentication | `AUTH_SECRET`, `PUBLIC_APP_URL`                                |
-| Blog likes     | `BLOG_VISITOR_HASH_SECRET`                                     |
-| Initialization | `SEED_ADMIN_PASSWORD`                                          |
-| Network        | `WEB_PUBLIC_PORT`, `CORE_API_INTERNAL_URL`                     |
+| PostgreSQL     | `DB_NAME`、`DB_USER`、`DB_PASSWORD`、`DB_PORT`、`DATABASE_URL` |
+| Auth.js        | `AUTH_SECRET`、`PUBLIC_APP_URL`                                |
+| 博客喜欢       | `BLOG_VISITOR_HASH_SECRET`                                     |
+| 种子           | `SEED_ADMIN_PASSWORD`                                          |
+| 网关和服务地址 | `WEB_PUBLIC_PORT`、`CORE_API_INTERNAL_URL`                     |
 
-Container `DATABASE_URL` must use the `postgres` service hostname. Production values must replace every placeholder. Core API needs write access to the uploads volume.
+容器使用的 `DATABASE_URL` 主机名是 `postgres`。`PUBLIC_APP_URL` 会作为 Core API 容器的 `AUTH_URL`。
 
-## Local port behavior
+`apps/core-api/.env.development` 和 `apps/core-api/.env.production` 供包内 Prisma、种子及直接运行 Core API 时使用。`apps/web/.env.*` 供直接运行 Web 时使用。
 
-The direct `pnpm dev` launcher prefers Web port `1066` and Core API port `1067`. When either port is unavailable, it reserves the next free port before starting both applications and injects matching `AUTH_URL` and `CORE_API_INTERNAL_URL` values. It reports the effective URLs and does not terminate the process that owns the requested port. `WEB_DEV_PORT` and `CORE_API_DEV_PORT` override the preferred ports; `VEB_DEV_STRICT_PORTS=1` disables fallback selection.
+`.env.production` 当前包含待替换值，部署脚本不会识别或拒绝占位值。执行部署前必须人工替换数据库密码、`AUTH_SECRET`、管理员密码、访客哈希密钥和公开地址。
 
-The development Compose environment exposes `web-public` on host port `1068`, while the private Web container continues to listen on `1066`. `PUBLIC_APP_URL` is mapped to the Core API container's `AUTH_URL`, so development authentication uses `http://localhost:1068`. Production Compose continues to use the explicit `WEB_PUBLIC_PORT` and `PUBLIC_APP_URL` values in `.env.production`.
+`web-public` 的仓库配置只监听 HTTP，不终止 TLS。使用 HTTPS 域名时，需要在 Compose 入口之前配置 TLS 终止和转发。
 
-Compose does not select fallback ports. `WEB_PUBLIC_PORT` and `DB_PORT` are explicit deployment inputs so operators, health checks, proxies, and firewall rules use predictable bindings. Change those values deliberately in the selected Compose environment file when a host binding must move.
-
-## Pre-deployment validation
+## 部署前检查
 
 ```bash
 pnpm install --frozen-lockfile
@@ -41,48 +56,37 @@ docker compose --env-file .env.production build
 docker compose --env-file .env.production --profile operations build seed
 ```
 
-`db:verify:init` uses an isolated temporary PostgreSQL container and verifies the single init migration plus seed. It does not touch named deployment volumes.
+`pnpm db:verify:init` 默认将临时 PostgreSQL 绑定到 `127.0.0.1:55432`。可通过 `VEB_INIT_CHECK_PORT` 修改端口。脚本执行迁移和种子后删除临时容器，不使用 `postgres-data` 数据卷。
 
-## Deployment
-
-After host, domain, TLS, secrets, backups, and rollback ownership are confirmed:
+## 启动
 
 ```bash
 pnpm compose:deploy
 ```
 
-Compose waits for this dependency chain:
+`compose:deploy` 默认读取 `.env.production`。可通过 `COMPOSE_ENV_FILE` 指定其他环境文件。
 
-```text
-postgres healthy -> migrate completed -> core-api healthy -> web healthy -> web-public healthy
-```
+脚本执行 `docker compose up --build --detach --remove-orphans --wait`，等待 Compose 健康检查通过，然后删除已完成的 `migrate` 容器。默认还会清理超过时限的悬空镜像，并按最大占用或时限清理构建缓存；设置 `DOCKER_DEPLOY_PRUNE=0` 可禁用该清理。
 
-The deploy script removes only the completed `migrate` one-shot container and applies bounded image/build-cache cleanup. It does not seed automatically.
+该脚本不会删除 `postgres-data` 或 `uploads` 数据卷。
 
-## First initialization
+## 初始化数据
 
-Run seed explicitly after the first migration:
+部署迁移完成后，显式执行：
 
 ```bash
 docker compose --env-file .env.production --profile operations run --rm seed
 ```
 
-Seed synchronizes built-in modules, menus, `blog:*` permissions, roles, and the admin password. Treat it as an explicit operational action.
+种子脚本同步内置模块、菜单、权限和角色，创建或更新 `admin` 用户，并把密码更新为 `SEED_ADMIN_PASSWORD`。
 
-## Smoke tests
+## 健康检查
 
-Verify through the public gateway:
+通过 `web-public` 检查：
 
-- `/api/health/live` and `/api/health/ready` return healthy envelopes and request IDs.
-- anonymous access can list published `/api/v1/blog/articles`.
-- anonymous access to `/api/v1/blog/manage/articles` is rejected.
-- authenticated users without `blog:*` permissions receive 403 on management routes.
-- an authorized administrator can publish an article and then read it anonymously.
-- public DTOs contain no database ID, account username, status, or draft fields.
-- Core API and Web application ports have no host binding; PostgreSQL is bound only to `127.0.0.1` and is unreachable from external networks.
+- `/api/health/live`：Core API 进程存活。
+- `/api/health/ready`：`AUTH_SECRET` 非空且数据库可查询。
 
-Record actual commands, timestamps, host/domain, image identifiers, migration result, seed result, and smoke-test evidence before declaring first deployment complete.
+Compose 对 Core API、Web 和 Nginx 的依赖都使用 `/api/health/ready`。该检查不验证生产占位值、TLS、种子结果、uploads 写权限、备份或外部网络策略。
 
-## Cleanup safety
-
-Do not delete PostgreSQL volumes or uploads during routine deployment. Any destructive cleanup requires explicit user approval and verified backup/restore evidence.
+PostgreSQL 和 uploads 数据卷不会由常规部署或验证命令删除。任何数据卷清理都需要单独执行破坏性命令，并须先获得用户明确批准。
