@@ -9,7 +9,13 @@ export default defineConfig({
     include: ['lib/__tests__/**/*.test.ts'],
     coverage: {
       reporter: ['text', 'html'],
-      include: ['lib/date-time.ts', 'lib/markdown.ts', 'lib/safe-redirect.ts'],
+      include: [
+        'lib/date-time.ts',
+        'lib/markdown.ts',
+        'lib/markdown-import.ts',
+        'lib/safe-redirect.ts',
+        'lib/scroll-sync.ts',
+      ],
     },
   },
   resolve: {

@@ -56,7 +56,7 @@ docker compose --env-file .env.production build
 docker compose --env-file .env.production --profile operations build seed
 ```
 
-`pnpm db:verify:init` 默认将临时 PostgreSQL 绑定到 `127.0.0.1:55432`。可通过 `VEB_INIT_CHECK_PORT` 修改端口。脚本执行迁移和种子后删除临时容器，不使用 `postgres-data` 数据卷。
+`pnpm db:verify:init` 默认将临时 PostgreSQL 绑定到 `127.0.0.1:55432`。可通过 `VEB_INIT_CHECK_PORT` 修改端口。脚本执行迁移和种子后，会创建两篇验证文章并确认自动标识依次为 `20000`、`20001`，最后删除临时容器；该过程不使用 `postgres-data` 数据卷。
 
 ## 启动
 

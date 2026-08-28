@@ -146,7 +146,7 @@ model File {
 model Article {
   id              String        @id @default(cuid())
   title           String
-  slug            String        @unique
+  slug            String        @unique @default(dbgenerated("(nextval('\"Article_slug_seq\"'::regclass))::text"))
   summary         String?
   contentMarkdown String        @db.Text
   status          ArticleStatus @default(DRAFT)

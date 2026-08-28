@@ -68,6 +68,7 @@ export function ConfirmDialog({
           <AlertDialogFooter>
             <Button
               ref={cancelRef}
+              type="button"
               variant="ghost"
               onClick={onClose}
               isDisabled={isLoading}
@@ -75,6 +76,7 @@ export function ConfirmDialog({
               {cancelLabel}
             </Button>
             <Button
+              type="button"
               colorScheme={intent === 'danger' ? 'red' : 'brand'}
               variant="solid"
               onClick={onConfirm}

@@ -138,11 +138,19 @@ CREATE TABLE "File" (
     CONSTRAINT "File_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateSequence
+CREATE SEQUENCE "Article_slug_seq"
+    START WITH 20000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
 -- CreateTable
 CREATE TABLE "Article" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
+    "slug" TEXT NOT NULL DEFAULT (nextval('"Article_slug_seq"'::regclass))::text,
     "summary" TEXT,
     "contentMarkdown" TEXT NOT NULL,
     "status" "ArticleStatus" NOT NULL DEFAULT 'DRAFT',
@@ -153,6 +161,8 @@ CREATE TABLE "Article" (
 
     CONSTRAINT "Article_pkey" PRIMARY KEY ("id")
 );
+
+ALTER SEQUENCE "Article_slug_seq" OWNED BY "Article"."slug";
 
 -- CreateTable
 CREATE TABLE "Tag" (

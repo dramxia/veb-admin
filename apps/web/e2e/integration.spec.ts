@@ -43,7 +43,6 @@ test('blog management and public access share the Core API database', async ({
   await login(page);
 
   const suffix = randomUUID().slice(0, 8);
-  const slug = `ci-core-api-${suffix}`;
   const title = `Core API 集成测试 ${suffix}`;
   const requestId = randomUUID();
   let articleId: string | undefined;
@@ -55,7 +54,6 @@ test('blog management and public access share the Core API database', async ({
         headers: { 'x-request-id': requestId },
         data: {
           title,
-          slug,
           summary: '验证统一 Core API 的管理、公开和点赞流程。',
           contentMarkdown: '# Integration\n\nPublished through Core API.',
           status: 'PUBLISHED',
@@ -70,16 +68,26 @@ test('blog management and public access share the Core API database', async ({
     expect(createResponse.status()).toBe(200);
     expect(createResponse.headers()['x-request-id']).toBe(requestId);
     expect(created.code).toBe(0);
-    expect(created.data).toMatchObject({ title, slug, status: 'PUBLISHED' });
+    expect(created.data).toMatchObject({ title, status: 'PUBLISHED' });
     expect(created.data?.author.username).toBe('admin');
 
-    const publicUrl = `/api/v1/blog/articles/${slug}`;
+    const articleIdentifier = created.data?.slug;
+    expect(articleIdentifier).toMatch(/^\d+$/);
+    expect(Number(articleIdentifier)).toBeGreaterThanOrEqual(20_000);
+    if (!articleIdentifier)
+      throw new Error('Article identifier was not returned');
+
+    const publicUrl = `/api/v1/blog/articles/${articleIdentifier}`;
     const publicResponse = await request.get(publicUrl);
     expect(publicResponse.status()).toBe(200);
     const publicPayload =
       (await publicResponse.json()) as ApiEnvelope<PublicArticle>;
     expect(publicPayload.code).toBe(0);
-    expect(publicPayload.data).toMatchObject({ title, slug, likeCount: 0 });
+    expect(publicPayload.data).toMatchObject({
+      title,
+      slug: articleIdentifier,
+      likeCount: 0,
+    });
     expect(Object.keys(publicPayload.data ?? {}).sort()).toEqual(
       [
         'authorNickname',
@@ -123,7 +131,7 @@ test('blog management and public access share the Core API database', async ({
       articleId,
       count: 1,
       title,
-      slug,
+      slug: articleIdentifier,
     });
 
     const anonymousContext = await browser.newContext({
@@ -131,7 +139,9 @@ test('blog management and public access share the Core API database', async ({
     });
     try {
       const anonymousPage = await anonymousContext.newPage();
-      const articlePage = await anonymousPage.goto(`/articles/${slug}`);
+      const articlePage = await anonymousPage.goto(
+        `/articles/${articleIdentifier}`,
+      );
       expect(articlePage?.ok()).toBe(true);
       await expect(
         anonymousPage.getByRole('heading', { name: title }),

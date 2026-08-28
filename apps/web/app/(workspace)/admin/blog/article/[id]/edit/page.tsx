@@ -31,6 +31,7 @@ export default async function EditArticlePage({
   );
   return (
     <WorkspaceCanvas
+      fillHeight
       eyebrow="内容管理"
       title="编辑文章"
       description="更新正文、标签和公开状态。"

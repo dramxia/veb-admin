@@ -78,6 +78,41 @@ describe('content service boundaries', () => {
     expect(query.where.publishedAt.lte).toBeInstanceOf(Date);
   });
 
+  it('uses the database-generated identifier to resolve article details', async () => {
+    const publishedArticle = {
+      ...draftArticleRecord(),
+      slug: '20000',
+      status: 'PUBLISHED' as const,
+      publishedAt: now,
+    };
+    prismaMock.article.create.mockResolvedValue(publishedArticle);
+
+    const created = await createArticle({
+      title: '自动生成文章标识',
+      summary: 'Published summary',
+      contentMarkdown: '# Published',
+      status: 'PUBLISHED',
+      tagIds: [],
+      authorId: 'user-1',
+    });
+
+    const create = prismaMock.article.create.mock.calls[0]?.[0] as {
+      data: Record<string, unknown>;
+    };
+    expect(create.data).not.toHaveProperty('slug');
+    expect(created.slug).toBe('20000');
+
+    prismaMock.article.findFirst.mockResolvedValue(publishedArticle);
+    const detail = await getPublicArticle(created.slug);
+
+    expect(detail.title).toBe(publishedArticle.title);
+    expect(prismaMock.article.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ slug: created.slug }),
+      }),
+    );
+  });
+
   it('maps like statistics without leaking the article database id field', async () => {
     prismaMock.articleLike.count.mockResolvedValue(1);
     prismaMock.articleLike.groupBy.mockResolvedValue([
@@ -111,7 +146,6 @@ describe('content service boundaries', () => {
 
     const result = await createArticle({
       title: 'Draft with tags',
-      slug: 'draft-with-tags',
       summary: 'Draft summary',
       contentMarkdown: '# Draft',
       status: 'DRAFT',

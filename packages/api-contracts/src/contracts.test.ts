@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ERROR_CODES,
   adminArticleDetailSchema,
+  articleCreateInputSchema,
+  articleUpdateInputSchema,
   appModuleCreateInputSchema,
   apiResultSchema,
   createApiError,
@@ -194,6 +196,27 @@ describe('service DTO boundaries', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('keeps article identifiers server-generated', () => {
+    const createInput = {
+      title: 'A managed post',
+      summary: null,
+      contentMarkdown: '# Draft',
+      status: 'DRAFT' as const,
+      tagIds: [],
+    };
+
+    expect(articleCreateInputSchema.parse(createInput)).toEqual(createInput);
+    expect(
+      articleCreateInputSchema.safeParse({
+        ...createInput,
+        slug: 'client-controlled',
+      }).success,
+    ).toBe(false);
+    expect(
+      articleUpdateInputSchema.safeParse({ slug: 'client-controlled' }).success,
+    ).toBe(false);
   });
 
   it('rejects internal fields in a public article DTO', () => {

@@ -13,7 +13,7 @@ export function normalizeSlug(value: string) {
     .slice(0, 120);
 }
 
-export function createContentSlug(value: string, prefix: 'article' | 'tag') {
+export function createContentSlug(value: string, prefix: 'tag') {
   return (
     normalizeSlug(value) ||
     `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 10)}`

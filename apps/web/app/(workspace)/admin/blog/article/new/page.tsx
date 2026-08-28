@@ -11,6 +11,7 @@ export default async function NewArticlePage() {
   );
   return (
     <WorkspaceCanvas
+      fillHeight
       eyebrow="内容管理"
       title="新增文章"
       description="编写 Markdown 内容并保存为草稿或直接发布。"

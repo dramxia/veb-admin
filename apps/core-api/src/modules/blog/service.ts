@@ -255,31 +255,19 @@ export async function listArticleAuthors() {
 export async function createArticle(input: ArticleCreateCommand) {
   validatePublishableArticle(input);
   const tagIds = await ensureTagIds(input.tagIds);
-  const slug =
-    normalizeSlug(input.slug || '') ||
-    createContentSlug(input.title, 'article');
-  try {
-    const article = await prisma.article.create({
-      data: {
-        title: input.title,
-        slug,
-        summary: input.summary || null,
-        contentMarkdown: input.contentMarkdown || '',
-        status: input.status,
-        authorId: input.authorId,
-        publishedAt:
-          input.status === ArticleStatus.PUBLISHED ? new Date() : null,
-        tags: { create: tagIds.map((tagId) => ({ tagId })) },
-      },
-      select: articleDetailSelect,
-    });
-    return serializeAdminArticle(article);
-  } catch (error) {
-    if (isPrismaUniqueError(error)) {
-      throw new ConflictError('文章 slug 已存在');
-    }
-    throw error;
-  }
+  const article = await prisma.article.create({
+    data: {
+      title: input.title,
+      summary: input.summary || null,
+      contentMarkdown: input.contentMarkdown || '',
+      status: input.status,
+      authorId: input.authorId,
+      publishedAt: input.status === ArticleStatus.PUBLISHED ? new Date() : null,
+      tags: { create: tagIds.map((tagId) => ({ tagId })) },
+    },
+    select: articleDetailSelect,
+  });
+  return serializeAdminArticle(article);
 }
 
 export async function getAdminArticle(id: string) {
@@ -296,7 +284,6 @@ export async function updateArticle(id: string, input: ArticleUpdateCommand) {
     where: { id },
     select: {
       title: true,
-      slug: true,
       summary: true,
       contentMarkdown: true,
       status: true,
@@ -307,52 +294,39 @@ export async function updateArticle(id: string, input: ArticleUpdateCommand) {
   validatePublishableArticle(next);
   const tagIds =
     input.tagIds === undefined ? undefined : await ensureTagIds(input.tagIds);
-  const slug =
-    input.slug === undefined
-      ? undefined
-      : normalizeSlug(input.slug || '') ||
-        createContentSlug(next.title, 'article');
-  try {
-    const article = await prisma.article.update({
-      where: { id },
-      data: {
-        ...(input.title !== undefined ? { title: input.title } : {}),
-        ...(slug !== undefined ? { slug } : {}),
-        ...(input.summary !== undefined
-          ? { summary: input.summary || null }
-          : {}),
-        ...(input.contentMarkdown !== undefined
-          ? { contentMarkdown: input.contentMarkdown }
-          : {}),
-        ...(input.status !== undefined
-          ? {
-              status: input.status,
-              publishedAt:
-                input.status === ArticleStatus.DRAFT
-                  ? null
-                  : current.status === ArticleStatus.PUBLISHED
-                    ? undefined
-                    : new Date(),
-            }
-          : {}),
-        ...(tagIds !== undefined
-          ? {
-              tags: {
-                deleteMany: {},
-                create: tagIds.map((tagId) => ({ tagId })),
-              },
-            }
-          : {}),
-      },
-      select: articleDetailSelect,
-    });
-    return serializeAdminArticle(article);
-  } catch (error) {
-    if (isPrismaUniqueError(error)) {
-      throw new ConflictError('文章 slug 已存在');
-    }
-    throw error;
-  }
+  const article = await prisma.article.update({
+    where: { id },
+    data: {
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.summary !== undefined
+        ? { summary: input.summary || null }
+        : {}),
+      ...(input.contentMarkdown !== undefined
+        ? { contentMarkdown: input.contentMarkdown }
+        : {}),
+      ...(input.status !== undefined
+        ? {
+            status: input.status,
+            publishedAt:
+              input.status === ArticleStatus.DRAFT
+                ? null
+                : current.status === ArticleStatus.PUBLISHED
+                  ? undefined
+                  : new Date(),
+          }
+        : {}),
+      ...(tagIds !== undefined
+        ? {
+            tags: {
+              deleteMany: {},
+              create: tagIds.map((tagId) => ({ tagId })),
+            },
+          }
+        : {}),
+    },
+    select: articleDetailSelect,
+  });
+  return serializeAdminArticle(article);
 }
 
 export async function deleteArticle(id: string) {

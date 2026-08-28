@@ -1,8 +1,6 @@
 'use client';
 
 import {
-  Alert,
-  AlertDescription,
   Badge,
   Box,
   Button,
@@ -17,11 +15,12 @@ import {
   Heading,
   HStack,
   Input,
-  SimpleGrid,
   Stack,
   Text,
   Textarea,
   Tooltip,
+  useDisclosure,
+  useToast,
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
@@ -41,18 +40,23 @@ import {
   EditorQuoteIcon,
   EditorSplitViewIcon,
   EditorWriteIcon,
+  UploadIcon,
 } from '@/assets/icons';
 import { useHasPermission } from '@/components/auth/use-has-permission';
-import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { MarkdownContent } from '@/components/blog/markdown-content';
 import type { ArticleDetail, ContentTag } from '@/components/blog/admin-types';
 import { requestJson } from '@/lib/client-api';
+import {
+  getMarkdownImportError,
+  readMarkdownImportFile,
+} from '@/lib/markdown-import';
+import { synchronizedScrollTop } from '@/lib/scroll-sync';
 
 type EditorState = {
   title: string;
-  slug: string;
   summary: string;
   contentMarkdown: string;
   status: 'DRAFT' | 'PUBLISHED';
@@ -60,6 +64,8 @@ type EditorState = {
 };
 
 type ViewMode = 'write' | 'split' | 'preview';
+type MobileSection = 'content' | 'details';
+type ScrollPane = 'source' | 'preview';
 type MarkdownAction =
   | 'bold'
   | 'italic'
@@ -142,22 +148,60 @@ export function ArticleEditor({
   tags: ContentTag[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const canPublish = useHasPermission('blog:article:publish');
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const markdownInputRef = useRef<HTMLInputElement>(null);
+  const ignoredScrollRef = useRef<{
+    pane: ScrollPane;
+    scrollTop: number;
+  } | null>(null);
+  const importDialog = useDisclosure();
   const [state, setState] = useState<EditorState>({
     title: article?.title || '',
-    slug: article?.slug || '',
     summary: article?.summary || '',
     contentMarkdown: article?.contentMarkdown || '',
     status: article?.status || 'DRAFT',
     tagIds: article?.tags.map((tag) => tag.id) || [],
   });
-  const [viewMode, setViewMode] = useState<ViewMode>('write');
+  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [mobileSection, setMobileSection] = useState<MobileSection>('content');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
 
   function update<K extends keyof EditorState>(key: K, value: EditorState[K]) {
     setState((current) => ({ ...current, [key]: value }));
+  }
+
+  function synchronizeEditorScroll(origin: ScrollPane) {
+    const source = origin === 'source' ? editorRef.current : previewRef.current;
+    const target = origin === 'source' ? previewRef.current : editorRef.current;
+    const targetPane: ScrollPane = origin === 'source' ? 'preview' : 'source';
+    if (!source || !target) return;
+
+    const ignoredScroll = ignoredScrollRef.current;
+    if (
+      ignoredScroll?.pane === origin &&
+      Math.abs(source.scrollTop - ignoredScroll.scrollTop) <= 1
+    ) {
+      ignoredScrollRef.current = null;
+      return;
+    }
+
+    const targetScrollTop = synchronizedScrollTop(source, target);
+    if (Math.abs(target.scrollTop - targetScrollTop) <= 1) return;
+
+    ignoredScrollRef.current = { pane: targetPane, scrollTop: targetScrollTop };
+    target.scrollTop = targetScrollTop;
+  }
+
+  function selectViewMode(value: ViewMode) {
+    setViewMode(value);
+    if (value === 'split') {
+      window.requestAnimationFrame(() => synchronizeEditorScroll('source'));
+    }
   }
 
   function applyMarkdown(action: MarkdownAction) {
@@ -223,11 +267,70 @@ export function ArticleEditor({
     });
   }
 
+  function resetMarkdownInput() {
+    if (markdownInputRef.current) markdownInputRef.current.value = '';
+  }
+
+  function closeImportDialog() {
+    if (importing) return;
+    importDialog.onClose();
+    setPendingImport(null);
+    resetMarkdownInput();
+  }
+
+  async function importMarkdown(file: File) {
+    setImporting(true);
+    try {
+      const imported = await readMarkdownImportFile(file);
+      setState((current) => ({
+        ...current,
+        contentMarkdown: imported.contentMarkdown,
+        title: imported.title,
+      }));
+      selectViewMode('split');
+      setMobileSection('content');
+      toast({
+        title: 'Markdown 已导入',
+        description: '已使用文件名填充标题',
+        status: 'success',
+        duration: 2600,
+      });
+      importDialog.onClose();
+      window.requestAnimationFrame(() => editorRef.current?.focus());
+    } catch (cause) {
+      toast({
+        title: cause instanceof Error ? cause.message : 'Markdown 文件导入失败',
+        status: 'error',
+      });
+    } finally {
+      setImporting(false);
+      setPendingImport(null);
+      resetMarkdownInput();
+    }
+  }
+
+  function chooseMarkdownFile(file: File | null) {
+    if (!file) return;
+
+    const importError = getMarkdownImportError(file);
+    if (importError) {
+      toast({ title: importError, status: 'error' });
+      resetMarkdownInput();
+      return;
+    }
+
+    if (state.contentMarkdown) {
+      setPendingImport(file);
+      importDialog.onOpen();
+      return;
+    }
+    void importMarkdown(file);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || importing) return;
     setSaving(true);
-    setError('');
     try {
       await requestJson(
         article
@@ -241,7 +344,10 @@ export function ArticleEditor({
       router.push('/admin/blog/article');
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '文章保存失败');
+      toast({
+        title: cause instanceof Error ? cause.message : '文章保存失败',
+        status: 'error',
+      });
     } finally {
       setSaving(false);
     }
@@ -252,18 +358,21 @@ export function ArticleEditor({
       ref={editorRef}
       value={state.contentMarkdown}
       onChange={(event) => update('contentMarkdown', event.target.value)}
-      minH={{ base: '480px', lg: '640px' }}
+      onScroll={() => synchronizeEditorScroll('source')}
       h="full"
-      resize="vertical"
+      minH={0}
+      resize="none"
+      overflowY="auto"
+      overscrollBehavior="contain"
       border={0}
       borderRadius={0}
       bg="white"
-      p={{ base: 4, md: 6 }}
+      p={{ base: 4, md: 5 }}
       fontFamily="mono"
       fontSize="15px"
       lineHeight="1.85"
       placeholder="# 开始编写 Markdown 正文"
-      isDisabled={saving}
+      isDisabled={saving || importing}
       aria-label="Markdown 正文"
       spellCheck={false}
       _hover={{ borderColor: 'transparent' }}
@@ -273,12 +382,17 @@ export function ArticleEditor({
 
   const preview = (
     <Box
-      minH={{ base: '480px', lg: '640px' }}
+      ref={previewRef}
       h="full"
-      bg="white"
+      minH={0}
       overflowX="auto"
-      px={{ base: 4, md: 6 }}
-      py={{ base: 4, md: 6 }}
+      overflowY="auto"
+      overscrollBehavior="contain"
+      px={{ base: 4, md: 5 }}
+      py={{ base: 4, md: 5 }}
+      role="region"
+      aria-label="Markdown 预览"
+      onScroll={() => synchronizeEditorScroll('preview')}
     >
       <Box maxW="780px" mx="auto">
         {state.contentMarkdown ? (
@@ -287,7 +401,8 @@ export function ArticleEditor({
           </MarkdownContent>
         ) : (
           <Flex
-            minH={{ base: '420px', lg: '560px' }}
+            minH="240px"
+            h="full"
             align="center"
             direction="column"
             justify="center"
@@ -302,147 +417,247 @@ export function ArticleEditor({
     </Box>
   );
 
+  const articleDetails = (
+    <Stack spacing={5}>
+      <Box>
+        <Heading as="h2" color="ink.900" fontSize="md">
+          文章信息
+        </Heading>
+        <Text color="ink.500" fontSize="sm" mt={1}>
+          设置标题、摘要、标签和发布范围
+        </Text>
+      </Box>
+
+      <FormControl>
+        <FormLabel>发布状态</FormLabel>
+        <AppSelect
+          value={state.status}
+          onChange={(event) =>
+            update('status', event.target.value as EditorState['status'])
+          }
+          isDisabled={saving || importing}
+        >
+          <option value="DRAFT">草稿</option>
+          {canPublish || article?.status === 'PUBLISHED' ? (
+            <option value="PUBLISHED">已发布</option>
+          ) : null}
+        </AppSelect>
+        <FormHelperText>
+          {state.status === 'PUBLISHED'
+            ? '保存后立即更新公开文章'
+            : '当前内容仅保存为草稿'}
+        </FormHelperText>
+      </FormControl>
+
+      <FormControl isRequired>
+        <FormLabel>标题</FormLabel>
+        <Input
+          value={state.title}
+          maxLength={120}
+          onChange={(event) => update('title', event.target.value)}
+          placeholder="输入清晰、准确的文章标题"
+          isDisabled={saving || importing}
+        />
+        <FormHelperText textAlign="right">
+          {state.title.length} / 120
+        </FormHelperText>
+      </FormControl>
+
+      <FormControl isRequired={state.status === 'PUBLISHED'}>
+        <FormLabel>摘要</FormLabel>
+        <Textarea
+          value={state.summary}
+          maxLength={300}
+          rows={4}
+          resize="vertical"
+          onChange={(event) => update('summary', event.target.value)}
+          placeholder="概括文章内容，发布后显示在标题下方"
+          isDisabled={saving || importing}
+        />
+        <FormHelperText textAlign="right">
+          {state.summary.length} / 300
+        </FormHelperText>
+      </FormControl>
+
+      <FormControl>
+        <FormLabel>标签</FormLabel>
+        {tags.length ? (
+          <Wrap spacing={2}>
+            {tags.map((tag) => {
+              const selected = state.tagIds.includes(tag.id);
+              return (
+                <WrapItem key={tag.id}>
+                  <Checkbox
+                    isChecked={selected}
+                    onChange={(event) =>
+                      update(
+                        'tagIds',
+                        event.target.checked
+                          ? [...state.tagIds, tag.id]
+                          : state.tagIds.filter((id) => id !== tag.id),
+                      )
+                    }
+                    isDisabled={saving || importing}
+                    px={3}
+                    py={2}
+                    borderWidth="1px"
+                    borderColor={selected ? 'brand.300' : 'borderDefault'}
+                    borderRadius="control"
+                    bg={selected ? 'brand.50' : 'controlBg'}
+                    color={selected ? 'brand.700' : 'ink.700'}
+                  >
+                    {tag.name}
+                  </Checkbox>
+                </WrapItem>
+              );
+            })}
+          </Wrap>
+        ) : (
+          <Text color="ink.500" fontSize="sm">
+            暂无标签
+          </Text>
+        )}
+      </FormControl>
+    </Stack>
+  );
+
   return (
-    <Box as="form" onSubmit={submit}>
-      <Stack spacing={4}>
-        {error ? (
-          <Alert status="error" aria-live="polite">
-            <AlertStatusIcon status="error" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        <Box layerStyle="glassSolid" p={{ base: 4, md: 6 }}>
-          <Flex
-            align={{ base: 'stretch', md: 'flex-start' }}
-            direction={{ base: 'column', md: 'row' }}
-            gap={5}
-            justify="space-between"
-            mb={5}
+    <Box
+      as="form"
+      onSubmit={submit}
+      h="full"
+      minH={0}
+      display="flex"
+      flexDirection="column"
+      overflow="hidden"
+    >
+      <Flex
+        layerStyle="toolbarSurface"
+        align="center"
+        justify="space-between"
+        gap={3}
+        px={{ base: 2, md: 3 }}
+        py={2}
+        flexShrink={0}
+      >
+        <HStack spacing={2} minW={0}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            isDisabled={saving || importing}
+            onClick={() => router.push('/admin/blog/article')}
           >
-            <Box>
-              <Heading as="h2" color="ink.900" fontSize="lg">
-                文章信息
-              </Heading>
-              <Text color="ink.500" fontSize="sm" mt={1}>
-                完善标题、摘要和发布范围
-              </Text>
-            </Box>
-            <FormControl w={{ base: 'full', md: '180px' }} flexShrink={0}>
-              <FormLabel>发布状态</FormLabel>
-              <AppSelect
-                value={state.status}
-                onChange={(event) =>
-                  update('status', event.target.value as EditorState['status'])
-                }
-                isDisabled={saving}
-              >
-                <option value="DRAFT">草稿</option>
-                {canPublish || article?.status === 'PUBLISHED' ? (
-                  <option value="PUBLISHED">已发布</option>
-                ) : null}
-              </AppSelect>
-            </FormControl>
-          </Flex>
+            返回
+          </Button>
+          <Badge
+            colorScheme={state.status === 'PUBLISHED' ? 'green' : 'gray'}
+            flexShrink={0}
+          >
+            {state.status === 'PUBLISHED' ? '已发布' : '草稿'}
+          </Badge>
+          <Text
+            display={{ base: 'none', md: 'block' }}
+            color="ink.600"
+            fontSize="sm"
+            fontWeight="600"
+            noOfLines={1}
+          >
+            {state.title.trim() || '未命名文章'}
+          </Text>
+        </HStack>
 
-          <Stack spacing={5}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>标题</FormLabel>
-                <Input
-                  value={state.title}
-                  maxLength={120}
-                  onChange={(event) => update('title', event.target.value)}
-                  placeholder="输入清晰、准确的文章标题"
-                  isDisabled={saving}
-                />
-                <FormHelperText textAlign="right">
-                  {state.title.length} / 120
-                </FormHelperText>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Slug</FormLabel>
-                <Input
-                  value={state.slug}
-                  maxLength={120}
-                  onChange={(event) => update('slug', event.target.value)}
-                  placeholder="留空时自动生成"
-                  isDisabled={saving}
-                />
-                <FormHelperText>
-                  创建后保持不变可避免公开链接失效
-                </FormHelperText>
-              </FormControl>
-            </SimpleGrid>
+        <HStack spacing={2} flexShrink={0}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            display={{ base: 'inline-flex', xl: 'none' }}
+            isDisabled={saving || importing}
+            onClick={() =>
+              setMobileSection((current) =>
+                current === 'details' ? 'content' : 'details',
+              )
+            }
+          >
+            {mobileSection === 'details' ? '编辑正文' : '文章信息'}
+          </Button>
+          <Button
+            type="submit"
+            size="sm"
+            isDisabled={importing}
+            isLoading={saving}
+            loadingText="保存中"
+          >
+            {article ? '保存修改' : '创建文章'}
+          </Button>
+        </HStack>
+      </Flex>
 
-            <FormControl isRequired={state.status === 'PUBLISHED'}>
-              <FormLabel>摘要</FormLabel>
-              <Textarea
-                value={state.summary}
-                maxLength={300}
-                rows={3}
-                resize="vertical"
-                onChange={(event) => update('summary', event.target.value)}
-                placeholder="概括文章内容，发布后显示在标题下方"
-                isDisabled={saving}
-              />
-              <FormHelperText textAlign="right">
-                {state.summary.length} / 300
-              </FormHelperText>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel>标签</FormLabel>
-              {tags.length ? (
-                <Wrap spacing={2}>
-                  {tags.map((tag) => {
-                    const selected = state.tagIds.includes(tag.id);
-                    return (
-                      <WrapItem key={tag.id}>
-                        <Checkbox
-                          isChecked={selected}
-                          onChange={(event) =>
-                            update(
-                              'tagIds',
-                              event.target.checked
-                                ? [...state.tagIds, tag.id]
-                                : state.tagIds.filter((id) => id !== tag.id),
-                            )
-                          }
-                          isDisabled={saving}
-                          px={3}
-                          py={2}
-                          borderWidth="1px"
-                          borderColor={selected ? 'brand.300' : 'borderDefault'}
-                          borderRadius="control"
-                          bg={selected ? 'brand.50' : 'controlBg'}
-                          color={selected ? 'brand.700' : 'ink.700'}
-                        >
-                          {tag.name}
-                        </Checkbox>
-                      </WrapItem>
-                    );
-                  })}
-                </Wrap>
-              ) : (
-                <Text color="ink.500" fontSize="sm">
-                  暂无标签
-                </Text>
-              )}
-            </FormControl>
-          </Stack>
+      <Grid
+        flex={1}
+        minH={0}
+        mt={3}
+        gap={3}
+        overflow="hidden"
+        templateRows="minmax(0, 1fr)"
+        templateColumns={{
+          base: 'minmax(0, 1fr)',
+          xl: 'minmax(260px, 300px) minmax(0, 1fr)',
+        }}
+      >
+        <Box
+          as="aside"
+          display={{
+            base: mobileSection === 'details' ? 'block' : 'none',
+            xl: 'block',
+          }}
+          h="full"
+          minH={0}
+          overflowY="auto"
+          overscrollBehavior="contain"
+          layerStyle="glassSolid"
+          p={{ base: 4, md: 5 }}
+          aria-label="文章信息"
+          sx={{ scrollbarGutter: 'stable' }}
+        >
+          {articleDetails}
         </Box>
 
-        <Box layerStyle="glassSolid">
+        <Flex
+          display={{
+            base: mobileSection === 'content' ? 'flex' : 'none',
+            xl: 'flex',
+          }}
+          direction="column"
+          h="full"
+          minH={0}
+          minW={0}
+          overflow="hidden"
+          layerStyle="glassSolid"
+        >
           <Flex
-            align={{ base: 'stretch', md: 'center' }}
-            direction={{ base: 'column', md: 'row' }}
-            gap={3}
-            justify="space-between"
-            px={{ base: 3, md: 4 }}
-            py={3}
+            align="center"
+            gap={2}
+            minW={0}
+            px={{ base: 2, md: 3 }}
+            py={2}
+            flexShrink={0}
+            overflow="hidden"
           >
-            <HStack spacing={1} wrap="wrap">
+            <HStack
+              role="toolbar"
+              aria-label="Markdown 格式"
+              spacing={1}
+              flex={1}
+              minW={0}
+              overflowX="auto"
+              py={1}
+              sx={{
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+              }}
+            >
               {formatActions.map(({ action, icon, label }) => (
                 <Tooltip key={action} label={label} hasArrow>
                   <Button
@@ -452,81 +667,143 @@ export function ArticleEditor({
                     minW={9}
                     px={2.5}
                     aria-label={label}
-                    isDisabled={saving || viewMode === 'preview'}
+                    isDisabled={saving || importing || viewMode === 'preview'}
                     onClick={() => applyMarkdown(action)}
                   >
                     <LocalIcon icon={icon} />
                   </Button>
                 </Tooltip>
               ))}
-              <Badge ml={2} colorScheme="gray" fontWeight="600">
+              <Badge ml={2} colorScheme="gray" fontWeight="600" flexShrink={0}>
                 {state.contentMarkdown.length} 字符
               </Badge>
             </HStack>
 
-            <ButtonGroup size="sm" isAttached variant="outline" flexShrink={0}>
-              {viewModes.map(({ value, icon, label }) => (
+            <HStack spacing={1} flexShrink={0}>
+              <Tooltip label="导入 Markdown 文件" hasArrow>
                 <Button
-                  key={value}
                   type="button"
-                  leftIcon={<LocalIcon icon={icon} />}
-                  colorScheme={viewMode === value ? 'brand' : 'gray'}
-                  bg={viewMode === value ? 'brand.50' : 'controlBg'}
-                  color={viewMode === value ? 'brand.700' : 'ink.600'}
-                  aria-pressed={viewMode === value}
-                  onClick={() => setViewMode(value)}
+                  size="sm"
+                  variant="ghost"
+                  px={{ base: 2, md: 3 }}
+                  aria-label="导入 Markdown 文件"
+                  isDisabled={saving || importing}
+                  isLoading={importing}
+                  onClick={() => markdownInputRef.current?.click()}
                 >
-                  {label}
+                  <LocalIcon icon={UploadIcon} />
+                  <Text
+                    as="span"
+                    display={{ base: 'none', md: 'inline' }}
+                    ml={2}
+                  >
+                    导入 MD
+                  </Text>
                 </Button>
-              ))}
-            </ButtonGroup>
+              </Tooltip>
+              <Input
+                ref={markdownInputRef}
+                type="file"
+                accept=".md,text/markdown"
+                display="none"
+                isDisabled={saving || importing}
+                aria-label="选择 Markdown 文件"
+                onChange={(event) =>
+                  chooseMarkdownFile(event.target.files?.[0] || null)
+                }
+              />
+
+              <ButtonGroup
+                size="sm"
+                isAttached
+                variant="outline"
+                flexShrink={0}
+              >
+                {viewModes.map(({ value, icon, label }) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    display={
+                      value === 'split'
+                        ? { base: 'none', lg: 'inline-flex' }
+                        : undefined
+                    }
+                    leftIcon={<LocalIcon icon={icon} />}
+                    colorScheme={viewMode === value ? 'brand' : 'gray'}
+                    bg={viewMode === value ? 'brand.50' : 'controlBg'}
+                    color={viewMode === value ? 'brand.700' : 'ink.600'}
+                    aria-pressed={viewMode === value}
+                    isDisabled={importing}
+                    onClick={() => selectViewMode(value)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            </HStack>
           </Flex>
           <Divider />
 
-          <FormControl isRequired={state.status === 'PUBLISHED'}>
+          <FormControl
+            isRequired={state.status === 'PUBLISHED'}
+            flex={1}
+            minH={0}
+            display="flex"
+            justifyContent={viewMode === 'preview' ? 'center' : 'stretch'}
+            overflow="hidden"
+          >
             <FormLabel srOnly>Markdown 正文</FormLabel>
             {viewMode === 'write' ? sourceEditor : null}
             {viewMode === 'preview' ? preview : null}
             {viewMode === 'split' ? (
               <Grid
+                h="full"
+                minH={0}
+                w="full"
+                overflow="hidden"
                 templateColumns={{
-                  base: '1fr',
+                  base: 'minmax(0, 1fr)',
                   lg: 'minmax(0, 1fr) minmax(0, 1fr)',
                 }}
-                sx={{ '& > * + *': { borderLeftWidth: { lg: '1px' } } }}
+                templateRows={{
+                  base: 'minmax(0, 1fr) minmax(0, 1fr)',
+                  lg: 'minmax(0, 1fr)',
+                }}
+                sx={{
+                  '& > * + *': {
+                    borderTopWidth: { base: '1px', lg: 0 },
+                    borderLeftWidth: { base: 0, lg: '1px' },
+                    borderColor: 'borderDefault',
+                  },
+                }}
               >
                 {sourceEditor}
                 {preview}
               </Grid>
             ) : null}
           </FormControl>
-        </Box>
+        </Flex>
+      </Grid>
 
-        <HStack layerStyle="toolbarSurface" justify="space-between" p={3}>
-          <Text
-            display={{ base: 'none', md: 'block' }}
-            color="ink.500"
-            fontSize="sm"
-          >
-            {state.status === 'PUBLISHED'
-              ? '保存后立即更新公开文章'
-              : '当前内容仅保存为草稿'}
+      <ConfirmDialog
+        isOpen={importDialog.isOpen && Boolean(pendingImport)}
+        title="替换当前正文？"
+        description={
+          <Text>
+            导入{' '}
+            <Text as="span" fontWeight="700">
+              {pendingImport?.name}
+            </Text>{' '}
+            后，当前 Markdown 正文将被替换。文章信息不会改变。
           </Text>
-          <HStack spacing={2} ml="auto">
-            <Button
-              type="button"
-              variant="ghost"
-              isDisabled={saving}
-              onClick={() => router.push('/admin/blog/article')}
-            >
-              取消
-            </Button>
-            <Button type="submit" isLoading={saving} loadingText="保存中">
-              {article ? '保存修改' : '创建文章'}
-            </Button>
-          </HStack>
-        </HStack>
-      </Stack>
+        }
+        confirmLabel="替换并导入"
+        isLoading={importing}
+        onClose={closeImportDialog}
+        onConfirm={() => {
+          if (pendingImport) return importMarkdown(pendingImport);
+        }}
+      />
     </Box>
   );
 }

@@ -18,6 +18,7 @@ type WorkspaceCanvasProps = BoxProps & {
   heroSlot?: ReactNode;
   sideSlot?: ReactNode;
   actionsSlot?: ReactNode;
+  fillHeight?: boolean;
   children: ReactNode;
 };
 
@@ -49,6 +50,7 @@ export function WorkspaceCanvas({
   heroSlot,
   sideSlot,
   actionsSlot,
+  fillHeight = false,
   children,
   className,
   ...props
@@ -56,10 +58,16 @@ export function WorkspaceCanvas({
   return (
     <Box
       position="relative"
+      h={fillHeight ? 'full' : undefined}
+      minH={fillHeight ? 0 : undefined}
+      display={fillHeight ? 'flex' : undefined}
+      flexDirection={fillHeight ? 'column' : undefined}
+      overflow={fillHeight ? 'hidden' : undefined}
       className={['liquid-rise', className].filter(Boolean).join(' ')}
       {...props}
     >
       <Grid
+        flexShrink={fillHeight ? 0 : undefined}
         templateColumns={{
           base: 'minmax(0, 1fr)',
           lg: sideSlot ? 'minmax(0, 1fr) minmax(280px, 340px)' : '1fr',
@@ -118,7 +126,13 @@ export function WorkspaceCanvas({
         {sideSlot ? <GridItem minW={0}>{sideSlot}</GridItem> : null}
       </Grid>
 
-      <Box mt={{ base: 4, md: 5 }} position="relative">
+      <Box
+        mt={{ base: 4, md: 5 }}
+        position="relative"
+        flex={fillHeight ? 1 : undefined}
+        minH={fillHeight ? 0 : undefined}
+        overflow={fillHeight ? 'hidden' : undefined}
+      >
         {children}
       </Box>
     </Box>

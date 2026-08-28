@@ -18,7 +18,6 @@ export const articleCreateInputSchema = z
       .trim()
       .min(1, '请输入文章标题')
       .max(120, '标题不能超过 120 个字符'),
-    slug: z.string().trim().max(120, 'slug 不能超过 120 个字符').optional(),
     summary: z
       .string()
       .trim()

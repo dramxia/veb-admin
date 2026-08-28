@@ -8,11 +8,9 @@ import {
 } from '@/lib/blog';
 
 describe('content helpers', () => {
-  it('normalizes readable slugs and generates a fallback slug', () => {
+  it('normalizes readable slugs and generates a fallback tag slug', () => {
     expect(normalizeSlug('Hello, VEB World!')).toBe('hello-veb-world');
-    expect(createContentSlug('中文标题', 'article')).toMatch(
-      /^article-[a-f0-9]{10}$/,
-    );
+    expect(createContentSlug('中文标签', 'tag')).toMatch(/^tag-[a-f0-9]{10}$/);
   });
 
   it('requires summary and content before publishing', () => {
