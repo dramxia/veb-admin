@@ -4,6 +4,7 @@ import {
   createArticle,
   getLikeStats,
   getPublicArticle,
+  updateArticle,
 } from '@/src/modules/blog/service';
 
 const prismaMock = vi.hoisted(() => ({
@@ -11,6 +12,8 @@ const prismaMock = vi.hoisted(() => ({
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
   },
   articleLike: {
     count: vi.fn(),
@@ -109,6 +112,53 @@ describe('content service boundaries', () => {
     expect(prismaMock.article.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ slug: created.slug }),
+      }),
+    );
+  });
+
+  it('sets and clears the publication timestamp with status changes', async () => {
+    const current = {
+      title: 'Draft with tags',
+      summary: 'Draft summary',
+      contentMarkdown: '# Draft',
+      status: 'DRAFT' as const,
+    };
+    prismaMock.article.findUnique.mockResolvedValue(current);
+    prismaMock.article.update.mockResolvedValue({
+      ...draftArticleRecord(),
+      status: 'PUBLISHED',
+      publishedAt: now,
+    });
+
+    await updateArticle('article-1', { status: 'PUBLISHED' });
+
+    expect(prismaMock.article.update).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: { id: 'article-1' },
+        data: expect.objectContaining({
+          status: 'PUBLISHED',
+          publishedAt: expect.any(Date),
+        }),
+      }),
+    );
+
+    prismaMock.article.findUnique.mockResolvedValue({
+      ...current,
+      status: 'PUBLISHED',
+    });
+    prismaMock.article.update.mockResolvedValue(draftArticleRecord());
+
+    await updateArticle('article-1', { status: 'DRAFT' });
+
+    expect(prismaMock.article.update).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { id: 'article-1' },
+        data: expect.objectContaining({
+          status: 'DRAFT',
+          publishedAt: null,
+        }),
       }),
     );
   });

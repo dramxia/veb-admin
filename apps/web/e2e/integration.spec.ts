@@ -44,6 +44,16 @@ test('blog management and public access share the Core API database', async ({
 
   const suffix = randomUUID().slice(0, 8);
   const title = `Core API 集成测试 ${suffix}`;
+  const previewEndMarker = `预览正文结束 ${suffix}`;
+  const contentMarkdown = [
+    '# Integration',
+    ...Array.from(
+      { length: 80 },
+      (_, index) =>
+        `## Section ${index + 1}\n\nLong preview content ${index + 1}.`,
+    ),
+    `## ${previewEndMarker}`,
+  ].join('\n\n');
   const requestId = randomUUID();
   let articleId: string | undefined;
 
@@ -54,9 +64,9 @@ test('blog management and public access share the Core API database', async ({
         headers: { 'x-request-id': requestId },
         data: {
           title,
-          summary: '验证统一 Core API 的管理、公开和点赞流程。',
-          contentMarkdown: '# Integration\n\nPublished through Core API.',
-          status: 'PUBLISHED',
+          summary: null,
+          contentMarkdown,
+          status: 'DRAFT',
           tagIds: [],
         },
       },
@@ -68,7 +78,7 @@ test('blog management and public access share the Core API database', async ({
     expect(createResponse.status()).toBe(200);
     expect(createResponse.headers()['x-request-id']).toBe(requestId);
     expect(created.code).toBe(0);
-    expect(created.data).toMatchObject({ title, status: 'PUBLISHED' });
+    expect(created.data).toMatchObject({ title, status: 'DRAFT' });
     expect(created.data?.author.username).toBe('admin');
 
     const articleIdentifier = created.data?.slug;
@@ -78,6 +88,45 @@ test('blog management and public access share the Core API database', async ({
       throw new Error('Article identifier was not returned');
 
     const publicUrl = `/api/v1/blog/articles/${articleIdentifier}`;
+    const draftPublicResponse = await request.get(publicUrl);
+    expect(draftPublicResponse.status()).toBe(404);
+
+    await page.goto('/admin/blog/article');
+    const articleRow = page.getByRole('row').filter({ hasText: title });
+    await expect(articleRow).toBeVisible();
+
+    await articleRow.getByRole('button', { name: '预览文章' }).click();
+    const previewDialog = page.getByRole('dialog', { name: '文章预览' });
+    await expect(previewDialog).toBeVisible();
+    await expect(
+      previewDialog.getByRole('heading', { name: title }),
+    ).toBeVisible();
+    await expect(
+      previewDialog.getByText('草稿', { exact: true }),
+    ).toBeVisible();
+    const previewEnd = previewDialog.getByRole('heading', {
+      name: previewEndMarker,
+    });
+    await previewEnd.scrollIntoViewIfNeeded();
+    await expect(previewEnd).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(previewDialog).toBeHidden();
+
+    const [publishResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PATCH' &&
+          response.url().includes(`/api/v1/blog/manage/articles/${articleId}`),
+        { timeout: 15_000 },
+      ),
+      articleRow
+        .getByRole('checkbox', { name: `将《${title}》正式发布` })
+        .locator('..')
+        .click(),
+    ]);
+    expect(publishResponse.status()).toBe(200);
+    await expect(articleRow.getByText('已发布', { exact: true })).toBeVisible();
+
     const publicResponse = await request.get(publicUrl);
     expect(publicResponse.status()).toBe(200);
     const publicPayload =

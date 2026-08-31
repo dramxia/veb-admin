@@ -26,7 +26,6 @@ export function validatePublishableArticle(input: {
   contentMarkdown?: string | null;
 }) {
   if (input.status !== 'PUBLISHED') return;
-  if (!input.summary?.trim()) throw new ParamError('发布文章前请填写摘要');
   if (!input.contentMarkdown?.trim()) {
     throw new ParamError('发布文章前请填写正文');
   }

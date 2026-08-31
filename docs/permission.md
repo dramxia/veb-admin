@@ -51,7 +51,7 @@ RBAC 使用 `User`、`Role`、`AppModule`、`Menu`、`UserRole`、`RoleModule` �
 - 权限数组采用任一满足语义。
 - 菜单 `visible` 只影响导航显示，不影响已分配权限的计算。
 
-`/` 和 `/profile` 是已认证工作区的全局页面。其他工作区页面按菜单路径解析，并要求对应模块和 PAGE 权限。BUTTON 权限控制页面内命令，不能代替 API 权限校验。
+`/` 和 `/profile` 是已认证工作区的全局页面。其他工作区页面按菜单路径解析，并要求对应模块和 PAGE 权限。BUTTON 权限控制页面内命令，不能代替 API 权限校验。文章编辑子路由继承 `/admin/blog/article` 的 `blog:article:view` 页面访问要求；文章列表的预览弹窗通过管理详情接口读取内容，因此草稿不会暴露给未认证访问者。
 
 ## API 访问
 
@@ -70,7 +70,7 @@ RBAC 使用 `User`、`Role`、`AppModule`、`Menu`、`UserRole`、`RoleModule` �
 
 仪表盘统计要求 `dashboard:view`。统计总量和趋势始终返回；只有同时拥有 `log:operation:view` 时，`recentOperations` 才包含最近操作记录。
 
-博客管理路由按上表使用对应的博客权限。创建或更新文章时，如果提交状态为 `PUBLISHED`，还会额外检查 `blog:article:publish`。文章作者固定为当前认证用户，客户端不能指定作者。
+博客管理路由按上表使用对应的博客权限。创建或更新文章时，如果提交状态为 `PUBLISHED`，还会额外检查 `blog:article:publish`。文章列表的发布开关调用文章更新接口：正式发布要求 `blog:article:update` 与 `blog:article:publish`，撤回为草稿要求 `blog:article:update`。文章作者固定为当前认证用户，客户端不能指定作者。
 
 系统管理 CRUD 使用对应资源的 `view`、`create`、`update`、`delete` 权限；用户角色分配、角色访问配置、密码重置和日志导出使用各自的专用权限。
 

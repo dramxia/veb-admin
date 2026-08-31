@@ -13,7 +13,7 @@ describe('content helpers', () => {
     expect(createContentSlug('中文标签', 'tag')).toMatch(/^tag-[a-f0-9]{10}$/);
   });
 
-  it('requires summary and content before publishing', () => {
+  it('allows an empty summary but requires content before publishing', () => {
     expect(() => validatePublishableArticle({ status: 'DRAFT' })).not.toThrow();
     expect(() =>
       validatePublishableArticle({
@@ -21,7 +21,7 @@ describe('content helpers', () => {
         summary: '',
         contentMarkdown: '# content',
       }),
-    ).toThrow('发布文章前请填写摘要');
+    ).not.toThrow();
     expect(() =>
       validatePublishableArticle({
         status: 'PUBLISHED',

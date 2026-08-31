@@ -4,12 +4,23 @@ import {
   Alert,
   AlertDescription,
   Badge,
+  Box,
   Button,
+  Divider,
+  Heading,
   HStack,
   Input,
   InputGroup,
   InputLeftElement,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+  Spinner,
   Stack,
+  Switch,
   Table,
   Tbody,
   Td,
@@ -18,18 +29,22 @@ import {
   Thead,
   Tr,
   useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AddIcon,
   DeleteIcon,
   EditIcon,
-  ExternalLinkIcon,
+  EditorPreviewIcon,
   SearchIcon,
 } from '@/assets/icons';
 import { AuthButton } from '@/components/auth/auth-button';
 import { Auth } from '@/components/auth/auth';
+import { useHasPermission } from '@/components/auth/use-has-permission';
+import { ArticleMeta } from '@/components/blog/article-meta';
+import { MarkdownContent } from '@/components/blog/markdown-content';
 import { AppSelect } from '@/components/common/app-select';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -43,6 +58,7 @@ import { LocalIcon } from '@/components/common/local-icon';
 import { useActionFeedback } from '@/components/common/use-action-feedback';
 import { requestJson } from '@/lib/client-api';
 import type {
+  ArticleDetail,
   ArticleListItem,
   BlogAuthor,
   ContentTag,
@@ -66,6 +82,9 @@ export function ArticleManager({
   tags: ContentTag[];
   authors: BlogAuthor[];
 }) {
+  const toast = useToast();
+  const canUpdate = useHasPermission('blog:article:update');
+  const canPublish = useHasPermission('blog:article:publish');
   const [data, setData] = useState(initial);
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
@@ -74,8 +93,17 @@ export function ArticleManager({
   const [authorId, setAuthorId] = useState('');
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [changingStatusIds, setChangingStatusIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [previewing, setPreviewing] = useState<ArticleDetail | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
   const [deleting, setDeleting] = useState<ArticleListItem | null>(null);
-  const dialog = useDisclosure();
+  const previewRequestId = useRef(0);
+  const previewDialog = useDisclosure();
+  const deleteDialog = useDisclosure();
   const feedback = useActionFeedback();
 
   useEffect(() => {
@@ -105,14 +133,93 @@ export function ArticleManager({
       }
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [authorId, keyword, page, status, tagId]);
+  }, [authorId, keyword, page, refreshVersion, status, tagId]);
+
+  async function changeArticleStatus(
+    article: ArticleListItem,
+    published: boolean,
+  ) {
+    if (changingStatusIds.has(article.id)) return;
+
+    const nextStatus = published ? 'PUBLISHED' : 'DRAFT';
+    setChangingStatusIds((current) => new Set(current).add(article.id));
+    try {
+      const updated = await requestJson<ArticleDetail>(
+        `/api/v1/blog/manage/articles/${article.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: nextStatus }),
+        },
+      );
+      setData((current) => ({
+        ...current,
+        items: current.items.map((item) =>
+          item.id === updated.id
+            ? {
+                ...item,
+                status: updated.status,
+                publishedAt: updated.publishedAt,
+                updatedAt: updated.updatedAt,
+              }
+            : item,
+        ),
+      }));
+      toast({
+        title: published ? '文章已正式发布' : '文章已转为草稿',
+        status: 'success',
+      });
+      setRefreshVersion((current) => current + 1);
+    } catch (error) {
+      toast({
+        title: error instanceof Error ? error.message : '发布状态更新失败',
+        status: 'error',
+      });
+    } finally {
+      setChangingStatusIds((current) => {
+        const next = new Set(current);
+        next.delete(article.id);
+        return next;
+      });
+    }
+  }
+
+  async function openArticlePreview(article: ArticleListItem) {
+    const requestId = ++previewRequestId.current;
+    setPreviewing(null);
+    setPreviewError('');
+    setPreviewLoading(true);
+    previewDialog.onOpen();
+
+    try {
+      const detail = await requestJson<ArticleDetail>(
+        `/api/v1/blog/manage/articles/${article.id}`,
+      );
+      if (previewRequestId.current === requestId) setPreviewing(detail);
+    } catch (error) {
+      if (previewRequestId.current === requestId) {
+        setPreviewError(
+          error instanceof Error ? error.message : '文章预览加载失败',
+        );
+      }
+    } finally {
+      if (previewRequestId.current === requestId) setPreviewLoading(false);
+    }
+  }
+
+  function closeArticlePreview() {
+    previewRequestId.current += 1;
+    previewDialog.onClose();
+    setPreviewing(null);
+    setPreviewError('');
+    setPreviewLoading(false);
+  }
 
   return (
     <>
       <DataTableCard
         minW="1080px"
         title="文章列表"
-        description="草稿不会出现在公开文章页，发布后可通过文章链接访问。"
+        description="使用发布开关控制公开状态，草稿也可以在后台预览。"
         meta={`${data.total} 篇文章`}
         primaryAction={
           <Auth code="blog:article:create">
@@ -198,7 +305,7 @@ export function ArticleManager({
           <Thead>
             <Tr>
               <Th>文章</Th>
-              <Th>状态</Th>
+              <Th>发布</Th>
               <Th>标签</Th>
               <Th>作者</Th>
               <Th>发布日期</Th>
@@ -220,13 +327,51 @@ export function ArticleManager({
                     </Text>
                   </Td>
                   <Td>
-                    <Badge
-                      colorScheme={
-                        article.status === 'PUBLISHED' ? 'green' : 'gray'
-                      }
-                    >
-                      {article.status === 'PUBLISHED' ? '已发布' : '草稿'}
-                    </Badge>
+                    {canUpdate ? (
+                      <HStack spacing={2} minW="112px">
+                        <Switch
+                          colorScheme="brand"
+                          size="sm"
+                          isChecked={article.status === 'PUBLISHED'}
+                          isDisabled={
+                            fetching ||
+                            changingStatusIds.has(article.id) ||
+                            (!canPublish && article.status !== 'PUBLISHED')
+                          }
+                          onChange={(event) =>
+                            void changeArticleStatus(
+                              article,
+                              event.target.checked,
+                            )
+                          }
+                          aria-label={
+                            article.status === 'PUBLISHED'
+                              ? `将《${article.title}》撤回为草稿`
+                              : `将《${article.title}》正式发布`
+                          }
+                        />
+                        <Text
+                          color={
+                            article.status === 'PUBLISHED'
+                              ? 'statusSuccess'
+                              : 'ink.500'
+                          }
+                          fontSize="xs"
+                          fontWeight="700"
+                          whiteSpace="nowrap"
+                        >
+                          {article.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                        </Text>
+                      </HStack>
+                    ) : (
+                      <Badge
+                        colorScheme={
+                          article.status === 'PUBLISHED' ? 'green' : 'gray'
+                        }
+                      >
+                        {article.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                      </Badge>
+                    )}
                   </Td>
                   <Td>
                     <HStack spacing={1} wrap="wrap">
@@ -250,18 +395,15 @@ export function ArticleManager({
                   <Td isNumeric>{article.commentCount}</Td>
                   <Td>
                     <TableActions>
-                      {article.status === 'PUBLISHED' ? (
-                        <Button
-                          as={NextLink}
-                          href={`/articles/${article.slug}`}
-                          target="_blank"
-                          size="xs"
-                          variant="ghost"
-                          aria-label="查看公开文章"
-                        >
-                          <LocalIcon icon={ExternalLinkIcon} />
-                        </Button>
-                      ) : null}
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        aria-label="预览文章"
+                        onClick={() => void openArticlePreview(article)}
+                      >
+                        <LocalIcon icon={EditorPreviewIcon} />
+                      </Button>
                       <Auth code="blog:article:update">
                         <Button
                           as={NextLink}
@@ -282,7 +424,7 @@ export function ArticleManager({
                         icon={<LocalIcon icon={DeleteIcon} />}
                         onClick={() => {
                           setDeleting(article);
-                          dialog.onOpen();
+                          deleteDialog.onOpen();
                         }}
                       />
                     </TableActions>
@@ -306,15 +448,112 @@ export function ArticleManager({
           onPageChange={setPage}
         />
       </DataTableCard>
+      <Modal
+        isOpen={previewDialog.isOpen}
+        onClose={closeArticlePreview}
+        size="4xl"
+        scrollBehavior="inside"
+      >
+        <ModalOverlay />
+        <ModalContent
+          h={{ base: '100dvh', md: 'calc(100dvh - 48px)' }}
+          maxH={{ base: '100dvh', md: 'calc(100dvh - 48px)' }}
+          my={{ base: 0, md: 6 }}
+        >
+          <ModalHeader flexShrink={0}>文章预览</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody
+            flex="1 1 auto"
+            minH={0}
+            overflowY="auto"
+            overscrollBehavior="contain"
+            pb={8}
+            sx={{ scrollbarGutter: 'stable' }}
+          >
+            {previewLoading ? (
+              <Stack align="center" justify="center" minH="320px" spacing={3}>
+                <Spinner color="brand.500" />
+                <Text color="ink.500" fontSize="sm">
+                  正在加载文章内容
+                </Text>
+              </Stack>
+            ) : previewError ? (
+              <Alert status="error">
+                <AlertStatusIcon status="error" />
+                <AlertDescription>{previewError}</AlertDescription>
+              </Alert>
+            ) : previewing ? (
+              <Box as="article" maxW="780px" mx="auto">
+                <HStack spacing={2} mb={4} wrap="wrap">
+                  <Badge
+                    colorScheme={
+                      previewing.status === 'PUBLISHED' ? 'green' : 'gray'
+                    }
+                  >
+                    {previewing.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                  </Badge>
+                  <Text color="ink.500" fontSize="sm">
+                    /{previewing.slug}
+                  </Text>
+                </HStack>
+                <Heading
+                  as="h2"
+                  color="ink.900"
+                  fontSize={{ base: '2xl', md: '36px' }}
+                  lineHeight="1.3"
+                >
+                  {previewing.title}
+                </Heading>
+                {previewing.summary ? (
+                  <Text color="ink.600" fontSize="lg" lineHeight="1.75" mt={4}>
+                    {previewing.summary}
+                  </Text>
+                ) : null}
+                {previewing.tags.length ? (
+                  <HStack spacing={2} mt={4} wrap="wrap">
+                    {previewing.tags.map((tag) => (
+                      <Badge key={tag.id} colorScheme="brand">
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </HStack>
+                ) : null}
+                <Box mt={4}>
+                  <ArticleMeta
+                    publishedAt={previewing.publishedAt}
+                    likeCount={previewing.likeCount}
+                    commentCount={previewing.commentCount}
+                  />
+                </Box>
+                <Divider my={{ base: 6, md: 8 }} />
+                {previewing.contentMarkdown ? (
+                  <MarkdownContent>
+                    {previewing.contentMarkdown}
+                  </MarkdownContent>
+                ) : (
+                  <Stack py={12} textAlign="center" spacing={1}>
+                    <Text color="ink.700" fontWeight="700">
+                      暂无正文内容
+                    </Text>
+                    <Text color="ink.500" fontSize="sm">
+                      可进入编辑页补充 Markdown 正文。
+                    </Text>
+                  </Stack>
+                )}
+              </Box>
+            ) : null}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
       <ConfirmDialog
-        isOpen={dialog.isOpen}
+        isOpen={deleteDialog.isOpen}
         title="删除文章"
         description={`确认删除“${deleting?.title || ''}”？标签关联和喜欢记录也会被删除。`}
         error={feedback.error}
         confirmLabel="删除"
         intent="danger"
         isLoading={feedback.loading}
-        onClose={dialog.onClose}
+        onClose={deleteDialog.onClose}
         onConfirm={async () => {
           const ok = await feedback.run(
             async () => {
@@ -329,7 +568,7 @@ export function ArticleManager({
             { successTitle: '文章已删除' },
           );
           if (ok) {
-            dialog.onClose();
+            deleteDialog.onClose();
             setPage(1);
             setData((current) => ({
               ...current,

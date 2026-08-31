@@ -16,6 +16,7 @@ import {
   HStack,
   Input,
   Stack,
+  Switch,
   Text,
   Textarea,
   Tooltip,
@@ -43,7 +44,6 @@ import {
   UploadIcon,
 } from '@/assets/icons';
 import { useHasPermission } from '@/components/auth/use-has-permission';
-import { AppSelect } from '@/components/common/app-select';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { LocalIcon, type SvgComponent } from '@/components/common/local-icon';
 import { MarkdownContent } from '@/components/blog/markdown-content';
@@ -430,22 +430,48 @@ export function ArticleEditor({
 
       <FormControl>
         <FormLabel>发布状态</FormLabel>
-        <AppSelect
-          value={state.status}
-          onChange={(event) =>
-            update('status', event.target.value as EditorState['status'])
-          }
-          isDisabled={saving || importing}
+        <Flex
+          align="center"
+          justify="space-between"
+          gap={4}
+          borderWidth="1px"
+          borderColor="borderDefault"
+          borderRadius="control"
+          bg="controlBg"
+          px={3}
+          py={2.5}
         >
-          <option value="DRAFT">草稿</option>
-          {canPublish || article?.status === 'PUBLISHED' ? (
-            <option value="PUBLISHED">已发布</option>
-          ) : null}
-        </AppSelect>
+          <Box minW={0}>
+            <Text color="ink.800" fontSize="sm" fontWeight="700">
+              {state.status === 'PUBLISHED' ? '正式发布' : '保存为草稿'}
+            </Text>
+            <Text color="ink.500" fontSize="xs" mt={0.5}>
+              {state.status === 'PUBLISHED' ? '公开可见' : '仅后台可见'}
+            </Text>
+          </Box>
+          <Switch
+            colorScheme="brand"
+            size="lg"
+            isChecked={state.status === 'PUBLISHED'}
+            onChange={(event) =>
+              update('status', event.target.checked ? 'PUBLISHED' : 'DRAFT')
+            }
+            isDisabled={
+              saving ||
+              importing ||
+              (!canPublish && state.status !== 'PUBLISHED')
+            }
+            aria-label={
+              state.status === 'PUBLISHED' ? '关闭正式发布' : '开启正式发布'
+            }
+          />
+        </Flex>
         <FormHelperText>
           {state.status === 'PUBLISHED'
-            ? '保存后立即更新公开文章'
-            : '当前内容仅保存为草稿'}
+            ? '开启后保存即正式发布，并更新公开文章'
+            : canPublish
+              ? '关闭时保存为草稿，不会出现在公开文章页'
+              : '需要文章发布权限才能开启'}
         </FormHelperText>
       </FormControl>
 
@@ -463,8 +489,8 @@ export function ArticleEditor({
         </FormHelperText>
       </FormControl>
 
-      <FormControl isRequired={state.status === 'PUBLISHED'}>
-        <FormLabel>摘要</FormLabel>
+      <FormControl>
+        <FormLabel>摘要（可选）</FormLabel>
         <Textarea
           value={state.summary}
           maxLength={300}
