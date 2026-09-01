@@ -8,7 +8,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
@@ -21,6 +20,7 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
+import { AppDrawer } from '@/components/common/managed-overlay';
 import type {
   RoleAccessDetailDto,
   RoleAccessMenuOption,
@@ -459,7 +459,7 @@ export function AssignAccessDrawer({
 
   return (
     <>
-      <Drawer
+      <AppDrawer
         isOpen={isOpen}
         onClose={handleClose}
         placement="right"
@@ -816,7 +816,7 @@ export function AssignAccessDrawer({
             </Button>
           </DrawerFooter>
         </DrawerContent>
-      </Drawer>
+      </AppDrawer>
 
       <ConfirmDialog
         isOpen={removalDialog.isOpen}

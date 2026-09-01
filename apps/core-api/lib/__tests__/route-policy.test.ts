@@ -23,6 +23,22 @@ function delegatedHandlerModule(source: string) {
 }
 
 describe('route access policy coverage', () => {
+  it('protects tag-scoped article previews with tag view permission', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/http/blog-manage.ts'),
+      'utf8',
+    );
+    const handlerStart = source.indexOf('export const getArticleForTag');
+    const handlerEnd = source.indexOf(
+      'export const listArticleLikes',
+      handlerStart,
+    );
+    const handlerSource = source.slice(handlerStart, handlerEnd);
+
+    expect(handlerStart).toBeGreaterThanOrEqual(0);
+    expect(handlerSource).toContain("privateRoute('blog:tag:view')");
+  });
+
   it('classifies every standard route handler except the Auth.js adapter', () => {
     const apiRoot = path.resolve(process.cwd(), 'app/api');
     const files = routeFiles(apiRoot).filter(

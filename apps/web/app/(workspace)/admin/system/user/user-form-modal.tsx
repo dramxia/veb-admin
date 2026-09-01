@@ -12,7 +12,6 @@ import {
   FormLabel,
   HStack,
   Input,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -21,6 +20,7 @@ import {
   SimpleGrid,
   Stack,
 } from '@chakra-ui/react';
+import { AppModal } from '@/components/common/managed-overlay';
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -84,7 +84,7 @@ export function UserFormModal({
   }
 
   return (
-    <Modal
+    <AppModal
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
@@ -193,6 +193,6 @@ export function UserFormModal({
           </ModalFooter>
         </Box>
       </ModalContent>
-    </Modal>
+    </AppModal>
   );
 }

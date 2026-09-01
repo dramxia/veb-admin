@@ -8,6 +8,12 @@ type ApiEnvelope<T> = {
   message: string;
 };
 
+type CreatedTag = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 type CreatedArticle = {
   id: string;
   title: string;
@@ -44,6 +50,8 @@ test('blog management and public access share the Core API database', async ({
 
   const suffix = randomUUID().slice(0, 8);
   const title = `Core API 集成测试 ${suffix}`;
+  const tagName = `预览标签 ${suffix}`;
+  const tagSlug = `preview-${suffix}`;
   const previewEndMarker = `预览正文结束 ${suffix}`;
   const contentMarkdown = [
     '# Integration',
@@ -56,8 +64,26 @@ test('blog management and public access share the Core API database', async ({
   ].join('\n\n');
   const requestId = randomUUID();
   let articleId: string | undefined;
+  let tagId: string | undefined;
 
   try {
+    const createTagResponse = await page.request.post(
+      '/api/v1/blog/manage/tags',
+      {
+        data: { name: tagName, slug: tagSlug },
+      },
+    );
+    const createdTag =
+      (await createTagResponse.json()) as ApiEnvelope<CreatedTag>;
+    tagId = createdTag.data?.id;
+
+    expect(createTagResponse.status()).toBe(200);
+    expect(createdTag).toMatchObject({
+      code: 0,
+      data: { name: tagName, slug: tagSlug },
+    });
+    if (!tagId) throw new Error('Tag id was not returned');
+
     const createResponse = await page.request.post(
       '/api/v1/blog/manage/articles',
       {
@@ -67,7 +93,7 @@ test('blog management and public access share the Core API database', async ({
           summary: null,
           contentMarkdown,
           status: 'DRAFT',
-          tagIds: [],
+          tagIds: [tagId],
         },
       },
     );
@@ -97,7 +123,14 @@ test('blog management and public access share the Core API database', async ({
 
     await articleRow.getByRole('button', { name: '预览文章' }).click();
     const previewDialog = page.getByRole('dialog', { name: '文章预览' });
+    const directOverlayRoot = page.getByTestId('managed-overlay-root');
     await expect(previewDialog).toBeVisible();
+    await expect(directOverlayRoot).toHaveAttribute('data-overlay-count', '1');
+    expect(
+      await previewDialog.evaluate((dialog) =>
+        dialog.contains(document.activeElement),
+      ),
+    ).toBe(true);
     await expect(
       previewDialog.getByRole('heading', { name: title }),
     ).toBeVisible();
@@ -111,6 +144,60 @@ test('blog management and public access share the Core API database', async ({
     await expect(previewEnd).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(previewDialog).toBeHidden();
+
+    await page.goto('/admin/blog/tag');
+    const tagRow = page.getByRole('row').filter({ hasText: tagName });
+    await expect(tagRow).toBeVisible();
+    await tagRow.getByRole('button', { name: '查看关联文章' }).click();
+
+    const relatedDrawer = page
+      .getByRole('dialog')
+      .filter({ hasText: `${tagName} · 关联文章` });
+    const relatedDrawerSurface = page.getByTestId('related-articles-drawer');
+    await expect(relatedDrawer.getByText(title, { exact: true })).toBeVisible();
+    await relatedDrawer
+      .getByRole('button', { name: `预览文章《${title}》` })
+      .click();
+
+    const tagPreviewDialog = page.getByRole('dialog', { name: '文章预览' });
+    const overlayRoot = page.getByTestId('managed-overlay-root');
+    await expect(tagPreviewDialog).toBeVisible();
+    await expect(relatedDrawerSurface).toBeVisible();
+    await expect(
+      relatedDrawerSurface.getByText(title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      overlayRoot.getByRole('dialog', { includeHidden: true }),
+    ).toHaveCount(2);
+    await expect(overlayRoot).toHaveAttribute('data-overlay-count', '2');
+    await expect(
+      tagPreviewDialog.getByRole('heading', { name: title }),
+    ).toBeVisible();
+    await expect(
+      tagPreviewDialog.getByText('草稿', { exact: true }),
+    ).toBeVisible();
+    const tagPreviewEnd = tagPreviewDialog.getByRole('heading', {
+      name: previewEndMarker,
+    });
+    const tagPreviewBody = tagPreviewDialog.getByTestId(
+      'article-preview-scroll',
+    );
+    await tagPreviewBody.hover();
+    await page.mouse.wheel(0, 1_000);
+    await expect
+      .poll(() => tagPreviewBody.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
+    await tagPreviewEnd.scrollIntoViewIfNeeded();
+    await expect(tagPreviewEnd).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(tagPreviewDialog).toBeHidden();
+    await expect(overlayRoot).toHaveAttribute('data-overlay-count', '1');
+    await expect(relatedDrawer).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(relatedDrawer).toBeHidden();
+
+    await page.goto('/admin/blog/article');
+    await expect(articleRow).toBeVisible();
 
     const [publishResponse] = await Promise.all([
       page.waitForResponse(
@@ -205,6 +292,12 @@ test('blog management and public access share the Core API database', async ({
     expect(deletion.status()).toBe(200);
     articleId = undefined;
 
+    const tagDeletion = await page.request.delete(
+      `/api/v1/blog/manage/tags/${tagId}`,
+    );
+    expect(tagDeletion.status()).toBe(200);
+    tagId = undefined;
+
     const deletedPublicArticle = await request.get(publicUrl);
     expect(deletedPublicArticle.status()).toBe(404);
   } finally {
@@ -215,6 +308,16 @@ test('blog management and public access share the Core API database', async ({
       if (!cleanup.ok()) {
         console.warn(
           `Failed to clean up E2E article ${articleId}: ${cleanup.status()}`,
+        );
+      }
+    }
+    if (tagId) {
+      const cleanup = await page.request.delete(
+        `/api/v1/blog/manage/tags/${tagId}`,
+      );
+      if (!cleanup.ok()) {
+        console.warn(
+          `Failed to clean up E2E tag ${tagId}: ${cleanup.status()}`,
         );
       }
     }

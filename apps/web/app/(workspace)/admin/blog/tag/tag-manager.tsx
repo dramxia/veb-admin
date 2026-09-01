@@ -5,7 +5,6 @@ import {
   AlertDescription,
   Box,
   Button,
-  Drawer,
   DrawerBody,
   DrawerContent,
   DrawerHeader,
@@ -17,7 +16,6 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -33,14 +31,17 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react';
+import { AppDrawer, AppModal } from '@/components/common/managed-overlay';
 import type { AdminTag } from '@veb/api-contracts';
 import {
   AddIcon,
   ArticlesIcon,
   DeleteIcon,
   EditIcon,
+  EditorPreviewIcon,
   SearchIcon,
 } from '@/assets/icons';
+import { ArticlePreviewModal } from '@/components/blog/article-preview-modal';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { LocalIcon } from '@/components/common/local-icon';
 import { OverlayCloseButton } from '@/components/common/overlay-close-button';
@@ -69,6 +70,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
   const [editing, setEditing] = useState<AdminTag | null>(null);
   const [deleting, setDeleting] = useState<AdminTag | null>(null);
   const [viewing, setViewing] = useState<AdminTag | null>(null);
+  const [previewing, setPreviewing] = useState<ArticleListItem | null>(null);
   const [related, setRelated] = useState<PageResult<ArticleListItem> | null>(
     null,
   );
@@ -136,6 +138,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
 
   async function openRelated(tag: AdminTag) {
     setViewing(tag);
+    setPreviewing(null);
     setRelated(null);
     drawer.onOpen();
     try {
@@ -147,6 +150,11 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
     } catch {
       setRelated({ items: [], total: 0, page: 1, pageSize: 100 });
     }
+  }
+
+  function closeRelated() {
+    setPreviewing(null);
+    drawer.onClose();
   }
 
   return (
@@ -267,7 +275,7 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
         />
       </DataTableCard>
 
-      <Modal isOpen={form.isOpen} onClose={form.onClose} isCentered>
+      <AppModal isOpen={form.isOpen} onClose={form.onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
           <Box as="form" onSubmit={submit}>
@@ -316,19 +324,19 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
             </ModalFooter>
           </Box>
         </ModalContent>
-      </Modal>
+      </AppModal>
 
-      <Drawer
+      <AppDrawer
         isOpen={drawer.isOpen}
         placement="right"
         size="md"
-        onClose={drawer.onClose}
+        onClose={closeRelated}
       >
         <DrawerOverlay />
-        <DrawerContent>
+        <DrawerContent data-testid="related-articles-drawer">
           <OverlayCloseButton
             aria-label="关闭关联文章抽屉"
-            onClick={drawer.onClose}
+            onClick={closeRelated}
           />
           <DrawerHeader>{viewing?.name} · 关联文章</DrawerHeader>
           <DrawerBody>
@@ -336,10 +344,30 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
               {related ? (
                 related.items.map((article) => (
                   <Box key={article.id} layerStyle="subtleSurface" p={3}>
-                    <Text fontWeight="700">{article.title}</Text>
-                    <Text color="ink.500" fontSize="sm">
-                      {article.status === 'PUBLISHED' ? '已发布' : '草稿'}
-                    </Text>
+                    <HStack
+                      align="flex-start"
+                      justify="space-between"
+                      spacing={3}
+                    >
+                      <Box minW={0}>
+                        <Text fontWeight="700" noOfLines={2}>
+                          {article.title}
+                        </Text>
+                        <Text color="ink.500" fontSize="sm">
+                          {article.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                        </Text>
+                      </Box>
+                      <AuthButton
+                        code="blog:tag:view"
+                        size="xs"
+                        intent="neutral"
+                        variant="ghost"
+                        tooltip="预览文章"
+                        aria-label={`预览文章《${article.title}》`}
+                        icon={<LocalIcon icon={EditorPreviewIcon} />}
+                        onClick={() => setPreviewing(article)}
+                      />
+                    </HStack>
                   </Box>
                 ))
               ) : (
@@ -351,7 +379,17 @@ export function TagManager({ initial }: { initial: PageResult<AdminTag> }) {
             </Stack>
           </DrawerBody>
         </DrawerContent>
-      </Drawer>
+      </AppDrawer>
+
+      <ArticlePreviewModal
+        articleUrl={
+          previewing && viewing
+            ? `/api/v1/blog/manage/tags/${viewing.id}/articles/${previewing.id}`
+            : null
+        }
+        isOpen={Boolean(previewing)}
+        onClose={() => setPreviewing(null)}
+      />
 
       <ConfirmDialog
         isOpen={confirm.isOpen}

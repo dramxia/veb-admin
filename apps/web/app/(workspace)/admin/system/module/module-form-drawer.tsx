@@ -5,7 +5,6 @@ import {
   AlertDescription,
   Box,
   Button,
-  Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
@@ -20,6 +19,7 @@ import {
   Stack,
   Textarea,
 } from '@chakra-ui/react';
+import { AppDrawer } from '@/components/common/managed-overlay';
 import type { AppModuleDto } from '@veb/api-contracts';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { AppSelect } from '@/components/common/app-select';
@@ -75,7 +75,7 @@ export function ModuleFormDrawer({
   }
 
   return (
-    <Drawer
+    <AppDrawer
       isOpen={isOpen}
       onClose={onClose}
       placement="right"
@@ -189,6 +189,6 @@ export function ModuleFormDrawer({
           </DrawerFooter>
         </Box>
       </DrawerContent>
-    </Drawer>
+    </AppDrawer>
   );
 }

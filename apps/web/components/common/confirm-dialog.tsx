@@ -3,7 +3,6 @@
 import {
   Alert,
   AlertDescription,
-  AlertDialog,
   AlertDialogBody,
   AlertDialogContent,
   AlertDialogFooter,
@@ -13,6 +12,7 @@ import {
   Button,
   Stack,
 } from '@chakra-ui/react';
+import { AppAlertDialog } from '@/components/common/managed-overlay';
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
 import { AlertStatusIcon } from './alert-status-icon';
@@ -45,7 +45,7 @@ export function ConfirmDialog({
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <AlertDialog
+    <AppAlertDialog
       isOpen={isOpen}
       leastDestructiveRef={cancelRef}
       onClose={onClose}
@@ -87,6 +87,6 @@ export function ConfirmDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogOverlay>
-    </AlertDialog>
+    </AppAlertDialog>
   );
 }

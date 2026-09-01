@@ -30,6 +30,7 @@ import {
   deleteLike,
   deleteTag,
   getAdminArticle,
+  getAdminArticleForTag,
   getAdminTag,
   getArticleTags,
   getLike,
@@ -45,6 +46,7 @@ import {
 } from '@/src/modules/blog/service';
 
 type IdContext = { params: { id: string } };
+type TagArticleContext = { params: { id: string; articleId: string } };
 
 const privateRoute = (permission: string, action?: string) => ({
   access: 'private' as const,
@@ -160,6 +162,14 @@ export const listArticlesForTag = defineApiRoute<[Request, IdContext]>(
     const query = readQuery(request, paginationQuerySchema);
     return ok(await listTagArticles(context.params.id, pageOptions(query)));
   },
+);
+
+export const getArticleForTag = defineApiRoute<[Request, TagArticleContext]>(
+  privateRoute('blog:tag:view'),
+  async (_request, context) =>
+    ok(
+      await getAdminArticleForTag(context.params.id, context.params.articleId),
+    ),
 );
 
 export const listArticleLikes = defineApiRoute(

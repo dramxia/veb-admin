@@ -8,7 +8,6 @@ import {
   CheckboxGroup,
   HStack,
   Input,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -18,6 +17,7 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
+import { AppModal } from '@/components/common/managed-overlay';
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -68,7 +68,7 @@ export function AssignRolesModal({
   }
 
   return (
-    <Modal
+    <AppModal
       isOpen={isOpen}
       onClose={onClose}
       size="lg"
@@ -126,6 +126,6 @@ export function AssignRolesModal({
           </HStack>
         </ModalFooter>
       </ModalContent>
-    </Modal>
+    </AppModal>
   );
 }

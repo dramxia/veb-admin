@@ -8,7 +8,6 @@ import {
   Button,
   Checkbox,
   Divider,
-  Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
@@ -26,6 +25,7 @@ import {
   Text,
   Textarea,
 } from '@chakra-ui/react';
+import { AppDrawer } from '@/components/common/managed-overlay';
 import type { MenuDto, MenuModuleOption } from '@veb/api-contracts';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
@@ -235,7 +235,7 @@ export function MenuFormModal({
   }
 
   return (
-    <Drawer
+    <AppDrawer
       isOpen={isOpen}
       onClose={handleClose}
       placement="right"
@@ -556,6 +556,6 @@ export function MenuFormModal({
           </DrawerFooter>
         </Box>
       </DrawerContent>
-    </Drawer>
+    </AppDrawer>
   );
 }

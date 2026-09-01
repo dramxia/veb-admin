@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotFoundError } from '@/lib/api-kit';
 import {
   createArticle,
+  getAdminArticleForTag,
   getLikeStats,
   getPublicArticle,
   updateArticle,
@@ -57,6 +58,34 @@ function draftArticleRecord() {
 describe('content service boundaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('scopes tag article previews to the requested tag relation', async () => {
+    prismaMock.article.findFirst.mockResolvedValue(draftArticleRecord());
+
+    const result = await getAdminArticleForTag('tag-1', 'article-1');
+
+    expect(prismaMock.article.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'article-1',
+          tags: { some: { tagId: 'tag-1' } },
+        },
+      }),
+    );
+    expect(result).toMatchObject({
+      id: 'article-1',
+      contentMarkdown: '# Draft',
+      status: 'DRAFT',
+    });
+  });
+
+  it('does not preview an article outside the requested tag', async () => {
+    prismaMock.article.findFirst.mockResolvedValue(null);
+
+    await expect(
+      getAdminArticleForTag('tag-1', 'article-2'),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('only resolves public articles through the published visibility filter', async () => {

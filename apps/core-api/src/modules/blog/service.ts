@@ -279,6 +279,15 @@ export async function getAdminArticle(id: string) {
   return serializeAdminArticle(article);
 }
 
+export async function getAdminArticleForTag(tagId: string, articleId: string) {
+  const article = await prisma.article.findFirst({
+    where: { id: articleId, tags: { some: { tagId } } },
+    select: articleDetailSelect,
+  });
+  if (!article) throw new NotFoundError('文章不存在或未关联当前标签');
+  return serializeAdminArticle(article);
+}
+
 export async function updateArticle(id: string, input: ArticleUpdateCommand) {
   const current = await prisma.article.findUnique({
     where: { id },

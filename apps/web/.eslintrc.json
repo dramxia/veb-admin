@@ -1,3 +1,25 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@chakra-ui/react",
+            "importNames": ["AlertDialog", "Drawer", "Modal"],
+            "message": "Use AppAlertDialog, AppDrawer, or AppModal from @/components/common/managed-overlay so nested overlays share one interaction lock."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["components/common/managed-overlay.tsx"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

@@ -18,7 +18,6 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -34,6 +33,7 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react';
+import { AppModal } from '@/components/common/managed-overlay';
 import type { RoleDto, VebUser } from '@veb/api-contracts';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -90,7 +90,7 @@ function ResetPasswordModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
+    <AppModal isOpen={isOpen} onClose={onClose} size="md" isCentered>
       <ModalOverlay />
       <ModalContent>
         <Box
@@ -137,7 +137,7 @@ function ResetPasswordModal({
           </ModalFooter>
         </Box>
       </ModalContent>
-    </Modal>
+    </AppModal>
   );
 }
 

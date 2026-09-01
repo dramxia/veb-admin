@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { RouteProgress } from '@/components/common/route-progress';
+import { OverlayStackProvider } from '@/components/common/managed-overlay';
 
 const canvasBackground =
   'radial-gradient(circle at 12% 10%, rgba(22, 119, 255, 0.14), transparent 28%), radial-gradient(circle at 88% 4%, rgba(99, 102, 241, 0.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.10), transparent 32%), linear-gradient(135deg, #f8fbff 0%, #f3f7ff 46%, #eef4ff 100%)';
@@ -1075,10 +1076,12 @@ export function Providers({ children }: { children: ReactNode }) {
         toastSpacing: '12px',
       }}
     >
-      <Suspense fallback={null}>
-        <RouteProgress />
-      </Suspense>
-      {children}
+      <OverlayStackProvider>
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
+        {children}
+      </OverlayStackProvider>
     </ChakraProvider>
   );
 }

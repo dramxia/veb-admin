@@ -10,7 +10,6 @@ import {
   FormLabel,
   HStack,
   Input,
-  Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
@@ -22,6 +21,7 @@ import {
   Stack,
   Textarea,
 } from '@chakra-ui/react';
+import { AppModal } from '@/components/common/managed-overlay';
 import type { RoleDto } from '@veb/api-contracts';
 import { useEffect, useState } from 'react';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
@@ -90,7 +90,7 @@ export function RoleFormModal({
   }
 
   return (
-    <Modal
+    <AppModal
       isOpen={isOpen}
       onClose={handleClose}
       size={{ base: 'full', md: 'xl' }}
@@ -205,6 +205,6 @@ export function RoleFormModal({
           </ModalFooter>
         </Box>
       </ModalContent>
-    </Modal>
+    </AppModal>
   );
 }

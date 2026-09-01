@@ -9,7 +9,6 @@ import {
   Button,
   Checkbox,
   CheckboxGroup,
-  Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
@@ -24,6 +23,7 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
+import { AppDrawer } from '@/components/common/managed-overlay';
 import type {
   RoleDto,
   RoleUserAssignmentDetailDto,
@@ -128,7 +128,7 @@ export function AssignUserDrawer({
   }
 
   return (
-    <Drawer
+    <AppDrawer
       isOpen={isOpen}
       onClose={handleClose}
       placement="right"
@@ -300,6 +300,6 @@ export function AssignUserDrawer({
           </Button>
         </DrawerFooter>
       </DrawerContent>
-    </Drawer>
+    </AppDrawer>
   );
 }

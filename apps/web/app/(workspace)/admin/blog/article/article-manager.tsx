@@ -4,21 +4,11 @@ import {
   Alert,
   AlertDescription,
   Badge,
-  Box,
   Button,
-  Divider,
-  Heading,
   HStack,
   Input,
   InputGroup,
   InputLeftElement,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  Spinner,
   Stack,
   Switch,
   Table,
@@ -32,7 +22,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AddIcon,
   DeleteIcon,
@@ -43,8 +33,7 @@ import {
 import { AuthButton } from '@/components/auth/auth-button';
 import { Auth } from '@/components/auth/auth';
 import { useHasPermission } from '@/components/auth/use-has-permission';
-import { ArticleMeta } from '@/components/blog/article-meta';
-import { MarkdownContent } from '@/components/blog/markdown-content';
+import { ArticlePreviewModal } from '@/components/blog/article-preview-modal';
 import { AppSelect } from '@/components/common/app-select';
 import { AlertStatusIcon } from '@/components/common/alert-status-icon';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -97,12 +86,8 @@ export function ArticleManager({
   const [changingStatusIds, setChangingStatusIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [previewing, setPreviewing] = useState<ArticleDetail | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState('');
+  const [previewing, setPreviewing] = useState<ArticleListItem | null>(null);
   const [deleting, setDeleting] = useState<ArticleListItem | null>(null);
-  const previewRequestId = useRef(0);
-  const previewDialog = useDisclosure();
   const deleteDialog = useDisclosure();
   const feedback = useActionFeedback();
 
@@ -181,37 +166,6 @@ export function ArticleManager({
         return next;
       });
     }
-  }
-
-  async function openArticlePreview(article: ArticleListItem) {
-    const requestId = ++previewRequestId.current;
-    setPreviewing(null);
-    setPreviewError('');
-    setPreviewLoading(true);
-    previewDialog.onOpen();
-
-    try {
-      const detail = await requestJson<ArticleDetail>(
-        `/api/v1/blog/manage/articles/${article.id}`,
-      );
-      if (previewRequestId.current === requestId) setPreviewing(detail);
-    } catch (error) {
-      if (previewRequestId.current === requestId) {
-        setPreviewError(
-          error instanceof Error ? error.message : '文章预览加载失败',
-        );
-      }
-    } finally {
-      if (previewRequestId.current === requestId) setPreviewLoading(false);
-    }
-  }
-
-  function closeArticlePreview() {
-    previewRequestId.current += 1;
-    previewDialog.onClose();
-    setPreviewing(null);
-    setPreviewError('');
-    setPreviewLoading(false);
   }
 
   return (
@@ -400,7 +354,7 @@ export function ArticleManager({
                         size="xs"
                         variant="ghost"
                         aria-label="预览文章"
-                        onClick={() => void openArticlePreview(article)}
+                        onClick={() => setPreviewing(article)}
                       >
                         <LocalIcon icon={EditorPreviewIcon} />
                       </Button>
@@ -448,103 +402,13 @@ export function ArticleManager({
           onPageChange={setPage}
         />
       </DataTableCard>
-      <Modal
-        isOpen={previewDialog.isOpen}
-        onClose={closeArticlePreview}
-        size="4xl"
-        scrollBehavior="inside"
-      >
-        <ModalOverlay />
-        <ModalContent
-          h={{ base: '100dvh', md: 'calc(100dvh - 48px)' }}
-          maxH={{ base: '100dvh', md: 'calc(100dvh - 48px)' }}
-          my={{ base: 0, md: 6 }}
-        >
-          <ModalHeader flexShrink={0}>文章预览</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody
-            flex="1 1 auto"
-            minH={0}
-            overflowY="auto"
-            overscrollBehavior="contain"
-            pb={8}
-            sx={{ scrollbarGutter: 'stable' }}
-          >
-            {previewLoading ? (
-              <Stack align="center" justify="center" minH="320px" spacing={3}>
-                <Spinner color="brand.500" />
-                <Text color="ink.500" fontSize="sm">
-                  正在加载文章内容
-                </Text>
-              </Stack>
-            ) : previewError ? (
-              <Alert status="error">
-                <AlertStatusIcon status="error" />
-                <AlertDescription>{previewError}</AlertDescription>
-              </Alert>
-            ) : previewing ? (
-              <Box as="article" maxW="780px" mx="auto">
-                <HStack spacing={2} mb={4} wrap="wrap">
-                  <Badge
-                    colorScheme={
-                      previewing.status === 'PUBLISHED' ? 'green' : 'gray'
-                    }
-                  >
-                    {previewing.status === 'PUBLISHED' ? '已发布' : '草稿'}
-                  </Badge>
-                  <Text color="ink.500" fontSize="sm">
-                    /{previewing.slug}
-                  </Text>
-                </HStack>
-                <Heading
-                  as="h2"
-                  color="ink.900"
-                  fontSize={{ base: '2xl', md: '36px' }}
-                  lineHeight="1.3"
-                >
-                  {previewing.title}
-                </Heading>
-                {previewing.summary ? (
-                  <Text color="ink.600" fontSize="lg" lineHeight="1.75" mt={4}>
-                    {previewing.summary}
-                  </Text>
-                ) : null}
-                {previewing.tags.length ? (
-                  <HStack spacing={2} mt={4} wrap="wrap">
-                    {previewing.tags.map((tag) => (
-                      <Badge key={tag.id} colorScheme="brand">
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </HStack>
-                ) : null}
-                <Box mt={4}>
-                  <ArticleMeta
-                    publishedAt={previewing.publishedAt}
-                    likeCount={previewing.likeCount}
-                    commentCount={previewing.commentCount}
-                  />
-                </Box>
-                <Divider my={{ base: 6, md: 8 }} />
-                {previewing.contentMarkdown ? (
-                  <MarkdownContent>
-                    {previewing.contentMarkdown}
-                  </MarkdownContent>
-                ) : (
-                  <Stack py={12} textAlign="center" spacing={1}>
-                    <Text color="ink.700" fontWeight="700">
-                      暂无正文内容
-                    </Text>
-                    <Text color="ink.500" fontSize="sm">
-                      可进入编辑页补充 Markdown 正文。
-                    </Text>
-                  </Stack>
-                )}
-              </Box>
-            ) : null}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      <ArticlePreviewModal
+        articleUrl={
+          previewing ? `/api/v1/blog/manage/articles/${previewing.id}` : null
+        }
+        isOpen={Boolean(previewing)}
+        onClose={() => setPreviewing(null)}
+      />
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
         title="删除文章"
